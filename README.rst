@@ -26,7 +26,24 @@ A small library to compute fairness of recommender systems.
 Features
 --------
 
-* TODO
+* Compute Novelty of a recommender system based on its recommendations list.
+* Compute Coverage of a recommender system based on its recommendations list.
+* Compute Entropy of a recommender system based on its recommendations list.
+* Compute Kullback-Leibler divergence of a recommender system based on its recommendations list and the wanted target representation.
+* Compute Mutual Information of a recommender system based on its recommendations list.
+* Segment an implicit or explicit dataset in groups based on the activity of the users or on the popularity of the items.
+
+
+Usage
+-----
+
+You just need a recommendation list in the form of a `user, item, rank, group` Dataframe. The library will do the rest.
+If you don't have the info about the group, you can use the library itself to segment the dataset in groups. The dataset has to be in the form of `user, item, rank`.
+
+Known Issues
+------------
+
+In this version of the library, the computation of the metrics for cross groups (user and item groups together) has not yet implemented.
 
 Credits
 -------
