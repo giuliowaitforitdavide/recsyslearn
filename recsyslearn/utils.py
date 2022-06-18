@@ -28,7 +28,7 @@ def test_pattern(input: pd.DataFrame, pattern: list) -> None:
     '''
 
     if list(input.columns) != pattern:
-      raise Exception(f'Columns does not match the pattern {pattern}')
+        raise Exception(f'Columns does not match the pattern {pattern}')
 
     dtypes = {
       'user': str,
@@ -73,63 +73,63 @@ def exp_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
 
 def prob_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
 
-  '''
-  Compute probability distribution matrix for given recommendation lists.
+    '''
+    Compute probability distribution matrix for given recommendation lists.
 
-  Parameters
-  ----------
-  top_n : pd.DataFrame
-    Recommendation lists per user in the form (user, item, rank, group).
-
-
-  Return
-  ------
-  top_n : pd.DataFrame
-    The DataFrame with computed probability distribution.
+    Parameters
+    ----------
+    top_n : pd.DataFrame
+      Recommendation lists per user in the form (user, item, rank, group).
 
 
-  Raise
-  -----
-  Exception
-    If top_n header is not in the from (user, item, rank, group).
-  '''
+    Return
+    ------
+    top_n : pd.DataFrame
+      The DataFrame with computed probability distribution.
 
-  test_pattern(top_n, ['user', 'item', 'rank', 'group'])
-  
-  top_n['rank'] = top_n['rank'] / top_n['rank'].sum()
-  return top_n
+
+    Raise
+    -----
+    Exception
+      If top_n header is not in the from (user, item, rank, group).
+    '''
+
+    test_pattern(top_n, ['user', 'item', 'rank', 'group'])
+    
+    top_n['rank'] = top_n['rank'] / top_n['rank'].sum()
+    return top_n
 
 
 def eff_matrix(top_n: pd.DataFrame, rel_matrix: pd.DataFrame) -> pd.DataFrame:
 
-  '''
-  Compute effectiveness matrix for given recommendation lists.
+    '''
+    Compute effectiveness matrix for given recommendation lists.
 
-  Parameters
-  ----------
-  top_n : pd.DataFrame
-    Recommendation lists per user in the form (user, item, rank, group).
-
-
-  Return
-  ------
-  top_n : pd.DataFrame
-    The DataFrame with computed effectiveness.
+    Parameters
+    ----------
+    top_n : pd.DataFrame
+      Recommendation lists per user in the form (user, item, rank, group).
 
 
-  Raise
-  -----
-  Exception
-    If top_n header is not in the from (user, item, rank, group).
-    If rel_matrix header is not in the form (user, item, rank).
-  '''
+    Return
+    ------
+    top_n : pd.DataFrame
+      The DataFrame with computed effectiveness.
 
-  test_pattern(top_n, ['user', 'item', 'rank', 'group'])
-  test_pattern(rel_matrix, ['user', 'item', 'rank', 'group'])
 
-  top_n = exp_matrix(top_n)
-  top_n = top_n.merge(rel_matrix, on=['user', 'item', 'group'], how='outer')
-  top_n.loc[:, ['rank_x', 'rank_y']] = top_n.loc[:, ['rank_x', 'rank_y']].fillna(0)
-  top_n['rank'] = top_n['rank_x'] * top_n['rank_y']
-  return top_n[['user', 'item', 'rank', 'group']]
+    Raise
+    -----
+    Exception
+      If top_n header is not in the from (user, item, rank, group).
+      If rel_matrix header is not in the form (user, item, rank).
+    '''
+
+    test_pattern(top_n, ['user', 'item', 'rank', 'group'])
+    test_pattern(rel_matrix, ['user', 'item', 'rank', 'group'])
+
+    top_n = exp_matrix(top_n)
+    top_n = top_n.merge(rel_matrix, on=['user', 'item', 'group'], how='outer')
+    top_n.loc[:, ['rank_x', 'rank_y']] = top_n.loc[:, ['rank_x', 'rank_y']].fillna(0)
+    top_n['rank'] = top_n['rank_x'] * top_n['rank_y']
+    return top_n[['user', 'item', 'rank', 'group']]
 
