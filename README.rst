@@ -50,7 +50,7 @@ If you don't have the info about the groups, you can use the library itself to s
 Known Issues
 ------------
 
-In this version of the library, the computation of the metrics for cross groups (user and item groups together) has not yet implemented.
+In this version of the library, the computation of the metrics for cross groups (user and item groups together) has not been implemented yet.
 
 Credits
 -------
