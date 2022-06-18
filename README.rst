@@ -34,11 +34,18 @@ Features
 * Segment an implicit or explicit dataset in groups based on the activity of the users or on the popularity of the items.
 
 
+Installation
+------------
+
+To install the library simply run in the command-line::
+
+    pip install recsyslearn
+
 Usage
 -----
 
-You just need a recommendation list in the form of a `user, item, rank, group` Dataframe. The library will do the rest.
-If you don't have the info about the groups, you can use the library itself to segment the dataset in groups. The dataset has to be in the form of `user, item, rank`.
+You just need a recommendation list in the form of a ``user, item, rank, group`` Dataframe. The library will do the rest.
+If you don't have the info about the groups, you can use the library itself to segment the dataset. The dataset has to be in the form of ``user, item, rank``.
 
 Known Issues
 ------------
