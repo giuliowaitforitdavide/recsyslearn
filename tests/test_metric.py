@@ -25,7 +25,6 @@ item_groups = pd.DataFrame([
   ['10', '3']
   ], columns=['item', 'group'])
 
-
 first_example = pd.DataFrame([
       ['1', '3', 1], 
       ['1', '4', 1], 
@@ -158,16 +157,12 @@ class EntropyTest(unittest.TestCase):
     top_n = first_example.merge(user_groups, on='user')
     entropy = entropyEvaluator.evaluate(top_n)
     self.assertAlmostEqual(entropy, 0.91830, delta=1e-5)
-    print('')
-    print(f'User exposure test passed with an entropy equal to {entropy}')
   
 
   def test_item_exposure(self) -> None:
     top_n = first_example.merge(item_groups, on='item')
     entropy = entropyEvaluator.evaluate(top_n)
     self.assertAlmostEqual(entropy, 1.48547, delta=1e-5)
-    print('')
-    print(f'Item exposure test passed with an entropy equal to {entropy}')
 
 
 class KullbackLeiblerTest(unittest.TestCase):
@@ -182,8 +177,6 @@ class KullbackLeiblerTest(unittest.TestCase):
     target_representation = pd.DataFrame([['1', 0.5], ['2', 0.5]], columns=['group', 'target_representation'])
     divergence = klEvaluator.evaluate(top_n, target_representation, rel_matrix)
     self.assertAlmostEqual(divergence, 0.08530, delta=1e-5)
-    print('')
-    print(f'User effectiveness test passed with a divergence equal to {divergence}')
 
 
   def test_item_exposure(self) -> None:
@@ -191,8 +184,6 @@ class KullbackLeiblerTest(unittest.TestCase):
     target_representation = pd.DataFrame([['1', 0.2], ['2', 0.3], ['3', 0.5]], columns=['group', 'target_representation'])
     divergence = klEvaluator.evaluate(top_n, target_representation)
     self.assertAlmostEqual(divergence, 0, delta=1e-5)
-    print('')
-    print(f'Item exposure test passed with a divergence equal to {divergence}')
 
 
 class MutualInformationTest(unittest.TestCase):
@@ -205,16 +196,12 @@ class MutualInformationTest(unittest.TestCase):
     top_n = first_example.merge(user_groups, on='user')
     mi = miEvaluator.evaluate(top_n, 'user')
     self.assertAlmostEqual(mi, 0.25582, delta=1e-5)
-    print('')
-    print(f'User exposure test passed with a mutual information equal to {mi}') 
 
 
   def test_item_exposure(self) -> None:
     top_n = first_example.merge(item_groups, on='item')
     mi = miEvaluator.evaluate(top_n, 'item')
     self.assertAlmostEqual(mi, 0.10570, delta=1e-5)
-    print('')
-    print(f'Item exposure test passed with a mutual information equal to {mi}') 
 
 
 class CoverageTest(unittest.TestCase):
@@ -223,16 +210,12 @@ class CoverageTest(unittest.TestCase):
     top_n = first_example[(first_example['item'] != '3') & (first_example['item'] != '4') & (first_example['item'] != '1')]
     cov = coverageEvaluator.evaluate(top_n, item_groups.item.tolist())
     self.assertAlmostEqual(cov, 0.7)
-    print('')
-    print(f'Coverage test one passed with a coverage equal to {cov}')
 
 
   def test_coverage_two(self) -> None:
     top_n = first_example[(first_example['item'] != '1') & (first_example['item'] != '2') & (first_example['item'] != '4') & (first_example['item'] != '7') & (first_example['item'] != '9') & (first_example['item'] != '10')]
     cov = coverageEvaluator.evaluate(top_n, item_groups.item.tolist())
     self.assertAlmostEqual(cov, 0.4)
-    print('')
-    print(f'Coverage test one passed with a coverage equal to {cov}')
 
 
 class NoveltyTest(unittest.TestCase):
@@ -241,22 +224,17 @@ class NoveltyTest(unittest.TestCase):
     novelty = np.vectorize(lambda x: -np.log2(1 / int(x)))
     return np.sum(novelty(list))/len(list)
 
-  
+
   def test_novelty_one(self) -> None:
     top_n = first_example.merge(item_groups, on='item')
     nov = noveltyEvaluator.evaluate(top_n)
     self.assertAlmostEqual(nov, self.novelty(top_n['group'].to_numpy()), delta=1e-5)
-    print('')
-    print(f'Novelty test passed with a novelty equal to {nov}') 
 
 
   def test_novelty_two(self) -> None:
     top_n = second_example.merge(item_groups, on='item')
     nov = noveltyEvaluator.evaluate(top_n)
     self.assertAlmostEqual(nov, self.novelty(top_n['group'].to_numpy()), delta=1e-5)
-    print('')
-    print(f'Novelty test passed with a novelty equal to {nov}') 
-
 
 if __name__ == '__main__':
   unittest.main()

@@ -1,6 +1,21 @@
 
-# Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,windows,venv
-# Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,python,windows,venv
+# Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,linux,python
+# Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,linux,python
+
+### Linux ###
+*~
+
+# temporary files which can be created if a process still has a handle open of a deleted file
+.fuse_hidden*
+
+# KDE directory preferences
+.directory
+
+# Linux trash folder which might appear on any partition or disk
+.Trash-*
+
+# .nfs files are created when an open file is removed but is still being accessed
+.nfs*
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -164,18 +179,6 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-### venv ###
-# Virtualenv
-# http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
-[Bb]in
-[Ii]nclude
-[Ll]ib
-[Ll]ib64
-[Ll]ocal
-[Ss]cripts
-pyvenv.cfg
-pip-selfcheck.json
-
 ### VisualStudioCode ###
 .vscode/*
 !.vscode/settings.json
@@ -201,32 +204,4 @@ pip-selfcheck.json
 # Ignore code-workspaces
 *.code-workspace
 
-### Windows ###
-# Windows thumbnail cache files
-Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-
-# Dump file
-*.stackdump
-
-# Folder config file
-[Dd]esktop.ini
-
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
-
-# Windows Installer files
-*.cab
-*.msi
-*.msix
-*.msm
-*.msp
-
-# Windows shortcuts
-*.lnk
-
-# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,windows,venv
-
-*.csv
+# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,linux,python

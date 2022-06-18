@@ -38,7 +38,7 @@ def test_pattern(input: pd.DataFrame, pattern: list) -> None:
       'target_representation': float
       }
 
-    return input.astype({col: dtypes[col] for col in input.columns})
+    return input.astype({col: dtypes[col] for col in input.columns if col in dtypes.keys()})
     
 
 

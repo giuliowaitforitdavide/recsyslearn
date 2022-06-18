@@ -63,7 +63,6 @@ class InteractionSegmentationTest(unittest.TestCase):
     segmented_groups = interactionSegmentator.segment(dataset_item_example)
     self.assertTrue(segmented_groups.loc[segmented_groups['item'] == '1', 'group'].eq('1').all())
     self.assertTrue(segmented_groups.loc[segmented_groups['item'] == '2', 'group'].eq('2').all())
-    print('Item segmentation test passed.')
 
 
 class ActivitySegmentationTest(unittest.TestCase):
@@ -73,7 +72,7 @@ class ActivitySegmentationTest(unittest.TestCase):
     self.assertTrue(segmented_groups.loc[segmented_groups['user'] == '1', 'group'].eq('1').all())
     self.assertTrue(segmented_groups.loc[segmented_groups['user'] == '2', 'group'].eq('2').all())
     self.assertTrue(segmented_groups.loc[segmented_groups['user'] == '3', 'group'].eq('2').all())
-    print('User segmentation test passed.')
+
 
 if __name__ == '__main__':
   unittest.main()
