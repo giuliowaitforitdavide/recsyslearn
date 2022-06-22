@@ -1,7 +1,7 @@
 import unittest
 from recsyslearn.segmentations import ActivitySegmentation, InteractionSegmentation
 import pandas as pd
-from utils import dataset_item_example, dataset_user_example
+from tests.utils import dataset_item_example, dataset_user_example
 
 class InteractionSegmentationTest(unittest.TestCase):
 
