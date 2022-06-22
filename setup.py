@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = ['numpy', 'pandas']
 
-test_requirements = ['numpy', 'pandas', 'unittest']
+test_requirements = ['numpy', 'pandas']
 
 setup(
     author='Giulio Davide Carparelli',
