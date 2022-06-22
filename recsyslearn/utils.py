@@ -1,11 +1,13 @@
 import pandas as pd
 import numpy as np
 
+from recsyslearn.errors import ColumnsNotMatchException
+
 
 def test_pattern(input: pd.DataFrame, pattern: list) -> None:
 
     '''
-    Raise Exception if pd.Dataframe header is not as expected.
+    Raise ColumnsNotMatchException if pd.Dataframe header is not as expected.
 
     Parameters
     ----------
@@ -18,7 +20,7 @@ def test_pattern(input: pd.DataFrame, pattern: list) -> None:
 
     Raise
     ------
-    Exception
+    ColumnsNotMatchException
       If input as not expected.
 
     
@@ -28,7 +30,7 @@ def test_pattern(input: pd.DataFrame, pattern: list) -> None:
     '''
 
     if list(input.columns) != pattern:
-        raise Exception(f'Columns does not match the pattern {pattern}')
+        raise ColumnsNotMatchException(pattern)
 
     dtypes = {
       'user': str,
@@ -50,19 +52,19 @@ def exp_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
     Parameters
     ----------
     top_n : pd.DataFrame
-      Recommendation lists per user in the form (user, item, rank, group).
+      	Recommendation lists per user in the form (user, item, rank, group).
 
 
     Raise
     -----
-    Exception
-      If top_n header is not in the from (user, item, rank, group).
+    ColumnsNotMatchException
+      	If top_n is not in the from (user, item, rank, group).
 
 
     Return
     ------
     top_n : pd.DataFrame
-      The DataFrame with computed exposure.
+      	The DataFrame with computed exposure.
     '''
 
     test_pattern(top_n, ['user', 'item', 'rank', 'group'])
@@ -79,19 +81,19 @@ def prob_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
     Parameters
     ----------
     top_n : pd.DataFrame
-      Recommendation lists per user in the form (user, item, rank, group).
+      	Recommendation lists per user in the form (user, item, rank, group).
 
 
     Return
     ------
     top_n : pd.DataFrame
-      The DataFrame with computed probability distribution.
+      	The DataFrame with computed probability distribution.
 
 
     Raise
     -----
-    Exception
-      If top_n header is not in the from (user, item, rank, group).
+    ColumnsNotMatchException
+      	If top_n is not in the from (user, item, rank, group).
     '''
 
     test_pattern(top_n, ['user', 'item', 'rank', 'group'])
@@ -108,20 +110,20 @@ def eff_matrix(top_n: pd.DataFrame, rel_matrix: pd.DataFrame) -> pd.DataFrame:
     Parameters
     ----------
     top_n : pd.DataFrame
-      Recommendation lists per user in the form (user, item, rank, group).
+      	Recommendation lists per user in the form (user, item, rank, group).
 
 
     Return
     ------
     top_n : pd.DataFrame
-      The DataFrame with computed effectiveness.
+      	The DataFrame with computed effectiveness.
 
 
     Raise
     -----
-    Exception
-      If top_n header is not in the from (user, item, rank, group).
-      If rel_matrix header is not in the form (user, item, rank).
+    ColumnsNotMatchException
+      	If top_n header is not in the from (user, item, rank, group).
+      	If rel_matrix header is not in the form (user, item, rank).
     '''
 
     test_pattern(top_n, ['user', 'item', 'rank', 'group'])
@@ -132,4 +134,3 @@ def eff_matrix(top_n: pd.DataFrame, rel_matrix: pd.DataFrame) -> pd.DataFrame:
     top_n.loc[:, ['rank_x', 'rank_y']] = top_n.loc[:, ['rank_x', 'rank_y']].fillna(0)
     top_n['rank'] = top_n['rank_x'] * top_n['rank_y']
     return top_n[['user', 'item', 'rank', 'group']]
-

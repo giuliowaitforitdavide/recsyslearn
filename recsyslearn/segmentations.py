@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from abc import ABC, abstractmethod
 
+from recsyslearn.errors import SegmentationNotSupportedException, WrongProportionsException
+
 
 class Segmentation(ABC):
 
@@ -32,17 +34,20 @@ class InteractionSegmentation(Segmentation):
 
 		Parameters
 		----------
-		dataset : DataFrame
-		The complete dataset.
+		dataset : pd.DataFrame
+			The complete dataset.
 
 		proportion : list, default [0.8, 0.2]
-		The proportion of interactions wanted for every group. Its length should be between 1 and 3.
+			The proportion of interactions wanted for every group. Its length should be between 1 and 3.
 
 
 		Raises
 		------
-		Exception
-		If len(proportion) not in (1, 2, 3) or sum of the proportion is different from one.
+		SegmentationNotSupportedException
+			If len(proportion) not in (1, 2, 3).
+		
+		WrongProportionsException
+			If sum(proportion) is not 1, which means it doesn't cover all the items/users.
 
 		
 		Return
@@ -51,10 +56,10 @@ class InteractionSegmentation(Segmentation):
 		'''
 
 		if len(proportion) not in (1, 2, 3):
-			raise Exception('Number of item groups should be between 1 and 3.')
+			raise SegmentationNotSupportedException()
 
 		if sum(proportion) != 1:
-			raise Exception('Wrong proportions.')
+			raise WrongProportionsException()
 
 		if len(proportion) == 1:
 			return dataset
@@ -90,17 +95,20 @@ class ActivitySegmentation(Segmentation):
 
 		Parameters
 		----------
-		dataset : DataFrame
-		The complete dataset.
+		dataset : pd.DataFrame
+			The complete dataset.
 
 		proportion : list, default [0.8, 0.2]
-		The proportion of interactions wanted for every group.
+			The proportion of interactions wanted for every group.
 
 
 		Raises
 		------
-		Exception
-		If len(proportion) not in (1, 2, 3).
+		SegmentationNotSupportedException
+			If len(proportion) not in (1, 2, 3).
+		
+		WrongProportionsException
+			If sum(proportion) is not 1, which means it doesn't cover all the items/users.
 
 		
 		Return
@@ -109,10 +117,10 @@ class ActivitySegmentation(Segmentation):
 		'''
 
 		if len(proportion) not in (1, 2, 3):
-			raise Exception('Number of user groups should be between 1 and 3.')
+			raise SegmentationNotSupportedException()
 
 		if sum(proportion) != 1:
-			raise Exception('Wrong proportions.')
+			raise WrongProportionsException()
 
 		if len(proportion) == 1:
 			return dataset
