@@ -38,6 +38,5 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/giuliowaitforitdavide/recsyslearn',
-    version='0.1.0-alpha',
     zip_safe=False,
 )
