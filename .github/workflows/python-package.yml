@@ -5,7 +5,8 @@ name: Python package test
 
 on:
   push:
-    - "*"
+    branches:
+      - "*"
   pull_request:
     branches: [ "main" ]
 
