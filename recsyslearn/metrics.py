@@ -92,7 +92,7 @@ class Novelty(Metric):
 
 
 		top_n.loc[:, 'group'] = pd.to_numeric(top_n.loc[:,'group'])
-		top_n = top_n.groupby('user')['group'].apply(lambda x: np.mean(- np.log2(1 / x)))
+		top_n = top_n.groupby('user')['group'].apply(lambda x: np.mean(- np.log2(x)))
 		return top_n.mean()
 
 
