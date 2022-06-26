@@ -18,7 +18,7 @@ class EntropyTest(unittest.TestCase):
 		top_n = first_example.merge(user_groups, on='user')
 		entropy = self.evaluator.evaluate(top_n)
 		self.assertAlmostEqual(entropy, 0.91830, delta=1e-5)
-	
+
 
 	def test_item_exposure(self) -> None:
 		top_n = first_example.merge(item_groups, on='item')
@@ -103,8 +103,8 @@ class NoveltyTest(unittest.TestCase):
 
 	def setUp(self):
 		self.evaluator = Novelty()
-		novelty = np.vectorize(lambda x: -np.log2(1 / int(x)))
-		self.novelty = lambda list: np.sum(novelty(list))/len(list)
+		novelty = np.vectorize(lambda x: np.mean(-np.log2(1 / int(x))))
+		self.novelty = lambda list: np.mean(novelty(list))
 
 
 	def test_novelty_one(self) -> None:
