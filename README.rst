@@ -1,13 +1,13 @@
 ===========
-recsyslearn
+Recsyslearn
 ===========
 
 
 .. image:: https://img.shields.io/pypi/v/recsyslearn.svg
         :target: https://pypi.python.org/pypi/recsyslearn
 
-.. image:: https://img.shields.io/travis/giuliowaitforitdavide/recsyslearn.svg
-        :target: https://travis-ci.com/giuliowaitforitdavide/recsyslearn
+.. .. image:: https://img.shields.io/travis/giuliowaitforitdavide/recsyslearn.svg
+..         :target: https://travis-ci.com/giuliowaitforitdavide/recsyslearn
 
 .. image:: https://readthedocs.org/projects/recsyslearn/badge/?version=latest
         :target: https://recsyslearn.readthedocs.io/en/latest/?version=latest
