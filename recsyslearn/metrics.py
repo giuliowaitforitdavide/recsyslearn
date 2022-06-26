@@ -13,8 +13,8 @@ class Metric(ABC):
 
 	def __init__(self) -> None:
 		return
-		
-	
+
+
 	@abstractmethod
 	def evaluate(self, top_n: pd.DataFrame) -> float:
 		pass
@@ -24,7 +24,7 @@ class Coverage(Metric):
 
 	'''
 	Coverage evaluator for recommender systems.
-	Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2 
+	Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2
 	'''
 
 	def evaluate(self, top_n: pd.DataFrame, items: list) -> float:
@@ -37,7 +37,7 @@ class Coverage(Metric):
 		----------
 		top_n : pd.DataFrame
 			Top-N recommendations' lists for every user with items or users already segmented.
-		
+
 		items : list or array-like
 			List of items in the dataset.
 
@@ -61,7 +61,7 @@ class Novelty(Metric):
 
 	'''
 	Novelty evaluator for recommender systems.
-	Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2 
+	Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2
 	'''
 
 
@@ -91,17 +91,17 @@ class Novelty(Metric):
 		test_pattern(top_n, ['user', 'item', 'rank', 'group'])
 
 
-		top_n.loc[:, 'rank'] = pd.to_numeric(top_n.loc[:,'group'])
-		top_n = top_n.groupby('user')['rank'].apply(lambda x: - np.log2(1 / x))
+		top_n.loc[:, 'group'] = pd.to_numeric(top_n.loc[:,'group'])
+		top_n = top_n.groupby('user')['group'].apply(lambda x: - np.log2(1 / x))
 		return top_n.sum() / len(top_n)
 
 
 class Entropy(Metric):
-	
+
 	'''
 	Entropy evaluator for recommender systems.
 	'''
-	
+
 
 	def evaluate(self, top_n: pd.DataFrame, rel_matrix: pd.DataFrame = None) -> float:
 
@@ -123,7 +123,7 @@ class Entropy(Metric):
 		ColumnsNotMatchException
 			If top_n not in the form ('user', 'item', 'rank', 'group').
 
-		
+
 		Return
 		------
 		The computed entropy.
@@ -134,9 +134,9 @@ class Entropy(Metric):
 
 		if rel_matrix is not None:
 			top_n = eff_matrix(top_n, rel_matrix)
-		
+
 		top_n = prob_matrix(top_n)
-		
+
 		top_n = top_n[['group', 'rank']].groupby('group', as_index=False).sum()
 		top_n['rank'] = top_n['rank'] * np.log2(top_n['rank'])
 		return - top_n['rank'].sum()
@@ -179,26 +179,26 @@ class KullbackLeibler(Metric):
 
 		test_pattern(top_n, ['user', 'item', 'rank', 'group'])
 		test_pattern(target_representation, ['group', 'target_representation'])
-		
+
 
 		if rel_matrix is not None:
 			top_n = eff_matrix(top_n, rel_matrix)
 		else:
 			top_n = exp_matrix(top_n)
-		
+
 		top_n = prob_matrix(top_n)
 		top_n = top_n[['group', 'rank']].groupby('group', as_index=False).sum()
 		top_n = top_n.merge(target_representation, on='group')
 		top_n['rank'] = top_n['rank'] * np.log2(top_n['rank'] / top_n['target_representation'])
 		return top_n['rank'].sum()
 
-  
+
 class MutualInformation(Metric):
 
 	'''
 	Mutual Information evaluator for recommender systems.
 	'''
-	
+
 
 	def evaluate(self, top_n: pd.DataFrame, flag: str, rel_matrix: pd.DataFrame = None) -> float:
 
@@ -216,7 +216,7 @@ class MutualInformation(Metric):
 
 		rel_matrix : pd.DataFrame, default None
 			Relevant items for users. It could be, for example, the items with a rating >= threshold.
-	
+
 
 		Raises
 		------
@@ -226,7 +226,7 @@ class MutualInformation(Metric):
 		FlagNotValidException
 			If flag is not valid.
 
-		
+
 		Return
 		------
 		The computed Mutual Information.
@@ -244,7 +244,7 @@ class MutualInformation(Metric):
 			top_n = eff_matrix(top_n, rel_matrix)
 		else:
 			top_n = exp_matrix(top_n)
-		
+
 		top_n = prob_matrix(top_n)
 
 		P_xy = top_n[[not_flagged[flag], 'group', 'rank']].groupby([not_flagged[flag], 'group'], as_index=False).sum()
