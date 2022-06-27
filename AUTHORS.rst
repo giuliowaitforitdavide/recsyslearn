@@ -10,4 +10,4 @@ Development Lead
 Contributors
 ------------
 
-* Marta Moscati <ma.moscati@gmail.com>
+None yet. Why not be the first?
