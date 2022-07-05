@@ -79,12 +79,12 @@ class InteractionSegmentation(Segmentation):
         return item_groups[['item', 'group']]
 
 
-class ItemPopularityPercentage(Segmentation):
+class PopularityPercentage(Segmentation):
     """
     Calculate item popularity based on the percentage of interaction they have.
     """
 
-    def segment(self, dataset: pd.DataFrame, min_interaction: int = 0) -> pd.DataFrame:
+    def segment(self, dataset: pd.DataFrame, calculate_on: str = 'item') -> pd.DataFrame:
         """
         Calculate item popularity based on their interactions with different users.
 
@@ -93,6 +93,8 @@ class ItemPopularityPercentage(Segmentation):
         ----------
         dataset : pd.DataFrame
             The complete dataset.
+        calculate_on : str
+            Whether to calculate the popularity of users or of items
 
 
         Raises
@@ -105,7 +107,7 @@ class ItemPopularityPercentage(Segmentation):
         """
 
         # Get the item column as a numpy array
-        item_interactions = dataset.items.values
+        item_interactions = dataset[calculate_on].values
         # Get the total number of user-item interactions
         total_interactions = len(item_interactions)
 
@@ -116,9 +118,9 @@ class ItemPopularityPercentage(Segmentation):
         inter_counter = {item: counts / total_interactions for item, counts in inter_counter.items()}
 
         # Define the percentage column using the dictionary
-        dataset['percentage'] = dataset['item'].replace(inter_counter, inplace=False)
+        dataset['percentage'] = dataset[calculate_on].replace(inter_counter, inplace=False)
 
-        return dataset[['item', 'percentage']]
+        return dataset[[calculate_on, 'percentage']]
 
 
 class ActivitySegmentation(Segmentation):
