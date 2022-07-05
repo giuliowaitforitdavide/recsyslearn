@@ -61,9 +61,10 @@ class Novelty(Metric):
     (e.g.  short head -> 3
            mid tail   -> 2
            long tail  -> 1)
+    or in terms of percentage of user-item interactions.
     """
 
-    def evaluate(self, top_n: pd.DataFrame) -> float:
+    def evaluate(self, top_n: pd.DataFrame, popularity_definition='group') -> float:
         """
         Compute the novelty of a model by using its recommendation list and the segmented item groups.
 
@@ -72,12 +73,15 @@ class Novelty(Metric):
         ----------
         top_n : pd.DataFrame
             Top-N recommendations' lists for every user with items or users already segmented.
-
+        popularity_definition: str
+            Either 'group' or 'percentage', to choose whether popularity is computed in terms of
+            segmenting items/users according to the distribution of user-item interactions
+            or if it is defined as the percentage of user-item interactions.
 
         Raises
         ------
         ColumnsNotMatchException
-            If top_n not in the form ('user', 'item', 'rank', 'group') or if item_group has values not in (0, 1, 2).
+            If top_n not in the form ('user', 'item', 'rank', popularity_definition).
 
 
         Return
@@ -85,48 +89,10 @@ class Novelty(Metric):
         The computed novelty.
         """
 
-        test_pattern(top_n, ['user', 'item', 'rank', 'group'])
+        test_pattern(top_n, ['user', 'item', 'rank', popularity_definition])
 
-        top_n.loc[:, 'group'] = pd.to_numeric(top_n.loc[:, 'group'])
-        top_n = top_n.groupby('user')['group'].apply(lambda x: np.mean(- np.log2(x)))
-        return top_n.mean()
-
-
-class PercNovelty(Metric):
-    """
-    Novelty evaluator for recommender systems.
-    Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2
-    where popularity is defined in terms of percentage of user-item interactions
-    (e.g.  ...)
-    """
-
-    def evaluate(self, top_n: pd.DataFrame) -> float:
-        """
-        Compute the novelty of a model by using its recommendation list and the percentage of
-        user-item interactions.
-
-
-        Parameters
-        ----------
-        top_n : pd.DataFrame
-            Top-N recommendations' lists for every user with items or users already with corresponding percentage.
-
-
-        Raises
-        ------
-        ColumnsNotMatchException
-            If top_n not in the form ('user', 'item', 'rank', 'percentage') or if percentage is not in ]0, 1[.
-
-
-        Return
-        ------
-        The computed novelty.
-        """
-
-        test_pattern(top_n, ['user', 'item', 'rank', 'percentage'])
-
-        top_n.loc[:, 'percentage'] = pd.to_numeric(top_n.loc[:, 'percentage'])
-        top_n = top_n.groupby('user')['percentage'].apply(lambda x: np.mean(- np.log2(x)))
+        top_n.loc[:, popularity_definition] = pd.to_numeric(top_n.loc[:, popularity_definition])
+        top_n = top_n.groupby('user')[popularity_definition].apply(lambda x: np.mean(- np.log2(x)))
         return top_n.mean()
 
 
@@ -137,7 +103,7 @@ class Entropy(Metric):
 
     def evaluate(self, top_n: pd.DataFrame, rel_matrix: pd.DataFrame = None) -> float:
         """
-        Compute the entropy of a model by using its recommendation list.
+        Compute the entropy of a model by usi ng its recommendation list.
 
 
         Parameters
