@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from abc import ABC, abstractmethod
+from collections import Counter
 
 from recsyslearn.errors import SegmentationNotSupportedException, WrongProportionsException
 
@@ -76,6 +77,48 @@ class InteractionSegmentation(Segmentation):
         choices = ['1', '2']
         item_groups.loc[:, 'group'] = np.select(conditions, choices, default='3' if len(proportion) == 3 else '2')
         return item_groups[['item', 'group']]
+
+
+class ItemPopularityPercentage(Segmentation):
+    """
+    Calculate item popularity based on the percentage of interaction they have.
+    """
+
+    def segment(self, dataset: pd.DataFrame, min_interaction: int = 0) -> pd.DataFrame:
+        """
+        Calculate item popularity based on their interactions with different users.
+
+
+        Parameters
+        ----------
+        dataset : pd.DataFrame
+            The complete dataset.
+
+
+        Raises
+        ------
+
+
+        Return
+        ------
+        DataFrame with items and corresponding popularity.
+        """
+
+        # Get the item column as a numpy array
+        item_interactions = dataset.items.values
+        # Get the total number of user-item interactions
+        total_interactions = len(item_interactions)
+
+        # Get the dictionary of {item_id: number_of_interactions}
+        inter_counter = Counter(item_interactions)
+
+        # Convert the counts to percentages
+        inter_counter = {item: counts / total_interactions for item, counts in inter_counter.items()}
+
+        # Define the percentage column using the dictionary
+        dataset['percentage'] = dataset['item'].replace(inter_counter, inplace=False)
+
+        return dataset[['item', 'percentage']]
 
 
 class ActivitySegmentation(Segmentation):
