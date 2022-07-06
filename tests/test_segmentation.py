@@ -31,7 +31,7 @@ class ItemPopularityPercentageTest(unittest.TestCase):
         # Every percentage should be less than 1
         self.assertTrue((popularity_dataframe['percentage'] < 1.).all())
         # The sum of all percentages should be (roughly) 1
-        self.assertTrue(1. - popularity_dataframe['percentage'].sum() < 0.001)
+        self.assertAlmostEqual(1., popularity_dataframe['percentage'].sum(), delta=1e-5)
         # Check the individual item percentages
         self.assertTrue(popularity_dataframe.loc[popularity_dataframe['item'] == '1', 'percentage'].eq(0.6).all())
         self.assertTrue(popularity_dataframe.loc[popularity_dataframe['item'] == '2', 'percentage'].eq(0.3).all())
@@ -51,7 +51,7 @@ class UserPopularityPercentageTest(unittest.TestCase):
         # Every percentage should be less than 1
         self.assertTrue((popularity_dataframe['percentage'] < 1.).all())
         # The sum of all percentages should be (roughly) 1
-        self.assertTrue(1. - popularity_dataframe['percentage'].sum() < 0.001)
+        self.assertAlmostEqual(1., popularity_dataframe['percentage'].sum(), delta=1e-5)
         # Check the individual item percentages
         self.assertTrue(popularity_dataframe.loc[popularity_dataframe['user'] == '1', 'percentage'].eq(0.7).all())
         self.assertTrue(popularity_dataframe.loc[popularity_dataframe['user'] == '2', 'percentage'].eq(0.2).all())
