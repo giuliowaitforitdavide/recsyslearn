@@ -81,12 +81,12 @@ class InteractionSegmentation(Segmentation):
 
 class PopularityPercentage(Segmentation):
     """
-    Calculate item popularity based on the percentage of interaction they have.
+    Calculate item or user popularity based on the percentage of interaction they have.
     """
 
     def segment(self, dataset: pd.DataFrame, calculate_on: str = 'item') -> pd.DataFrame:
         """
-        Calculate item popularity based on their interactions with different users.
+        Calculate item or user popularity based on the percentage of interaction they have.
 
 
         Parameters
@@ -94,7 +94,7 @@ class PopularityPercentage(Segmentation):
         dataset : pd.DataFrame
             The complete dataset.
         calculate_on : str
-            Whether to calculate the popularity of users or of items
+            Whether to calculate the popularity of users or items
 
 
         Raises
@@ -103,7 +103,7 @@ class PopularityPercentage(Segmentation):
 
         Return
         ------
-        DataFrame with items and corresponding popularity.
+        DataFrame with items/user and corresponding popularity.
         """
 
         # Get the item column as a numpy array
