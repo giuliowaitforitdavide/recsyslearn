@@ -217,3 +217,16 @@ dataset_user_example = pd.DataFrame([
     ['2', '1', 1],
     ['3', '1', 1]
 ], columns=['user', 'item', 'rank'])
+
+dataset_popularity = pd.DataFrame([
+    ['1', '1', 1],
+    ['1', '1', 1],
+    ['1', '1', 1],
+    ['1', '1', 1],
+    ['2', '1', 1],
+    ['3', '1', 1],
+    ['1', '2', 1],
+    ['1', '2', 1],
+    ['2', '2', 1],
+    ['1', '3', 1]
+], columns=['user', 'item', 'rank'])
