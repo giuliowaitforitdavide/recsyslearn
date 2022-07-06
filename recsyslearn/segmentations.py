@@ -118,7 +118,7 @@ class PopularityPercentage(Segmentation):
         inter_counter = {item: counts / total_interactions for item, counts in inter_counter.items()}
 
         popularity_dataframe = pd.DataFrame.from_dict(inter_counter, orient='index').reset_index()
-        popularity_dataframe.columns = ['item', 'percentage']
+        popularity_dataframe.columns = [calculate_on, 'percentage']
 
         return popularity_dataframe
         # Define the percentage column using the dictionary
