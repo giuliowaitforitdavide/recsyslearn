@@ -38,6 +38,26 @@ class ItemPopularityPercentageTest(unittest.TestCase):
         self.assertTrue(popularity_dataframe.loc[popularity_dataframe['item'] == '3', 'percentage'].eq(0.1).all())
 
 
+class UserPopularityPercentageTest(unittest.TestCase):
+    """
+    Test for the PopularityPercentage class
+    """
+
+    def setUp(self) -> None:
+        self.interactionSegmentator = PopularityPercentage()
+
+    def test_popularity(self) -> None:
+        popularity_dataframe = self.interactionSegmentator.segment(dataset_popularity, calculate_on='user')
+        # Every percentage should be less than 1
+        self.assertTrue((popularity_dataframe['percentage'] < 1.).all())
+        # The sum of all percentages should be (roughly) 1
+        self.assertTrue(1. - popularity_dataframe['percentage'].sum() < 0.001)
+        # Check the individual item percentages
+        self.assertTrue(popularity_dataframe.loc[popularity_dataframe['user'] == '1', 'percentage'].eq(0.7).all())
+        self.assertTrue(popularity_dataframe.loc[popularity_dataframe['user'] == '2', 'percentage'].eq(0.2).all())
+        self.assertTrue(popularity_dataframe.loc[popularity_dataframe['user'] == '3', 'percentage'].eq(0.1).all())
+
+
 class ActivitySegmentationTest(unittest.TestCase):
     """
     Test for the ActivitySegmentation class.
