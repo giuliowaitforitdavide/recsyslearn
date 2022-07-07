@@ -2,7 +2,8 @@ import unittest
 import pandas as pd
 import numpy as np
 from recsyslearn.metrics import Entropy, KullbackLeibler, MutualInformation, Novelty, Coverage
-from tests.utils import first_example, second_example, item_groups, user_groups, rel_matrix_1, rel_matrix_2
+from tests.utils import first_example, second_example, item_groups, user_groups, rel_matrix_1, \
+    rel_matrix_2  # , item_pop, user_pop
 
 
 class EntropyTest(unittest.TestCase):
@@ -83,7 +84,7 @@ class CoverageTest(unittest.TestCase):
     def test_coverage_two(self) -> None:
         top_n = first_example[
             (first_example['item'] != '1') & (first_example['item'] != '2') & (first_example['item'] != '4') & (
-                    first_example['item'] != '7') & (first_example['item'] != '9') & (first_example['item'] != '10')]
+                first_example['item'] != '7') & (first_example['item'] != '9') & (first_example['item'] != '10')]
         cov = self.evaluator.evaluate(top_n, item_groups.item.tolist())
         self.assertAlmostEqual(cov, 0.4)
 
@@ -104,6 +105,11 @@ class NoveltyTest(unittest.TestCase):
         self.assertAlmostEqual(nov, self.novelty(top_n['group'].to_numpy()), delta=1e-5)
 
     def test_novelty_two(self) -> None:
+        top_n = second_example.merge(item_groups, on='item')
+        nov = self.evaluator.evaluate(top_n)
+        self.assertAlmostEqual(nov, self.novelty(top_n['group'].to_numpy()), delta=1e-5)
+
+    def test_novelty_three(self) -> None:
         top_n = second_example.merge(item_groups, on='item')
         nov = self.evaluator.evaluate(top_n)
         self.assertAlmostEqual(nov, self.novelty(top_n['group'].to_numpy()), delta=1e-5)
