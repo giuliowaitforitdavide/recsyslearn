@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from recsyslearn.metrics import Entropy, KullbackLeibler, MutualInformation, Novelty, Coverage
 from tests.utils import first_example, second_example, item_groups, user_groups, rel_matrix_1, \
-    rel_matrix_2  # , item_pop, user_pop
+    rel_matrix_2, item_pop_perc, user_pop_perc, dataset_popularity
 
 
 class EntropyTest(unittest.TestCase):
@@ -96,7 +96,8 @@ class NoveltyTest(unittest.TestCase):
 
     def setUp(self):
         self.evaluator = Novelty()
-        novelty = np.vectorize(lambda x: np.mean(-np.log2(int(x))))
+#        novelty = np.vectorize(lambda x: np.mean(-np.log2(int(x))))
+        novelty = np.vectorize(lambda x: np.mean(-np.log2(x)))
         self.novelty = lambda list: np.mean(novelty(list))
 
     def test_novelty_one(self) -> None:
@@ -110,9 +111,9 @@ class NoveltyTest(unittest.TestCase):
         self.assertAlmostEqual(nov, self.novelty(top_n['group'].to_numpy()), delta=1e-5)
 
     def test_novelty_three(self) -> None:
-        top_n = second_example.merge(item_groups, on='item')
-        nov = self.evaluator.evaluate(top_n)
-        self.assertAlmostEqual(nov, self.novelty(top_n['group'].to_numpy()), delta=1e-5)
+        top_n = first_example.merge(item_pop_perc, on='item')
+        nov = self.evaluator.evaluate(top_n, popularity_definition='percentage')
+        self.assertAlmostEqual(nov, self.novelty(top_n['percentage'].to_numpy()), delta=1e-5)
 
 
 if __name__ == '__main__':

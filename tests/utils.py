@@ -44,7 +44,6 @@ user_groups = pd.DataFrame([
     ['6', '2']
 ], columns=['user', 'group'])
 
-
 first_example = pd.DataFrame([
     ['1', '3', 1],
     ['1', '4', 1],
@@ -253,3 +252,24 @@ dataset_popularity = pd.DataFrame([
     ['2', '2', 1],
     ['1', '3', 1]
 ], columns=['user', 'item', 'rank'])
+
+item_pop_perc = pd.DataFrame([
+    ['1', 0.05],
+    ['2', 0.01],
+    ['3', 0.03],
+    ['4', 0.23],
+    ['5', 0.4],
+    ['6', 0.6],
+    ['7', 0.15],
+    ['8', 0.34],
+    ['9', 0.07],
+    ['10', 0.02],
+], columns=['item', 'percentage'])
+
+user_pop_perc = pd.DataFrame([
+    ['1', 0.7],
+    ['2', 0.2],
+    ['3', 0.1],
+], columns=['item', 'percentage'])
+
+
