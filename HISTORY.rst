@@ -6,3 +6,9 @@ History
 ------------------
 
 * First release on PyPI.
+
+0.4.1 (2022-06-27)
+------------------
+
+* Fixed novelty formula.
+

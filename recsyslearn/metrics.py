@@ -7,8 +7,7 @@ from recsyslearn.utils import eff_matrix, exp_matrix, test_pattern, prob_matrix
 
 class Metric(ABC):
 
-    """
-    Abstract Class for Metrics.
+    """Abstract Class for Metrics.
     """
 
     def __init__(self) -> None:
@@ -21,20 +20,17 @@ class Metric(ABC):
 
 class Coverage(Metric):
 
-    """
-    Coverage evaluator for recommender systems.
+    """Coverage evaluator for recommender systems.
     Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2
     """
 
     def evaluate(self, top_n: pd.DataFrame, items: list) -> float:
 
-        """
-        Compute the coverage of a model by using its recommendation list.
-
+        """Compute the coverage of a model by using its recommendation list.
 
         Parameters
         ----------
-        top_n : pd.DataFrame
+        top_n: pd.DataFrame
                 Top-N recommendations' lists for every user with items or users already segmented.
 
         items : list or array-like
