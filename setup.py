@@ -37,7 +37,7 @@ setup(
     packages=find_packages(include=["recsyslearn", "recsyslearn.*"]),
     test_suite="tests",
     tests_require=test_requirements,
-    url="https://github.com/giuliowaitforitdavide/recsyslearn",
-    version="0.4.0-alpha",
+    url='https://github.com/giuliowaitforitdavide/recsyslearn',
+    version='0.4.1',
     zip_safe=False,
 )
