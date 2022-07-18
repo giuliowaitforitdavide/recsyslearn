@@ -121,10 +121,6 @@ class PopularityPercentage(Segmentation):
         popularity_dataframe.columns = [group, 'percentage']
 
         return popularity_dataframe
-        # Define the percentage column using the dictionary
-        # dataset['percentage'] = dataset[group].replace(inter_counter, inplace=False)
-
-        # return dataset[[group, 'percentage']]
 
 
 class ActivitySegmentation(Segmentation):
