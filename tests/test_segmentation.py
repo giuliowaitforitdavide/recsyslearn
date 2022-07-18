@@ -47,7 +47,7 @@ class UserPopularityPercentageTest(unittest.TestCase):
         self.interactionSegmentator = PopularityPercentage()
 
     def test_popularity(self) -> None:
-        popularity_dataframe = self.interactionSegmentator.segment(dataset_popularity, calculate_on='user')
+        popularity_dataframe = self.interactionSegmentator.segment(dataset_popularity, group='user')
         # Every percentage should be less than 1
         self.assertTrue((popularity_dataframe['percentage'] < 1.).all())
         # The sum of all percentages should be (roughly) 1
