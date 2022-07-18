@@ -103,7 +103,7 @@ class Entropy(Metric):
 
     def evaluate(self, top_n: pd.DataFrame, rel_matrix: pd.DataFrame = None) -> float:
         """
-        Compute the entropy of a model by usi ng its recommendation list.
+        Compute the entropy of a model by using its recommendation list.
 
 
         Parameters
