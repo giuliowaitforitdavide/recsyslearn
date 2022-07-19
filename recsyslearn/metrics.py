@@ -6,13 +6,12 @@ from recsyslearn.utils import eff_matrix, exp_matrix, test_pattern, prob_matrix
 
 
 class Metric(ABC):
-
-    """Abstract Class for Metrics.
+    """
+    Abstract Class for Metrics.
     """
 
     def __init__(self) -> None:
         return
-
 
     @abstractmethod
     def evaluate(self, top_n: pd.DataFrame) -> float:
@@ -20,28 +19,29 @@ class Metric(ABC):
 
 
 class Coverage(Metric):
-
-    """Coverage evaluator for recommender systems.
+    """
+    Coverage evaluator for recommender systems.
     Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2
     """
 
     def evaluate(self, top_n: pd.DataFrame, items: list) -> float:
+        """
+        Compute the coverage of a model by using its recommendation list.
 
-        """Compute the coverage of a model by using its recommendation list.
 
         Parameters
         ----------
-        top_n: pd.DataFrame
-                Top-N recommendations' lists for every user with items or users already segmented.
+        top_n : pd.DataFrame
+            Top-N recommendations' lists for every user with items or users already segmented.
 
         items : list or array-like
-                List of items in the dataset.
+            List of items in the dataset.
 
 
         Raises
         ------
         ColumnsNotMatchException
-                If top_n not in the form ('user', 'item', 'rank', 'group').
+            If top_n not in the form ('user', 'item', 'rank', 'group').
 
 
         Return
@@ -49,19 +49,22 @@ class Coverage(Metric):
         The computed coverage.
         """
 
-        test_pattern(top_n, ["user", "item", "rank"])
+        test_pattern(top_n, ['user', 'item', 'rank'])
         return len(top_n.item.unique().tolist()) / len(items)
 
 
 class Novelty(Metric):
-
     """
     Novelty evaluator for recommender systems.
     Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2
+    where popularity is defined in terms of the segmentation of the item groups
+    (e.g.  short head -> 3
+           mid tail   -> 2
+           long tail  -> 1)
+    or in terms of percentage of user-item interactions.
     """
 
-    def evaluate(self, top_n: pd.DataFrame) -> float:
-
+    def evaluate(self, top_n: pd.DataFrame, popularity_definition='group') -> float:
         """
         Compute the novelty of a model by using its recommendation list and the segmented item groups.
 
@@ -69,13 +72,16 @@ class Novelty(Metric):
         Parameters
         ----------
         top_n : pd.DataFrame
-                Top-N recommendations' lists for every user with items or users already segmented.
-
+            Top-N recommendations' lists for every user with items or users already segmented.
+        popularity_definition: str
+            Either 'group' or 'percentage', to choose whether popularity is computed in terms of
+            segmenting items/users according to the distribution of user-item interactions
+            or if it is defined as the percentage of user-item interactions.
 
         Raises
         ------
         ColumnsNotMatchException
-                If top_n not in the form ('user', 'item', 'rank', 'group') or if item_group has values not in (0, 1, 2).
+            If top_n not in the form ('user', 'item', 'rank', popularity_definition).
 
 
         Return
@@ -83,23 +89,19 @@ class Novelty(Metric):
         The computed novelty.
         """
 
-        test_pattern(top_n, ["user", "item", "rank", "group"])
+        test_pattern(top_n, ['user', 'item', 'rank', popularity_definition])
 
-        top_n.loc[:, "rank"] = pd.to_numeric(top_n.loc[:, "group"])
-        top_n = top_n.groupby("user")["rank"].apply(lambda x: -np.log2(1 / x))
-        return top_n.sum() / len(top_n)
+        top_n.loc[:, popularity_definition] = pd.to_numeric(top_n.loc[:, popularity_definition])
+        top_n = top_n.groupby('user')[popularity_definition].apply(lambda x: np.mean(- np.log2(x)))
+        return top_n.mean()
 
 
 class Entropy(Metric):
-
     """
     Entropy evaluator for recommender systems.
     """
 
-    def evaluate(
-        self, top_n: pd.DataFrame, rel_matrix: pd.DataFrame = None
-    ) -> float:
-
+    def evaluate(self, top_n: pd.DataFrame, rel_matrix: pd.DataFrame = None) -> float:
         """
         Compute the entropy of a model by using its recommendation list.
 
@@ -107,16 +109,16 @@ class Entropy(Metric):
         Parameters
         ----------
         top_n : pd.DataFrame
-                Top N recommendations' lists for every user with items or users already segmented.
+            Top N recommendations' lists for every user with items or users already segmented.
 
         rel_matrix : pd.DataFrame, default None
-                Relevant items for users. It could be, for example, the items with a rating >= threshold.
+            Relevant items for users. It could be, for example, the items with a rating >= threshold.
 
 
         Raises
         ------
         ColumnsNotMatchException
-                If top_n not in the form ('user', 'item', 'rank', 'group').
+            If top_n not in the form ('user', 'item', 'rank', 'group').
 
 
         Return
@@ -124,30 +126,25 @@ class Entropy(Metric):
         The computed entropy.
         """
 
-        test_pattern(top_n, ["user", "item", "rank", "group"])
+        test_pattern(top_n, ['user', 'item', 'rank', 'group'])
 
         if rel_matrix is not None:
             top_n = eff_matrix(top_n, rel_matrix)
 
         top_n = prob_matrix(top_n)
 
-        top_n = top_n[["group", "rank"]].groupby("group", as_index=False).sum()
-        top_n["rank"] = top_n["rank"] * np.log2(top_n["rank"])
-        return -top_n["rank"].sum()
+        top_n = top_n[['group', 'rank']].groupby('group', as_index=False).sum()
+        top_n['rank'] = top_n['rank'] * np.log2(top_n['rank'])
+        return - top_n['rank'].sum()
 
 
 class KullbackLeibler(Metric):
-
     """
     Kullback-Leibler divergence evaluator for recommender systems.
     """
 
-    def evaluate(
-        self,
-        top_n: pd.DataFrame,
-        target_representation: pd.DataFrame,
-        rel_matrix: pd.DataFrame = None,
-    ) -> float:
+    def evaluate(self, top_n: pd.DataFrame, target_representation: pd.DataFrame,
+                 rel_matrix: pd.DataFrame = None) -> float:
 
         """
         Compute the Kullback-Leibler divergence of a model, for a given target representation, by using its recommendation list.
@@ -156,19 +153,19 @@ class KullbackLeibler(Metric):
         Parameters
         ----------
         top_n : pd.DataFrame
-                Top N recommendations' lists for every user with items or users already segmented.
+            Top N recommendations' lists for every user with items or users already segmented.
 
         target_representation : pd.DataFrame
-                The target representation desired for each group.
+            The target representation desired for each group.
 
         rel_matrix : pd.DataFrame, default None
-                Relevant items for users. It could be, for example, the items with a rating >= threshold.
+            Relevant items for users. It could be, for example, the items with a rating >= threshold.
 
 
         Raises
         ------
         ColumnsNotMatchException
-                If top_n not in the form ('user', 'item', 'rank', 'group') or if target_representation not in the form ('group', 'target_representation').
+            If top_n not in the form ('user', 'item', 'rank', 'group') or if target_representation not in the form ('group', 'target_representation').
 
 
         Return
@@ -176,8 +173,8 @@ class KullbackLeibler(Metric):
         The computed KL Divergence for the given target representation.
         """
 
-        test_pattern(top_n, ["user", "item", "rank", "group"])
-        test_pattern(target_representation, ["group", "target_representation"])
+        test_pattern(top_n, ['user', 'item', 'rank', 'group'])
+        test_pattern(target_representation, ['group', 'target_representation'])
 
         if rel_matrix is not None:
             top_n = eff_matrix(top_n, rel_matrix)
@@ -185,23 +182,18 @@ class KullbackLeibler(Metric):
             top_n = exp_matrix(top_n)
 
         top_n = prob_matrix(top_n)
-        top_n = top_n[["group", "rank"]].groupby("group", as_index=False).sum()
-        top_n = top_n.merge(target_representation, on="group")
-        top_n["rank"] = top_n["rank"] * np.log2(
-            top_n["rank"] / top_n["target_representation"]
-        )
-        return top_n["rank"].sum()
+        top_n = top_n[['group', 'rank']].groupby('group', as_index=False).sum()
+        top_n = top_n.merge(target_representation, on='group')
+        top_n['rank'] = top_n['rank'] * np.log2(top_n['rank'] / top_n['target_representation'])
+        return top_n['rank'].sum()
 
 
 class MutualInformation(Metric):
-
     """
     Mutual Information evaluator for recommender systems.
     """
 
-    def evaluate(
-        self, top_n: pd.DataFrame, flag: str, rel_matrix: pd.DataFrame = None
-    ) -> float:
+    def evaluate(self, top_n: pd.DataFrame, flag: str, rel_matrix: pd.DataFrame = None) -> float:
 
         """
         Compute the Mutual Information of a model by using its recommendation list.
@@ -210,22 +202,22 @@ class MutualInformation(Metric):
         Parameters
         ----------
         top_n : pd.DataFrame
-                Top N recommendations' lists for every user with items or users already segmented.
+            Top N recommendations' lists for every user with items or users already segmented.
 
         flag : str
-                Which actor of the recommendation scenario has been segmented (i.e. user).
+            Which actor of the recommendation scenario has been segmented (i.e. user).
 
         rel_matrix : pd.DataFrame, default None
-                Relevant items for users. It could be, for example, the items with a rating >= threshold.
+            Relevant items for users. It could be, for example, the items with a rating >= threshold.
 
 
         Raises
         ------
         ColumnsNotMatchException
-                If top_n not in the form ('user', 'item', 'rank', 'group').
+            If top_n not in the form ('user', 'item', 'rank', 'group').
 
         FlagNotValidException
-                If flag is not valid.
+            If flag is not valid.
 
 
         Return
@@ -233,9 +225,9 @@ class MutualInformation(Metric):
         The computed Mutual Information.
         """
 
-        test_pattern(top_n, ["user", "item", "rank", "group"])
+        test_pattern(top_n, ['user', 'item', 'rank', 'group'])
 
-        not_flagged = {"user": "item", "item": "user"}
+        not_flagged = {'user': 'item', 'item': 'user'}
 
         if flag not in list(not_flagged.keys()):
             raise FlagNotValidException()
@@ -247,24 +239,12 @@ class MutualInformation(Metric):
 
         top_n = prob_matrix(top_n)
 
-        P_xy = (
-            top_n[[not_flagged[flag], "group", "rank"]]
-            .groupby([not_flagged[flag], "group"], as_index=False)
-            .sum()
-        )
-        P_xP_y = (
-            top_n[[not_flagged[flag], "group", "rank"]]
-            .groupby(not_flagged[flag], as_index=False)
-            .sum()
-        )
-        P_xP_y = P_xy[[not_flagged[flag], "group"]].merge(
-            P_xP_y, on=not_flagged[flag]
-        )
-        tmp = top_n[["group", "rank"]].groupby("group", as_index=False).sum()
-        P_xP_y = P_xP_y.merge(tmp, on=["group"])
-        P_xP_y["rank"] = P_xP_y["rank_x"] * P_xP_y["rank_y"]
-        tmp = P_xP_y[[not_flagged[flag], "group", "rank"]].merge(
-            P_xy, on=[not_flagged[flag], "group"]
-        )
-        tmp["rank"] = tmp["rank_y"] * np.log2(tmp["rank_y"] / tmp["rank_x"])
-        return tmp["rank"].sum()
+        P_xy = top_n[[not_flagged[flag], 'group', 'rank']].groupby([not_flagged[flag], 'group'], as_index=False).sum()
+        P_xP_y = top_n[[not_flagged[flag], 'group', 'rank']].groupby(not_flagged[flag], as_index=False).sum()
+        P_xP_y = P_xy[[not_flagged[flag], 'group']].merge(P_xP_y, on=not_flagged[flag])
+        tmp = top_n[['group', 'rank']].groupby('group', as_index=False).sum()
+        P_xP_y = P_xP_y.merge(tmp, on=['group'])
+        P_xP_y['rank'] = P_xP_y['rank_x'] * P_xP_y['rank_y']
+        tmp = P_xP_y[[not_flagged[flag], 'group', 'rank']].merge(P_xy, on=[not_flagged[flag], 'group'])
+        tmp['rank'] = tmp['rank_y'] * np.log2(tmp['rank_y'] / tmp['rank_x'])
+        return tmp['rank'].sum()
