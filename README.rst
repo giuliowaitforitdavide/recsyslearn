@@ -1,5 +1,5 @@
 ===========
-recsyslearn
+Recsyslearn
 ===========
 
 
@@ -9,9 +9,9 @@ recsyslearn
 .. .. image:: https://img.shields.io/travis/giuliowaitforitdavide/recsyslearn.svg
 ..         :target: https://travis-ci.com/giuliowaitforitdavide/recsyslearn
 
-.. .. image:: https://readthedocs.org/projects/recsyslearn/badge/?version=latest
-..         :target: https://recsyslearn.readthedocs.io/en/latest/?version=latest
-..         :alt: Documentation Status
+.. image:: https://readthedocs.org/projects/recsyslearn/badge/?version=latest
+        :target: https://recsyslearn.readthedocs.io/en/latest/?version=latest
+        :alt: Documentation Status
 
 
 
@@ -32,20 +32,6 @@ Features
 * Compute Kullback-Leibler divergence of a recommender system based on its recommendations list and the wanted target representation.
 * Compute Mutual Information of a recommender system based on its recommendations list.
 * Segment an implicit or explicit dataset in groups based on the activity of the users or on the popularity of the items.
-
-
-Installation
-------------
-
-To install the library simply run in the command-line::
-
-    pip install recsyslearn
-
-Usage
------
-
-You just need a recommendation list in the form of a ``user, item, rank, group`` Dataframe. The library will do the rest.
-If you don't have the info about the groups, you can use the library itself to segment the dataset. The dataset has to be in the form of ``user, item, rank``.
 
 Known Issues
 ------------
