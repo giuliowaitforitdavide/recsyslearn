@@ -14,7 +14,7 @@ class Metric(ABC):
         return
 
     @abstractmethod
-    def evaluate(self, top_n: pd.DataFrame) -> float:
+    def evaluate(self, top_n: pd.DataFrame, *args, **kwargs) -> float:
         pass
 
 

@@ -22,28 +22,6 @@ user_groups = pd.DataFrame([
     ['6', '2']
 ], columns=['user', 'group'])
 
-item_groups = pd.DataFrame([
-    ['1', '1'],
-    ['2', '1'],
-    ['3', '2'],
-    ['4', '2'],
-    ['5', '2'],
-    ['6', '3'],
-    ['7', '3'],
-    ['8', '3'],
-    ['9', '3'],
-    ['10', '3']
-], columns=['item', 'group'])
-
-user_groups = pd.DataFrame([
-    ['1', '1'],
-    ['2', '1'],
-    ['3', '2'],
-    ['4', '2'],
-    ['5', '2'],
-    ['6', '2']
-], columns=['user', 'group'])
-
 first_example = pd.DataFrame([
     ['1', '3', 1],
     ['1', '4', 1],
