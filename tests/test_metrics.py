@@ -66,6 +66,11 @@ class MutualInformationTest(unittest.TestCase):
         mi = self.evaluator.evaluate(top_n, 'item')
         self.assertAlmostEqual(mi, 0.10570, delta=1e-5)
 
+    @unittest.expectedFailure
+    def test_flag_not_valid(self) -> None:
+        top_n = first_example.merge(item_groups, on='item')
+        self.evaluator.evaluate(top_n, 'ratings')
+
 
 class CoverageTest(unittest.TestCase):
     """
