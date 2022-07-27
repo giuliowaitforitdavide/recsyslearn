@@ -13,10 +13,6 @@ class Metric(ABC):
     def __init__(self) -> None:
         return
 
-    @abstractmethod
-    def evaluate(self, top_n: pd.DataFrame, *args, **kwargs) -> float:
-        pass
-
 
 class Coverage(Metric):
     """
