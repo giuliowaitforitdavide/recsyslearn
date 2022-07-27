@@ -16,4 +16,10 @@ History
 -------------------
 
 * Added a new item segmentation method, which gives a percentage score to the items based on their popularity.
-* More accurate docs, with a beautiful theme
+* More accurate docs, with a beautiful theme.
+
+0.5.1 (2022-07-27)
+-------------------
+
+* Fixed mantissa problem with the sum of proportion in the segmentation part.
+* Improved code readability and tests coverage.
