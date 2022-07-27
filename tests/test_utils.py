@@ -23,7 +23,7 @@ class TestPattern(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_failure(self) -> None:
-        test_pattern(["a", "b", "c"], ["a", "b"])
+        test_pattern(pd.DataFrame(columns=["a", "b", "c"]), ["a", "b"])
 
 
 class TestExpMatrix(unittest.TestCase):
