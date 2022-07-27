@@ -13,10 +13,6 @@ class Segmentation(ABC):
     def __init__(self) -> None:
         super().__init__()
 
-    @abstractmethod
-    def segment(self, dataset: pd.DataFrame) -> None:
-        pass
-
 
 class InteractionSegmentation(Segmentation):
     """
