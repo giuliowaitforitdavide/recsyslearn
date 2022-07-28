@@ -21,7 +21,7 @@ class Coverage(Metric):
     """
 
     def evaluate(self, top_n: pd.DataFrame, items: list) -> float:
-        """
+        '''
         Compute the coverage of a model by using its recommendation list.
 
 
@@ -43,7 +43,7 @@ class Coverage(Metric):
         Return
         ------
         The computed coverage.
-        """
+        '''
 
         test_pattern(top_n, ['user', 'item', 'rank'])
         return len(top_n.item.unique().tolist()) / len(items)
