@@ -5,11 +5,5 @@ build:
   tools:
     python: "3.8"
 
-python:
-  version: "3.9"
-  install:
-    - method: pip
-      path: .
-
 sphinx:
   configuration: docs/conf.py
