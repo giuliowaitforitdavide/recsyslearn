@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 item_groups = pd.DataFrame([
     ['1', '1'],
@@ -267,12 +268,6 @@ user_feature = pd.DataFrame([
     ['1', 'm'],
     ['2', 'f'],
     ['3', None],
-], columns=['user', 'gender'])
-
-
-user_homogeneous_feature = pd.DataFrame([
-    ['1', 'x'],
-    ['2', 'x'],
-    ['3', 'x'],
+    ['4', np.nan],
 ], columns=['user', 'gender'])
 

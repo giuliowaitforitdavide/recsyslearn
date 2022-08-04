@@ -2,8 +2,7 @@ import unittest
 import numpy as np
 from recsyslearn.segmentations import ActivitySegmentation, PopularityPercentage, InteractionSegmentation, \
     DiscreteFeatureSegmentation
-from tests.utils import dataset_item_example, dataset_user_example, dataset_popularity, user_feature, \
-    user_homogeneous_feature
+from tests.utils import dataset_item_example, dataset_user_example, dataset_popularity, user_feature
 from pandas.testing import assert_frame_equal
 
 
@@ -117,16 +116,14 @@ class UserDiscreteFeatureSegmentationTest(unittest.TestCase):
     def test_segmentation(self) -> None:
         segmented_groups = self.feature_segmenter.segment(feature=user_feature,
                                                           group='user')
-        self.assertTrue(segmented_groups.loc[segmented_groups['user'] == '1', 'group'].nunique() == 1)
-        self.assertTrue(segmented_groups.loc[segmented_groups['user'] == '2', 'group'].nunique() == 1)
-        self.assertTrue(segmented_groups.loc[segmented_groups['user'] == '3', 'group'].nunique() == 1)
-
         self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '1'].group,
                                            segmented_groups.loc[segmented_groups['user'] == '2'].group)) == 0)
         self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '1'].group,
                                            segmented_groups.loc[segmented_groups['user'] == '3'].group)) == 0)
         self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '2'].group,
                                            segmented_groups.loc[segmented_groups['user'] == '3'].group)) == 0)
+        self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '3'].group,
+                                           segmented_groups.loc[segmented_groups['user'] == '4'].group)) == 1)
 
 
 if __name__ == '__main__':
