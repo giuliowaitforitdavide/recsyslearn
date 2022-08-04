@@ -213,5 +213,5 @@ class DiscreteFeatureSegmentation(Segmentation):
         feature = feature.fillna({feature.columns[1]: -1})
 
         feature[feature.columns[1]] = feature[feature.columns[1]].astype('category').cat.codes
-
+        feature = feature.rename({feature.columns[1]: 'group'}, axis='columns')
         return feature
