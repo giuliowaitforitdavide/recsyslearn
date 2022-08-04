@@ -248,6 +248,24 @@ user_pop_perc = pd.DataFrame([
     ['1', 0.7],
     ['2', 0.2],
     ['3', 0.1],
-], columns=['item', 'percentage'])
+], columns=['user', 'percentage'])
 
+item_feature = pd.DataFrame([
+    ['1', 'pop'],
+    ['2', 'pop'],
+    ['3', 'pop'],
+    ['4', 'pop'],
+    ['5', 'rock'],
+    ['6', 'rock'],
+    ['7', 'grunge'],
+    ['8', 'new wave'],
+    ['9', 'electronic'],
+    ['10', 'rock'],
+], columns=['item', 'genre'])
+
+user_feature = pd.DataFrame([
+    ['1', 'm'],
+    ['2', 'f'],
+    ['3', 'm'],
+], columns=['item', 'gender'])
 
