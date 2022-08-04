@@ -1,6 +1,9 @@
 import unittest
-from recsyslearn.segmentations import ActivitySegmentation, PopularityPercentage, InteractionSegmentation
-from tests.utils import dataset_item_example, dataset_user_example, dataset_popularity
+import numpy as np
+from recsyslearn.segmentations import ActivitySegmentation, PopularityPercentage, InteractionSegmentation, \
+    DiscreteFeatureSegmentation
+from tests.utils import dataset_item_example, dataset_user_example, dataset_popularity, user_feature, \
+    user_homogeneous_feature
 from pandas.testing import assert_frame_equal
 
 
@@ -101,6 +104,29 @@ class ActivitySegmentationTest(unittest.TestCase):
     @unittest.expectedFailure
     def test_segmentation_wrong_proportion(self) -> None:
         self.user_segmenter.segment(dataset_user_example, [0.7, 0.4])
+
+
+class UserDiscreteFeatureSegmentationTest(unittest.TestCase):
+    """
+    Tester for the DiscreteFeatureSegmentation class, on user features.
+    """
+
+    def setUp(self) -> None:
+        self.feature_segmenter = DiscreteFeatureSegmentation()
+
+    def test_segmentation(self) -> None:
+        segmented_groups = self.feature_segmenter.segment(feature=user_feature,
+                                                          group='user')
+        self.assertTrue(segmented_groups.loc[segmented_groups['user'] == '1', 'group'].nunique() == 1)
+        self.assertTrue(segmented_groups.loc[segmented_groups['user'] == '2', 'group'].nunique() == 1)
+        self.assertTrue(segmented_groups.loc[segmented_groups['user'] == '3', 'group'].nunique() == 1)
+
+        self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '1'].group,
+                                           segmented_groups.loc[segmented_groups['user'] == '2'].group)) == 0)
+        self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '1'].group,
+                                           segmented_groups.loc[segmented_groups['user'] == '3'].group)) == 0)
+        self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '2'].group,
+                                           segmented_groups.loc[segmented_groups['user'] == '3'].group)) == 0)
 
 
 if __name__ == '__main__':

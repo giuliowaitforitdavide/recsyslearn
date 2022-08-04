@@ -266,6 +266,13 @@ item_feature = pd.DataFrame([
 user_feature = pd.DataFrame([
     ['1', 'm'],
     ['2', 'f'],
-    ['3', 'm'],
-], columns=['item', 'gender'])
+    ['3', None],
+], columns=['user', 'gender'])
+
+
+user_homogeneous_feature = pd.DataFrame([
+    ['1', 'x'],
+    ['2', 'x'],
+    ['3', 'x'],
+], columns=['user', 'gender'])
 
