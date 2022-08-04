@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from recsyslearn.segmentations import ActivitySegmentation, PopularityPercentage, InteractionSegmentation, \
     DiscreteFeatureSegmentation
-from tests.utils import dataset_item_example, dataset_user_example, dataset_popularity, user_feature
+from tests.utils import dataset_item_example, dataset_user_example, dataset_popularity, user_feature, item_feature
 from pandas.testing import assert_frame_equal
 
 
@@ -124,6 +124,28 @@ class UserDiscreteFeatureSegmentationTest(unittest.TestCase):
                                            segmented_groups.loc[segmented_groups['user'] == '3'].group)) == 0)
         self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '3'].group,
                                            segmented_groups.loc[segmented_groups['user'] == '4'].group)) == 1)
+
+class ItemDiscreteFeatureSegmentationTest(unittest.TestCase):
+    """
+    Tester for the DiscreteFeatureSegmentation class, on item features.
+    """
+
+    def setUp(self) -> None:
+        self.feature_segmenter = DiscreteFeatureSegmentation()
+
+    def test_segmentation(self) -> None:
+        segmented_groups = self.feature_segmenter.segment(feature=item_feature,
+                                                          group='item')
+        self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['item'] == '1'].group,
+                                           segmented_groups.loc[segmented_groups['item'] == '2'].group)) == 1)
+        self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['item'] == '1'].group,
+                                           segmented_groups.loc[segmented_groups['item'] == '3'].group)) == 0)
+        self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['item'] == '2'].group,
+                                           segmented_groups.loc[segmented_groups['item'] == '3'].group)) == 0)
+        self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['item'] == '3'].group,
+                                           segmented_groups.loc[segmented_groups['item'] == '4'].group)) == 0)
+
+
 
 
 if __name__ == '__main__':
