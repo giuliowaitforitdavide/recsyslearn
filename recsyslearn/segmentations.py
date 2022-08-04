@@ -208,11 +208,6 @@ class DiscreteFeatureSegmentation(Segmentation):
         group : str
             Whether to group users or items
 
-        Raises
-        ------
-        TooManyFeaturesException
-            If feature is not categorical.
-
         Return
         ------
         DataFrame with items and belonging group.
