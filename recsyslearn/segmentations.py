@@ -190,7 +190,7 @@ class DiscreteFeatureSegmentation(Segmentation):
     their features (e.g., gender for users or genre for items)
     """
 
-    def segment(self, feature: pd.DataFrame, group: str = 'item', ) -> pd.DataFrame:
+    def segment(self, feature: pd.DataFrame, ) -> pd.DataFrame:
         """
         Segmentation of users/items based on one of their features.
         Before assigning the group, the nans are given a -1 value by default.
@@ -201,9 +201,6 @@ class DiscreteFeatureSegmentation(Segmentation):
         feature : pd.DataFrame
             The feature dataframe in form of [id, feature] storing the categorical feature
             to be used for grouping.
-
-        group : str
-            Whether to group users or items
 
         Return
         ------
