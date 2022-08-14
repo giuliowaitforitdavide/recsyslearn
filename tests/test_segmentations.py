@@ -125,6 +125,7 @@ class UserDiscreteFeatureSegmentationTest(unittest.TestCase):
         self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '3'].group,
                                            segmented_groups.loc[segmented_groups['user'] == '4'].group)) == 1)
 
+
 class ItemDiscreteFeatureSegmentationTest(unittest.TestCase):
     """
     Tester for the DiscreteFeatureSegmentation class, on item features.
@@ -144,8 +145,6 @@ class ItemDiscreteFeatureSegmentationTest(unittest.TestCase):
                                            segmented_groups.loc[segmented_groups['item'] == '3'].group)) == 0)
         self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['item'] == '3'].group,
                                            segmented_groups.loc[segmented_groups['item'] == '4'].group)) == 0)
-
-
 
 
 if __name__ == '__main__':
