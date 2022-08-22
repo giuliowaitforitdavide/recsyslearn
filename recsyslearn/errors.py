@@ -4,6 +4,12 @@ class ColumnsNotMatchException(Exception):
     ) -> None:
         super().__init__(f"{message} {pattern}")
 
+class ColumnsNotExistException(Exception):
+    def __init__(
+        self, columns, message="Dataframe does not contain columns."
+    ) -> None:
+        super().__init__(f"{message} {columns}")
+
 
 class SegmentationNotSupportedException(Exception):
     def __init__(

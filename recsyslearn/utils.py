@@ -2,11 +2,10 @@ import pandas as pd
 import numpy as np
 from pandas import DataFrame
 
-from recsyslearn.errors import ColumnsNotMatchException
+from recsyslearn.errors import ColumnsNotMatchException, ColumnsNotExistException
 
 
 def test_pattern(df: pd.DataFrame, pattern: list) -> DataFrame:
-
     """
     Raise ColumnsNotMatchException if pd.Dataframe header is not as expected.
 
@@ -45,9 +44,29 @@ def test_pattern(df: pd.DataFrame, pattern: list) -> DataFrame:
         {col: dtypes[col] for col in df.columns if col in dtypes.keys()}
     )
 
+def test_columns_exist(df: pd.DataFrame, columns: list) -> DataFrame:
+    """
+    Raise ColumnsNotExistException if pd.Dataframe does not contain the expected columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+      Input that should be tested.
+
+    columns : list
+      pd.DataFrame columns that should be contained.
+
+
+    Raises
+    ------
+    ColumnsNotExistException
+      If input does not contained expected columns.
+    """
+    if not set(columns).issubset(set(df.columns)):
+        raise ColumnsNotExistException(columns)
+
 
 def exp_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
-
     """
     Compute exposure matrix for given recommendation lists.
 
@@ -76,7 +95,6 @@ def exp_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
 
 
 def prob_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
-
     """
     Compute probability distribution matrix for given recommendation lists.
 
@@ -105,7 +123,6 @@ def prob_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
 
 
 def eff_matrix(top_n: pd.DataFrame, rel_matrix: pd.DataFrame) -> pd.DataFrame:
-
     """
     Compute effectiveness matrix for given recommendation lists.
 
@@ -139,3 +156,34 @@ def eff_matrix(top_n: pd.DataFrame, rel_matrix: pd.DataFrame) -> pd.DataFrame:
     top_n.loc[:, ["rank_x", "rank_y"]] = top_n.loc[:, ["rank_x", "rank_y"]].fillna(0)
     top_n["rank"] = top_n["rank_x"] * top_n["rank_y"]
     return top_n[["user", "item", "rank", "group"]]
+
+
+def ndcg(ranked_list, pos_items, relevance=None, at=None):
+    """ Compute NDCG score, based on https://github.com/recsyspolimi/RecSys_Course_AT_PoliMi implementation. """
+
+    if relevance is None:
+        relevance = np.ones_like(pos_items, dtype=np.int32)
+    assert len(relevance) == pos_items.shape[0]
+
+    # Create a dictionary associating item_id to its relevance
+    # it2rel[item] -> relevance[item]
+    it2rel = {it: r for it, r in zip(pos_items, relevance)}
+
+    # Creates array of length "at" with the relevance associated to the item in that position
+    rank_scores = np.asarray([it2rel.get(it, 0.0) for it in ranked_list[:at]], dtype=np.float32)
+    # IDCG has all relevances to 1, up to the number of items in the test set
+    ideal_dcg = dcg(np.sort(relevance)[::-1])
+    # DCG uses the relevance of the recommended items
+    rank_dcg = dcg(rank_scores)
+    if rank_dcg == 0.0:
+        return 0.0
+
+    ndcg_ = rank_dcg / ideal_dcg
+
+    return ndcg_
+
+def dcg(scores):
+    """ Compute DCG score, based on https://github.com/recsyspolimi/RecSys_Course_AT_PoliMi implementation. """
+
+    return np.sum(np.divide(np.power(2, scores) - 1, np.log(np.arange(scores.shape[0], dtype=np.float32) + 2)),
+                  dtype=np.float32)
