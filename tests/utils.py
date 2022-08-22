@@ -265,3 +265,8 @@ user_feature = pd.DataFrame([
     ['4', np.nan],
 ], columns=['user', 'gender'])
 
+user_error_feature = pd.DataFrame([
+    ['1', 19],
+    ['2', 30],
+    ['3', -1],
+], columns=['user', 'age'])

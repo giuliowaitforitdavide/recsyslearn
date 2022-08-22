@@ -2,7 +2,8 @@ import unittest
 import numpy as np
 from recsyslearn.segmentations import ActivitySegmentation, PopularityPercentage, InteractionSegmentation, \
     DiscreteFeatureSegmentation
-from tests.utils import dataset_item_example, dataset_user_example, dataset_popularity, user_feature, item_feature
+from tests.utils import dataset_item_example, dataset_user_example, dataset_popularity, user_feature, item_feature, \
+    user_error_feature
 from pandas.testing import assert_frame_equal
 
 
@@ -123,6 +124,10 @@ class UserDiscreteFeatureSegmentationTest(unittest.TestCase):
                                            segmented_groups.loc[segmented_groups['user'] == '3'].group)) == 0)
         self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '3'].group,
                                            segmented_groups.loc[segmented_groups['user'] == '4'].group)) == 1)
+
+    @unittest.expectedFailure
+    def test_segmentation_invalid_value(self) -> None:
+        self.feature_segmenter.segment(feature=user_error_feature)
 
 
 class ItemDiscreteFeatureSegmentationTest(unittest.TestCase):
