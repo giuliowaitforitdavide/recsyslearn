@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from abc import ABC, abstractmethod
 from collections import Counter
-from recsyslearn.errors import SegmentationNotSupportedException, WrongProportionsException
+from recsyslearn.errors import SegmentationNotSupportedException, WrongProportionsException, InvalidValueException
 
 
 class Segmentation(ABC):
@@ -190,7 +190,7 @@ class DiscreteFeatureSegmentation(Segmentation):
     their features (e.g., gender for users or genre for items)
     """
 
-    def segment(self, feature: pd.DataFrame, ) -> pd.DataFrame:
+    def segment(self, feature: pd.DataFrame, fill_na=-1) -> pd.DataFrame:
         """
         Segmentation of users/items based on one of their features.
         Before assigning the group, the nans are given a -1 value by default.
@@ -201,13 +201,22 @@ class DiscreteFeatureSegmentation(Segmentation):
         feature : pd.DataFrame
             The feature dataframe in form of [id, feature] storing the categorical feature
             to be used for grouping.
+        fill_na :
+            The value with which to fill not assigned values. Default is -1.
+
+        Raises
+        ------
+        InvalidValueException
+            If the fill_na value is already present in the features dataframe.
 
         Return
         ------
         DataFrame with items and belonging group.
         """
+        if fill_na in feature[feature.columns[1]].unique():
+            raise InvalidValueException(fill_na)
 
-        feature = feature.fillna({feature.columns[1]: -1})
+        feature = feature.fillna({feature.columns[1]: fill_na})
 
         feature[feature.columns[1]] = feature[feature.columns[1]].astype('category').cat.codes
         feature = feature.rename({feature.columns[1]: 'group'}, axis='columns')
