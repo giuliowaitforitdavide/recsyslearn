@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from pandas import DataFrame
 
-from recsyslearn.errors import ColumnsNotMatchException, ColumnsNotExistException
+from recsyslearn.errors import ColumnsNotMatchException, ColumnsNotExistException, ListTooShortException
 
 
 def test_pattern(df: pd.DataFrame, pattern: list) -> DataFrame:
@@ -44,7 +44,7 @@ def test_pattern(df: pd.DataFrame, pattern: list) -> DataFrame:
         {col: dtypes[col] for col in df.columns if col in dtypes.keys()}
     )
 
-def test_columns_exist(df: pd.DataFrame, columns: list) -> DataFrame:
+def test_columns_exist(df: pd.DataFrame, columns: list) -> None:
     """
     Raise ColumnsNotExistException if pd.Dataframe does not contain the expected columns.
 
@@ -64,6 +64,35 @@ def test_columns_exist(df: pd.DataFrame, columns: list) -> DataFrame:
     """
     if not set(columns).issubset(set(df.columns)):
         raise ColumnsNotExistException(columns)
+
+def test_length(df: pd.DataFrame, k: int) -> None:
+    """
+    Raise ListTooShortException if pd.Dataframe does not contain enough recommendation
+    per user to compute NDCG@k, with k in ats.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+      The recommendation dataframe containing the ranking lists per user.
+      Should contain ['user', 'item', 'rank'] columns.
+
+    k : int
+        The value at which to compute the metric. The recommendation list
+        per user should be longer than k.
+
+
+    Raises
+    ------
+    ColumnsNotExistException
+      If input does not contained expected columns.
+    ListTooShortException
+      If the recommendation list is too short to compute the metric at k.
+    """
+    test_columns_exist(df, ['user', 'item', 'rank'])
+    rec_list_length = df['rank'].max()
+
+    if rec_list_length < k:
+        raise ListTooShortException(k)
 
 
 def exp_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
