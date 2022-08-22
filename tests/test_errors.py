@@ -2,7 +2,8 @@ import unittest
 from recsyslearn.errors import ColumnsNotMatchException, \
     FlagNotValidException, \
     SegmentationNotSupportedException, \
-    WrongProportionsException
+    WrongProportionsException, \
+    InvalidValueException
 
 
 class TestErrors(unittest.TestCase):
@@ -16,6 +17,7 @@ class TestErrors(unittest.TestCase):
         _flag_not_valid_exception = FlagNotValidException()
         _segmentation_not_supported_exception = SegmentationNotSupportedException()
         _wrong_proportion_exception = WrongProportionsException()
+        _invalid_value_exception = InvalidValueException(-1)
 
 
 if __name__ == "__main__":
