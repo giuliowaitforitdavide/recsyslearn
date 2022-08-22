@@ -5,6 +5,7 @@ from recsyslearn.metrics import Entropy, KullbackLeibler, MutualInformation, Nov
 from tests.utils import first_example, second_example, item_groups, user_groups, rel_matrix_1, \
     rel_matrix_2, item_pop_perc, user_pop_perc, dataset_popularity
 
+# TODO tests for NDCG
 
 class EntropyTest(unittest.TestCase):
     """
