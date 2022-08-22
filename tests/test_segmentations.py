@@ -114,8 +114,7 @@ class UserDiscreteFeatureSegmentationTest(unittest.TestCase):
         self.feature_segmenter = DiscreteFeatureSegmentation()
 
     def test_segmentation(self) -> None:
-        segmented_groups = self.feature_segmenter.segment(feature=user_feature,
-                                                          group='user')
+        segmented_groups = self.feature_segmenter.segment(feature=user_feature)
         self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '1'].group,
                                            segmented_groups.loc[segmented_groups['user'] == '2'].group)) == 0)
         self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['user'] == '1'].group,
@@ -135,8 +134,7 @@ class ItemDiscreteFeatureSegmentationTest(unittest.TestCase):
         self.feature_segmenter = DiscreteFeatureSegmentation()
 
     def test_segmentation(self) -> None:
-        segmented_groups = self.feature_segmenter.segment(feature=item_feature,
-                                                          group='item')
+        segmented_groups = self.feature_segmenter.segment(feature=item_feature)
         self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['item'] == '1'].group,
                                            segmented_groups.loc[segmented_groups['item'] == '2'].group)) == 1)
         self.assertTrue(len(np.intersect1d(segmented_groups.loc[segmented_groups['item'] == '1'].group,
