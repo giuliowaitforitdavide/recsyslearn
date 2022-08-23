@@ -2,6 +2,7 @@ import unittest
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from recsyslearn.utils import eff_matrix, prob_matrix, test_pattern, exp_matrix
+from recsyslearn.errors import ColumnsNotMatchException
 from tests.utils import (
     first_example,
     second_example,
@@ -21,9 +22,11 @@ class TestPattern(unittest.TestCase):
     def test_pattern(self) -> None:
         test_pattern(pd.DataFrame(columns=["a", "b", "c"]), ["a", "b", "c"])
 
-    @unittest.expectedFailure
     def test_failure(self) -> None:
-        test_pattern(pd.DataFrame(columns=["a", "b", "c"]), ["a", "b"])
+        with self.assertRaises(ColumnsNotMatchException) as context:
+            test_pattern(pd.DataFrame(columns=["a", "b", "c"]), ["a", "b"])
+
+        self.assertTrue("Columns doesn't match the pattern. ['a', 'b']" in str(context.exception))
 
 
 class TestExpMatrix(unittest.TestCase):

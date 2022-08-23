@@ -36,3 +36,9 @@ class WrongProportionsException(Exception):
 class FlagNotValidException(Exception):
     def __init__(self, message="Invalid flag.") -> None:
         super().__init__(message)
+
+
+class InvalidValueException(Exception):
+    def __init__(self, fill_na=-1) -> None:
+        message = f"Feature contains {fill_na} as value. Please select another fill_na value."
+        super().__init__(message)

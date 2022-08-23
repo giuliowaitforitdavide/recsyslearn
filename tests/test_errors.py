@@ -3,8 +3,11 @@ from recsyslearn.errors import ColumnsNotMatchException, \
     FlagNotValidException, \
     SegmentationNotSupportedException, \
     WrongProportionsException, \
+    InvalidValueException, \
+    WrongProportionsException, \
     ListTooShortException, \
     ColumnsNotExistException
+
 
 class TestErrors(unittest.TestCase):
 
@@ -19,6 +22,8 @@ class TestErrors(unittest.TestCase):
         _wrong_proportion_exception = WrongProportionsException()
         _list_too_short_exception = ListTooShortException(10)
         _columns_not_exist_exception = ColumnsNotExistException(['A', 'B', 'C'])
+        _invalid_value_exception = InvalidValueException(-1)
+
 
 if __name__ == "__main__":
     unittest.main()

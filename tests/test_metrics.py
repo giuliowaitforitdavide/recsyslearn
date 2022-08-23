@@ -2,6 +2,7 @@ import unittest
 import pandas as pd
 import numpy as np
 from recsyslearn.metrics import NDCG, Entropy, KullbackLeibler, MutualInformation, Novelty, Coverage
+from recsyslearn.errors import FlagNotValidException
 from tests.utils import first_example, second_example, item_groups, user_groups, rel_matrix_1, \
     rel_matrix_2, item_pop_perc, user_pop_perc, dataset_popularity, top_n_1, rel_matrix_4
 
@@ -66,10 +67,12 @@ class MutualInformationTest(unittest.TestCase):
         mi = self.evaluator.evaluate(top_n, 'item')
         self.assertAlmostEqual(mi, 0.10570, delta=1e-5)
 
-    @unittest.expectedFailure
     def test_flag_not_valid(self) -> None:
-        top_n = first_example.merge(item_groups, on='item')
-        self.evaluator.evaluate(top_n, 'ratings')
+        with self.assertRaises(FlagNotValidException) as context:
+            top_n = first_example.merge(item_groups, on='item')
+            self.evaluator.evaluate(top_n, 'ratings')
+
+        self.assertTrue('Invalid flag.' in str(context.exception))
 
 
 class CoverageTest(unittest.TestCase):
@@ -101,7 +104,7 @@ class NoveltyTest(unittest.TestCase):
 
     def setUp(self):
         self.evaluator = Novelty()
-        #        novelty = np.vectorize(lambda x: np.mean(-np.log2(int(x))))
+#        novelty = np.vectorize(lambda x: np.mean(-np.log2(int(x))))
         novelty = np.vectorize(lambda x: np.mean(-np.log2(x)))
         self.novelty = lambda list: np.mean(novelty(list))
 
