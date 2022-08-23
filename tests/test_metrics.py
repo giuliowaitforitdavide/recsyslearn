@@ -127,10 +127,10 @@ class NDCGTest(unittest.TestCase):
         self.evaluator.evaluate(top_n_1, rel_matrix_2, ats=(100,))
     @unittest.expectedFailure
     def test_top_n_columns_not_exist(self) -> None:
-        self.evaluator.evaluate(user_pop_perc, rel_matrix_2, ats=(100,))
+        self.evaluator.evaluate(user_pop_perc, rel_matrix_2, ats=(2,))
     @unittest.expectedFailure
     def test_target_columns_not_exist(self) -> None:
-        self.evaluator.evaluate(top_n_1, item_pop_perc, ats=(100,))
+        self.evaluator.evaluate(top_n_1, item_pop_perc, ats=(2,))
 
 if __name__ == '__main__':
     unittest.main()
