@@ -3,9 +3,7 @@ import pandas as pd
 import numpy as np
 from recsyslearn.metrics import Entropy, KullbackLeibler, MutualInformation, Novelty, Coverage
 from tests.utils import first_example, second_example, item_groups, user_groups, rel_matrix_1, \
-    rel_matrix_2, item_pop_perc, user_pop_perc, dataset_popularity
-
-# TODO tests for NDCG
+    rel_matrix_2, item_pop_perc, user_pop_perc, dataset_popularity, top_n_1
 
 class EntropyTest(unittest.TestCase):
     """
@@ -120,7 +118,19 @@ class NoveltyTest(unittest.TestCase):
         top_n = first_example.merge(item_pop_perc, on='item')
         nov = self.evaluator.evaluate(top_n, popularity_definition='percentage')
         self.assertAlmostEqual(nov, self.novelty(top_n['percentage'].to_numpy()), delta=1e-5)
-
+class NDCGTest(unittest.TestCase):
+    """
+    Tester for the NDCG class.
+    """
+    @unittest.expectedFailure
+    def test_list_too_short(self) -> None:
+        self.evaluator.evaluate(top_n_1, rel_matrix_2, ats=(100,))
+    @unittest.expectedFailure
+    def test_top_n_columns_not_exist(self) -> None:
+        self.evaluator.evaluate(user_pop_perc, rel_matrix_2, ats=(100,))
+    @unittest.expectedFailure
+    def test_target_columns_not_exist(self) -> None:
+        self.evaluator.evaluate(top_n_1, item_pop_perc, ats=(100,))
 
 if __name__ == '__main__':
     unittest.main()
