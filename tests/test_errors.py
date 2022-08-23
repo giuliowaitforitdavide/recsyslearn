@@ -2,7 +2,6 @@ import unittest
 from recsyslearn.errors import ColumnsNotMatchException, \
     FlagNotValidException, \
     SegmentationNotSupportedException, \
-    WrongProportionsException, \
     InvalidValueException, \
     WrongProportionsException, \
     ListTooShortException, \

@@ -104,8 +104,7 @@ class NoveltyTest(unittest.TestCase):
 
     def setUp(self):
         self.evaluator = Novelty()
-#        novelty = np.vectorize(lambda x: np.mean(-np.log2(int(x))))
-        novelty = np.vectorize(lambda x: np.mean(-np.log2(x)))
+        novelty = np.vectorize(lambda x: -np.log2(x))
         self.novelty = lambda list: np.mean(novelty(list))
 
     def test_novelty_one(self) -> None:
