@@ -251,7 +251,7 @@ class NDCG(Metric):
     NDCG evaluator for recommender systems.
     """
 
-    def evaluate(self, top_n: pd.DataFrame, target_df: pd.DataFrame, ats: tuple = (5, 10)) -> float:
+    def evaluate(self, top_n: pd.DataFrame, target_df: pd.DataFrame, ats: tuple = (5, 10)) -> pd.DataFrame:
         """
         Compute the NDCG@k of a model by using its recommendation list.
 
