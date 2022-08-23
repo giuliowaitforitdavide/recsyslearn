@@ -251,9 +251,10 @@ class NDCG(Metric):
     NDCG evaluator for recommender systems.
     """
 
-    def evaluate(self, top_n: pd.DataFrame, target_df: pd.DataFrame, ats: tuple = (5, 10)) -> pd.DataFrame:
+    def evaluate(self, top_n: pd.DataFrame, target_df: pd.DataFrame, ats: tuple = (5, 10)) -> pd.Series:
         """
         Compute the NDCG@k of a model by using its recommendation list.
+        Returns the NDCG averaged over users.
 
 
         Parameters
@@ -282,7 +283,7 @@ class NDCG(Metric):
 
         Return
         ------
-        The dataframe with the NDCG@n for each user in the form ('user', 'item', 'NDCG@k_0', ..., 'NDCG@k_n')
+        The pd.Series with the NDCG@n averaged over users, in the form ('NDCG@k_0', ..., 'NDCG@k_n')
         """
 
         test_columns_exist(top_n, ['user', 'item', 'rank'])
@@ -310,11 +311,11 @@ class NDCG(Metric):
         top_n = top_n[['user', 'item']].groupby('user')['item'].apply(np.asarray).reset_index()
         full_df = top_n.merge(pos_items, on='user')
 
-        columns_to_return = ['user', 'item']
+        columns_to_return = []
         for k in calculable_ats:
             try:
                 full_df.loc[:, f'NDCG@{k}'] = full_df.apply(lambda x: ndcg(x['item'][:k], x['pos_items'], at=k), axis=1)
                 columns_to_return += [f'NDCG@{k}']
             except ListTooShortException:
                 pass
-        return full_df[columns_to_return]
+        return full_df[columns_to_return].mean()
