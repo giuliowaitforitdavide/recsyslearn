@@ -201,7 +201,8 @@ def ndcg(ranked_list, pos_items, relevance=None, at=None):
     # Creates array of length "at" with the relevance associated to the item in that position
     rank_scores = np.asarray([it2rel.get(it, 0.0) for it in ranked_list[:at]], dtype=np.float32)
     # IDCG has all relevances to 1, up to the number of items in the test set
-    ideal_dcg = dcg(np.sort(relevance)[::-1])
+    # Fixed bug in PoliMi code.
+    ideal_dcg = dcg(np.sort(relevance)[::-1][:at])
     # DCG uses the relevance of the recommended items
     rank_dcg = dcg(rank_scores)
     if rank_dcg == 0.0:
