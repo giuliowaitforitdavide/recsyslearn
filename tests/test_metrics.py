@@ -129,8 +129,8 @@ class NDCGTest(unittest.TestCase):
     def setUp(self) -> None:
         self.evaluator = NDCG()
 
-    def test_ndcg(self) -> None:
-        ndcg_df = self.evaluator(top_n_1, rel_matrix_4, ats=(2,))
+    def test_ndcg_one(self) -> None:
+        ndcg_df = self.evaluator.evaluate(top_n_1, rel_matrix_4, ats=(2,))
         ndcg_vals = pd.DataFrame.from_dict(
             {'1': (1 / np.log(1 + 1) + 0 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),  # OK
              '2': (0 / np.log(1 + 1) + 0 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),  # OK
@@ -144,9 +144,9 @@ class NDCGTest(unittest.TestCase):
         ndcg = ndcg_vals.mean()
         self.assertAlmostEqual(ndcg.iloc[0], ndcg_df.iloc[0], delta=1e-5)
 
-    @unittest.expectedFailure
-    def test_list_too_short(self) -> None:
-        self.evaluator.evaluate(top_n_1, rel_matrix_2, ats=(100,))
+    def test_ndcg_list_too_short(self) -> None:
+        ndcg_df = self.evaluator.evaluate(top_n_1, rel_matrix_2, ats=(100, 10))
+        self.assertFalse(len(list(ndcg_df.index)))
 
     @unittest.expectedFailure
     def test_top_n_columns_not_exist(self) -> None:

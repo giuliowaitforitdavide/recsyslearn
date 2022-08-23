@@ -317,5 +317,6 @@ class NDCG(Metric):
                 full_df.loc[:, f'NDCG@{k}'] = full_df.apply(lambda x: ndcg(x['item'][:k], x['pos_items'], at=k), axis=1)
                 columns_to_return += [f'NDCG@{k}']
             except ListTooShortException:
-                pass
+                print(e)
+                continue
         return full_df[columns_to_return].mean()
