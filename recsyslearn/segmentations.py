@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from abc import ABC, abstractmethod
 from collections import Counter
-from recsyslearn.errors import SegmentationNotSupportedException, WrongProportionsException
+from recsyslearn.errors import SegmentationNotSupportedException, WrongProportionsException, InvalidValueException
 
 
 class Segmentation(ABC):
@@ -63,9 +63,9 @@ class InteractionSegmentation(Segmentation):
         if len(proportion) == 1:
             return dataset
 
-        item_groups = dataset.groupby('item')\
-            .size()\
-            .reset_index(name='count')\
+        item_groups = dataset.groupby('item') \
+            .size() \
+            .reset_index(name='count') \
             .sort_values('count', ascending=False)
 
         tmp = item_groups[item_groups['count'] > min_interaction]
@@ -111,8 +111,8 @@ class PopularityPercentage(Segmentation):
         inter_counter = Counter(item_interactions)
         inter_counter = {item: counts / total_interactions for item, counts in inter_counter.items()}
 
-        popularity_dataframe = pd.DataFrame\
-            .from_dict(inter_counter, orient='index')\
+        popularity_dataframe = pd.DataFrame \
+            .from_dict(inter_counter, orient='index') \
             .reset_index()
         popularity_dataframe.columns = [group, 'percentage']
 
@@ -175,10 +175,49 @@ class ActivitySegmentation(Segmentation):
         user_groups.loc[:, 'count'] = user_groups.loc[:, 'count'].apply(lambda x: x + np.random.choice(list(range(10))))
         user_groups = user_groups.sort_values('count', ascending=False)
         user_groups.loc[:, 'count'] = np.arange(user_groups.shape[0]) + 1
-        threshold = round(user_groups.shape[0] * proportion[0])\
+        threshold = round(user_groups.shape[0] * proportion[0]) \
             if round(user_groups.shape[0] * proportion[0]) > 0 else 1
 
         user_groups.loc[user_groups['count'] <= threshold, 'group'] = '1'
         user_groups.loc[user_groups['count'] > threshold, 'group'] = '2'
 
         return user_groups[['user', 'group']]
+
+
+class DiscreteFeatureSegmentation(Segmentation):
+    """
+    Segmentation of entities (users or items) according to one of
+    their features (e.g., gender for users or genre for items)
+    """
+
+    def segment(self, feature: pd.DataFrame, fill_na=-1) -> pd.DataFrame:
+        """
+        Segmentation of users/items based on one of their features.
+        Before assigning the group, the nans are given a -1 value by default.
+        Make sure that this is not one of the feature values, already.
+
+        Parameters
+        ----------
+        feature : pd.DataFrame
+            The feature dataframe in form of [id, feature] storing the categorical feature
+            to be used for grouping.
+        fill_na :
+            The value with which to fill not assigned values. Default is -1.
+
+        Raises
+        ------
+        InvalidValueException
+            If the fill_na value is already present in the features dataframe.
+
+        Return
+        ------
+        DataFrame with items and belonging group.
+        """
+        if fill_na in feature[feature.columns[1]].unique():
+            raise InvalidValueException(fill_na)
+
+        feature = feature.fillna({feature.columns[1]: fill_na})
+
+        feature[feature.columns[1]] = feature[feature.columns[1]].astype('category').cat.codes
+        feature = feature.rename({feature.columns[1]: 'group'}, axis='columns')
+        return feature
