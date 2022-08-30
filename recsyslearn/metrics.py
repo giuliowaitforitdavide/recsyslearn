@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 from abc import ABC, abstractmethod
-from recsyslearn.errors import FlagNotValidException
-from recsyslearn.utils import eff_matrix, exp_matrix, test_pattern, prob_matrix
+from recsyslearn.errors import FlagNotValidException, ListTooShortException
+from recsyslearn.utils import eff_matrix, exp_matrix, test_pattern, prob_matrix, ndcg, test_columns_exist, test_length
 
 
 class Metric(ABC):
@@ -244,3 +244,79 @@ class MutualInformation(Metric):
         tmp = P_xP_y[[not_flagged[flag], 'group', 'rank']].merge(P_xy, on=[not_flagged[flag], 'group'])
         tmp['rank'] = tmp['rank_y'] * np.log2(tmp['rank_y'] / tmp['rank_x'])
         return tmp['rank'].sum()
+
+
+class NDCG(Metric):
+    """
+    NDCG evaluator for recommender systems.
+    """
+
+    def evaluate(self, top_n: pd.DataFrame, target_df: pd.DataFrame, ats: tuple = (5, 10)) -> pd.Series:
+        """
+        Compute the NDCG@k of a model by using its recommendation list.
+        Returns the NDCG averaged over users.
+
+
+        Parameters
+        ----------
+        top_n : pd.DataFrame
+            Top N recommendations' lists for every user. Columns: ['user', 'item', 'rank'].
+
+        target_df : pd.DataFrame
+            Target Interaction dataframe of, i.e., items to be recommended. Columns: [user, item].
+
+        ats: tuple, default (10, )
+            The tuple of values at which to evaluate NDCG@k.
+
+
+        Raises
+        ------
+        ColumnsNotExistException
+            If top_n does not contain columns ('user', 'item', 'rank').
+
+        ColumnsNotExistException
+            If target_df does not contain columns ('user', 'item').
+
+        ListTooShortException
+            If the top_n list does not contain enough items.
+
+
+        Return
+        ------
+        The pd.Series with the NDCG@n averaged over users, in the form ('NDCG@k_0', ..., 'NDCG@k_n')
+        """
+
+        test_columns_exist(top_n, ['user', 'item', 'rank'])
+        test_columns_exist(target_df, ['user', 'item'])
+
+        top_n = top_n[['user', 'item', 'rank']]
+        target_df = target_df[['user', 'item']]
+
+        calculable_ats = []
+
+        for k in ats:
+            try:
+                test_length(top_n, k)
+                calculable_ats += [k]
+            except ListTooShortException as e:
+                print(e)
+                continue
+        calculable_ats = tuple(calculable_ats)
+
+        # Get for each user the items they interacted with
+        pos_items = target_df.groupby('user')['item'].apply(np.asarray).reset_index()
+        pos_items.columns = ['user', 'pos_items']
+
+        # Convert the ranked lists to lists instead of entries of the df
+        top_n = top_n[['user', 'item']].groupby('user')['item'].apply(np.asarray).reset_index()
+        full_df = top_n.merge(pos_items, on='user')
+
+        columns_to_return = []
+        for k in calculable_ats:
+            try:
+                full_df.loc[:, f'NDCG@{k}'] = full_df.apply(lambda x: ndcg(x['item'][:k], x['pos_items'], at=k), axis=1)
+                columns_to_return += [f'NDCG@{k}']
+            except ListTooShortException as e:
+                print(e)
+                continue
+        return full_df[columns_to_return].mean()
