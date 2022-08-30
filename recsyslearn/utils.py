@@ -44,6 +44,7 @@ def test_pattern(df: pd.DataFrame, pattern: list) -> DataFrame:
         {col: dtypes[col] for col in df.columns if col in dtypes.keys()}
     )
 
+
 def test_columns_exist(df: pd.DataFrame, columns: list) -> None:
     """
     Raise ColumnsNotExistException if pd.Dataframe does not contain the expected columns.
@@ -64,6 +65,7 @@ def test_columns_exist(df: pd.DataFrame, columns: list) -> None:
     """
     if not set(columns).issubset(set(df.columns)):
         raise ColumnsNotExistException(columns)
+
 
 def test_length(df: pd.DataFrame, k: int) -> None:
     """
@@ -211,6 +213,7 @@ def ndcg(ranked_list, pos_items, relevance=None, at=None):
     ndcg_ = rank_dcg / ideal_dcg
 
     return ndcg_
+
 
 def dcg(scores):
     """ Compute DCG score, based on https://github.com/recsyspolimi/RecSys_Course_AT_PoliMi implementation. """

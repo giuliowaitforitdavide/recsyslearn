@@ -23,3 +23,8 @@ History
 
 * Fixed mantissa problem with the sum of proportion in the segmentation part.
 * Improved code readability and tests coverage.
+
+0.6.0 (2022-08-30)
+-------------------
+
+* Added accuracy computation with NDCG@k
