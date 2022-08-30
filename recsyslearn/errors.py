@@ -5,6 +5,20 @@ class ColumnsNotMatchException(Exception):
         super().__init__(f"{message} {pattern}")
 
 
+class ColumnsNotExistException(Exception):
+    def __init__(
+        self, columns, message="Dataframe does not contain columns."
+    ) -> None:
+        super().__init__(f"{message} {columns}")
+
+
+class ListTooShortException(Exception):
+    def __init__(
+        self, k, message="Recommendation list too short. "
+    ) -> None:
+        super().__init__(f"{message} k={k}")
+
+
 class SegmentationNotSupportedException(Exception):
     def __init__(
         self, message="Number of supported group is between 1 and 3."
