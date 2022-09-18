@@ -5,7 +5,7 @@ from recsyslearn.accuracy.metrics import NDCG
 from recsyslearn.fairness.metrics import KullbackLeibler, Entropy, MutualInformation
 from recsyslearn.beyond_accuracy.metrics import Coverage, Novelty
 from recsyslearn.errors.errors import FlagNotValidException
-from tests.utils import first_example, second_example, item_groups, user_groups, rel_matrix_1, rel_matrix_2, item_pop_perc, user_pop_perc, top_n_1, rel_matrix_4, pos_items
+from tests.utils import first_example, item_groups, item_pop_perc, pos_items, rel_matrix_1, second_example, top_n_1, user_groups
 
 
 class EntropyTest(unittest.TestCase):
