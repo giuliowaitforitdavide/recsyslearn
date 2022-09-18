@@ -1,5 +1,5 @@
 alabaster==0.7.12
-autoflake==1.5.3
+autoflake8==0.4.0
 Babel==2.10.3
 certifi==2022.9.14
 charset-normalizer==2.1.1
