@@ -1,5 +1,5 @@
 alabaster==0.7.12
-autoflake8==0.4.0
+autoflake==1.5.3
 Babel==2.10.3
 certifi==2022.9.14
 charset-normalizer==2.1.1
@@ -29,5 +29,6 @@ sphinxcontrib-htmlhelp==2.0.0
 sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.5
+toml==0.10.2
 urllib3==1.26.12
 zipp==3.8.1

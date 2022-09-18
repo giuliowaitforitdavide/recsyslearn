@@ -9,12 +9,12 @@ class TestErrors(unittest.TestCase):
     """
 
     def test_exceptions(self) -> None:
-        _flag_not_valid_exception = FlagNotValidException()
-        _segmentation_not_supported_exception = SegmentationNotSupportedException()
-        _wrong_proportion_exception = WrongProportionsException()
-        _list_too_short_exception = RecListTooShortException(10)
-        _columns_not_exist_exception = ColumnsNotExistException(['A', 'B', 'C'])
-        _invalid_value_exception = InvalidValueException(-1)
+        FlagNotValidException()
+        SegmentationNotSupportedException()
+        WrongProportionsException()
+        RecListTooShortException(10)
+        ColumnsNotExistException(['A', 'B', 'C'])
+        InvalidValueException(-1)
 
 
 if __name__ == "__main__":
