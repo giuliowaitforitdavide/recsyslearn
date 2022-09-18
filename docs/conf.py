@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# recsyslearn documentation build configuration file, created by
+# Recsyslearn documentation build configuration file, created by
 # sphinx-quickstart on Fri Jun  9 13:47:02 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -33,7 +33,7 @@ import recsyslearn
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "sphinx_rtd_theme"]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "sphinx_rtd_theme", "sphinx.ext.autosummary"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -48,7 +48,7 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = "recsyslearn"
+project = "Recsyslearn"
 copyright = "2022, Giulio Davide Carparelli"
 author = "Giulio Davide Carparelli"
 
@@ -66,7 +66,7 @@ release = recsyslearn.__version__
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -102,7 +102,7 @@ html_static_path = ["_static"]
 # -- Options for HTMLHelp output ---------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "recsyslearndoc"
+htmlhelp_basename = "Recsyslearndoc"
 
 
 # -- Options for LaTeX output ------------------------------------------
@@ -128,8 +128,8 @@ latex_elements = {
 latex_documents = [
     (
         master_doc,
-        "recsyslearn.tex",
-        "recsyslearn Documentation",
+        "Recsyslearn.tex",
+        "Recsyslearn Documentation",
         "Giulio Davide Carparelli",
         "manual",
     ),
@@ -141,7 +141,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, "recsyslearn", "recsyslearn Documentation", [author], 1)
+    (master_doc, "Recsyslearn", "Recsyslearn Documentation", [author], 1)
 ]
 
 
@@ -153,10 +153,10 @@ man_pages = [
 texinfo_documents = [
     (
         master_doc,
-        "recsyslearn",
-        "recsyslearn Documentation",
+        "Recsyslearn",
+        "Recsyslearn Documentation",
         author,
-        "recsyslearn",
+        "Recsyslearn",
         "One line description of project.",
         "Miscellaneous",
     ),

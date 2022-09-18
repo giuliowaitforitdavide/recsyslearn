@@ -57,9 +57,7 @@ class Novelty(BeyondAccuracyMetric):
     Novelty evaluator for recommender systems.
     Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2
     where popularity is defined in terms of the segmentation of the item groups
-    (e.g.  short head -> 3
-           mid tail   -> 2
-           long tail  -> 1)
+    (e.g. short head -> 3, mid tail   -> 2, long tail  -> 1)
     or in terms of percentage of user-item interactions.
     """
 
