@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from recsyslearn.errors.errors import ColumnsNotExistException
 from recsyslearn.utils import check_columns_exist
 
 
@@ -16,7 +15,7 @@ def exp_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
 
 
     Raises
-    -----
+    ------
     ColumnsNotExistException
         If top_n is not in the form (user, item, rank, group).
 
@@ -82,8 +81,8 @@ def eff_matrix(top_n: pd.DataFrame, rel_matrix: pd.DataFrame) -> pd.DataFrame:
         The DataFrame with computed effectiveness.
 
 
-    Raise
-    -----
+    Raises
+    ------
     ColumnsNotExistException
         If top_n header is not in the form (user, item, rank, group).
         If rel_matrix header is not in the form (user, item, rank).

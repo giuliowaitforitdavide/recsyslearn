@@ -7,6 +7,7 @@ from recsyslearn.accuracy.utils import ndcg
 
 
 class AccuracyMetric(ABC):
+
     """
     Abstract Class for Metrics.
     """
@@ -16,14 +17,14 @@ class AccuracyMetric(ABC):
 
 
 class NDCG(AccuracyMetric):
+    
     """
     NDCG evaluator for recommender systems.
     """
 
     def evaluate(self, top_n: pd.DataFrame, pos_items: pd.DataFrame, ats: tuple = (5, 10)) -> pd.Series:
 
-        """
-        Compute the NDCG@k of a model by using its recommendation list.
+        r"""Compute the NDCG@k of a model by using its recommendation list.
         Returns the NDCG averaged over users.
 
 
