@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from recsyslearn.dataset.utils import find_relevant_items
 
 item_groups = pd.DataFrame([
     ['1', '1'],
@@ -329,3 +330,5 @@ user_error_feature = pd.DataFrame([
     ['2', 30],
     ['3', -1],
 ], columns=['user', 'age'])
+
+pos_items = find_relevant_items(rel_matrix_4)

@@ -1,10 +1,11 @@
 import unittest
 import pandas as pd
 import numpy as np
-from recsyslearn.metrics import NDCG, Entropy, KullbackLeibler, MutualInformation, Novelty, Coverage
-from recsyslearn.errors import FlagNotValidException
-from tests.utils import first_example, second_example, item_groups, user_groups, rel_matrix_1, \
-    rel_matrix_2, item_pop_perc, user_pop_perc, dataset_popularity, top_n_1, rel_matrix_4
+from recsyslearn.accuracy.metrics import NDCG
+from recsyslearn.fairness.metrics import KullbackLeibler, Entropy, MutualInformation
+from recsyslearn.beyond_accuracy.metrics import Coverage, Novelty
+from recsyslearn.errors.errors import FlagNotValidException
+from tests.utils import first_example, second_example, item_groups, user_groups, rel_matrix_1, rel_matrix_2, item_pop_perc, user_pop_perc, top_n_1, rel_matrix_4, pos_items
 
 
 class EntropyTest(unittest.TestCase):
@@ -105,7 +106,7 @@ class NoveltyTest(unittest.TestCase):
     def setUp(self):
         self.evaluator = Novelty()
         novelty = np.vectorize(lambda x: -np.log2(x))
-        self.novelty = lambda list: np.mean(novelty(list))
+        self.novelty = lambda list: float(np.mean(novelty(list)))
 
     def test_novelty_one(self) -> None:
         top_n = first_example.merge(item_groups, on='item')
@@ -132,31 +133,20 @@ class NDCGTest(unittest.TestCase):
         self.evaluator = NDCG()
 
     def test_ndcg_one(self) -> None:
-        ndcg_df = self.evaluator.evaluate(top_n_1, rel_matrix_4, ats=(2,))
+        ndcg_df = self.evaluator.evaluate(top_n_1, pos_items, ats=(2,))
         ndcg_vals = pd.DataFrame.from_dict(
-            {'1': (1 / np.log(1 + 1) + 0 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),  # OK
-             '2': (0 / np.log(1 + 1) + 0 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),  # OK
-             '3': (0 / np.log(1 + 1) + 1 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),
-             '4': (0 / np.log(1 + 1) + 1 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),
-             '5': (1 / np.log(1 + 1) + 1 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),
-             '6': (1 / np.log(1 + 1) + 0 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 0 / np.log(2 + 1)),  # OK
+            {
+                '1': (1 / np.log(1 + 1) + 0 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),  # OK
+                '2': (0 / np.log(1 + 1) + 0 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),  # OK
+                '3': (0 / np.log(1 + 1) + 1 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),
+                '4': (0 / np.log(1 + 1) + 1 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),
+                '5': (1 / np.log(1 + 1) + 1 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 1 / np.log(2 + 1)),
+                '6': (1 / np.log(1 + 1) + 0 / np.log(2 + 1)) / (1 / np.log(1 + 1) + 0 / np.log(2 + 1))   # OK
              }, orient='index'
         )
 
         ndcg = ndcg_vals.mean()
         self.assertAlmostEqual(ndcg.iloc[0], ndcg_df.iloc[0], delta=1e-5)
-
-    def test_ndcg_list_too_short(self) -> None:
-        ndcg_df = self.evaluator.evaluate(top_n_1, rel_matrix_2, ats=(100, 10))
-        self.assertFalse(len(list(ndcg_df.index)))
-
-    @unittest.expectedFailure
-    def test_top_n_columns_not_exist(self) -> None:
-        self.evaluator.evaluate(user_pop_perc, rel_matrix_2, ats=(2,))
-
-    @unittest.expectedFailure
-    def test_target_columns_not_exist(self) -> None:
-        self.evaluator.evaluate(top_n_1, item_pop_perc, ats=(2,))
 
 
 if __name__ == '__main__':
