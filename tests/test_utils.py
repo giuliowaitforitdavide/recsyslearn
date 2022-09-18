@@ -1,32 +1,8 @@
 import unittest
 import pandas as pd
 from pandas.testing import assert_frame_equal
-from recsyslearn.utils import eff_matrix, prob_matrix, test_pattern, exp_matrix
-from recsyslearn.errors import ColumnsNotMatchException
-from tests.utils import (
-    first_example,
-    second_example,
-    user_groups,
-    item_groups,
-    rel_matrix_1,
-    rel_matrix_3,
-)
-
-
-class TestPattern(unittest.TestCase):
-
-    """
-    Tester for the test_pattern function.
-    """
-
-    def test_pattern(self) -> None:
-        test_pattern(pd.DataFrame(columns=["a", "b", "c"]), ["a", "b", "c"])
-
-    def test_failure(self) -> None:
-        with self.assertRaises(ColumnsNotMatchException) as context:
-            test_pattern(pd.DataFrame(columns=["a", "b", "c"]), ["a", "b"])
-
-        self.assertTrue("Columns doesn't match the pattern. ['a', 'b']" in str(context.exception))
+from recsyslearn.fairness.utils import eff_matrix, prob_matrix, exp_matrix
+from tests.utils import first_example, second_example, user_groups, item_groups, rel_matrix_1, rel_matrix_3
 
 
 class TestExpMatrix(unittest.TestCase):

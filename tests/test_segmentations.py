@@ -1,8 +1,8 @@
 import unittest
 import numpy as np
-from recsyslearn.segmentations import ActivitySegmentation, PopularityPercentage, InteractionSegmentation, \
+from recsyslearn.dataset.segmentations import ActivitySegmentation, PopularityPercentage, InteractionSegmentation, \
     DiscreteFeatureSegmentation
-from recsyslearn.errors import InvalidValueException, SegmentationNotSupportedException, WrongProportionsException
+from recsyslearn.errors.errors import InvalidValueException, SegmentationNotSupportedException, WrongProportionsException
 from tests.utils import dataset_item_example, dataset_user_example, dataset_popularity, user_feature, item_feature, \
     user_error_feature
 from pandas.testing import assert_frame_equal
@@ -96,11 +96,7 @@ class ActivitySegmentationTest(unittest.TestCase):
         self.user_segmenter.segment(dataset_user_example, [0.6, 0.3, 0.1])
 
     def test_segmentation_entire_dataset(self) -> None:
-        self.assertIsNone(
-            assert_frame_equal(
-                dataset_user_example, self.user_segmenter.segment(dataset_user_example, [1])
-            )
-        )
+        self.assertIsNone(assert_frame_equal(dataset_user_example, self.user_segmenter.segment(dataset_user_example, [1])))
 
     def test_segmentation_not_supported(self) -> None:
         with self.assertRaises(SegmentationNotSupportedException) as context:
