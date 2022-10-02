@@ -5,7 +5,7 @@ class ColumnsNotExistException(Exception):
 
 
 class RecListTooShortException(Exception):
-    def __init__(self, k, message="Recommendation list too short. ") -> None:
+    def __init__(self, k, message="Recommendation list too short.") -> None:
         super().__init__(f"{message} k={k}")
 
 

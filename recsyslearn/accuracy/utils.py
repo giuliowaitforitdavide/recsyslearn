@@ -1,9 +1,12 @@
+from typing import Iterable
 import numpy as np
 
 
-def ndcg(ranked_list, pos_items, relevance=None, at=None):
+def ndcg(ranked_list: Iterable, pos_items: Iterable, relevance: Iterable = None, at: int = None) -> float:
 
     """ Compute NDCG score, based on https://github.com/recsyspolimi/RecSys_Course_AT_PoliMi implementation. """
+    # TODO
+    # Add documentation
 
     if relevance is None:
         relevance = np.ones_like(pos_items, dtype=np.int32)
@@ -22,9 +25,15 @@ def ndcg(ranked_list, pos_items, relevance=None, at=None):
     return ndcg_
 
 
-def dcg(scores):
+def dcg(scores: Iterable) -> float:
 
     """ Compute DCG score, based on https://github.com/recsyspolimi/RecSys_Course_AT_PoliMi implementation. """
+    # TODO
+    # Add documentation
 
-    return np.sum(np.divide(np.power(2, scores) - 1, np.log(np.arange(scores.shape[0], dtype=np.float32) + 2)),
-                  dtype=np.float32)
+    return np.sum(
+        np.divide(
+            np.power(2, scores) - 1, 
+            np.log(np.arange(scores.shape[0], dtype=np.float32) + 2)
+            ),
+            dtype=np.float32)

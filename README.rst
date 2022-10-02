@@ -3,19 +3,17 @@ Recsyslearn
 ===========
 
 
-.. image:: https://img.shields.io/pypi/v/recsyslearn.svg
-        :target: https://pypi.python.org/pypi/recsyslearn
-        :alt: TLibrary Docs
-
 .. image:: https://github.com/giuliowaitforitdavide/recsyslearn/actions/workflows/tests.yml/badge.svg
-        :target: https://recsyslearn.readthedocs.io/en/latest/?version=latest
-        :alt: Test Passed
+        :target: https://github.com/giuliowaitforitdavide/recsyslearn/actions/workflows/tests.yml
+        :alt: Test Status
 
 .. image:: https://readthedocs.org/projects/recsyslearn/badge/?version=latest
      :target: https://recsyslearn.readthedocs.io/en/latest/?version=latest
      :alt: Documentation Status
 
-
+.. image:: https://img.shields.io/pypi/v/recsyslearn.svg
+        :target: https://pypi.python.org/pypi/recsyslearn
+        :alt: Library Version
 
 
 A small library to compute fairness of recommender systems.

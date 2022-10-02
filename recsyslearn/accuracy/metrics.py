@@ -22,7 +22,8 @@ class NDCG(AccuracyMetric):
     NDCG evaluator for recommender systems.
     """
 
-    def evaluate(self, top_n: pd.DataFrame, pos_items: pd.DataFrame, ats: tuple = (5, 10)) -> pd.Series:
+    @staticmethod
+    def evaluate(top_n: pd.DataFrame, pos_items: pd.DataFrame, ats: tuple = (5, 10)) -> pd.Series:
 
         r"""Compute the NDCG@k of a model by using its recommendation list.
         Returns the NDCG averaged over users.

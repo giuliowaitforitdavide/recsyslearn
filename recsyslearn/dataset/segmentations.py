@@ -22,7 +22,8 @@ class InteractionSegmentation(Segmentation):
     Segmentation of items based on the number of interaction they have.
     """
 
-    def segment(self, dataset: pd.DataFrame, proportion=None, min_interaction: int = 0) -> pd.DataFrame:
+    @staticmethod
+    def segment(dataset: pd.DataFrame, proportion=None, min_interaction: int = 0) -> pd.DataFrame:
 
         """
         Segmentation of items based on their interactions with different users.
@@ -90,7 +91,9 @@ class PopularityPercentage(Segmentation):
     Calculate item or user popularity based on the percentage of interaction they have.
     """
 
-    def segment(self, dataset: pd.DataFrame, group: str = 'item') -> pd.DataFrame:
+
+    @staticmethod
+    def segment(dataset: pd.DataFrame, group: str = 'item') -> pd.DataFrame:
 
         """
         Calculate item or user popularity based on the percentage of interaction they have.
@@ -125,7 +128,8 @@ class ActivitySegmentation(Segmentation):
     Segmentation of users based on their number of interaction.
     """
 
-    def segment(self, dataset: pd.DataFrame, proportions=None, min_interaction: int = 0) -> pd.DataFrame:
+    @staticmethod
+    def segment(dataset: pd.DataFrame, proportions=None, min_interaction: int = 0) -> pd.DataFrame:
 
         """
         Segmentation of users based on their interactions with different items.
@@ -191,7 +195,8 @@ class DiscreteFeatureSegmentation(Segmentation):
     their features (e.g., gender for users or genre for items)
     """
 
-    def segment(self, feature: pd.DataFrame, fill_na=-1) -> pd.DataFrame:
+    @staticmethod
+    def segment(feature: pd.DataFrame, fill_na=-1) -> pd.DataFrame:
 
         """
         Segmentation of users/items based on one of their features.
@@ -221,6 +226,6 @@ class DiscreteFeatureSegmentation(Segmentation):
 
         feature = feature.fillna({feature.columns[1]: fill_na})
 
-        feature[feature.columns[1]] = feature[feature.columns[1]].astype('category').cat.codes
+        feature.loc[:, feature.columns[1]] = feature[feature.columns[1]].astype('category').cat.codes
         feature = feature.rename({feature.columns[1]: 'group'}, axis='columns')
         return feature
