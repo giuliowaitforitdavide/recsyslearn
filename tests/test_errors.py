@@ -1,5 +1,5 @@
 import unittest
-from recsyslearn.errors.errors import FlagNotValidException, SegmentationNotSupportedException, InvalidValueException, WrongProportionsException, RecListTooShortException, ColumnsNotExistException
+from recsyslearn.errors.errors import SegmentationNotSupportedException, InvalidValueException, WrongProportionsException, RecListTooShortException, ColumnsNotExistException
 
 
 class TestErrors(unittest.TestCase):
@@ -9,7 +9,6 @@ class TestErrors(unittest.TestCase):
     """
 
     def test_exceptions(self) -> None:
-        FlagNotValidException()
         SegmentationNotSupportedException()
         WrongProportionsException()
         RecListTooShortException(10)

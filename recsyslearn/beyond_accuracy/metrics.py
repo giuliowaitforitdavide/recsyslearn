@@ -21,8 +21,8 @@ class Coverage(BeyondAccuracyMetric):
     Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2
     """
 
-    @staticmethod
-    def evaluate(top_n: pd.DataFrame, items: list) -> float:
+    @classmethod
+    def evaluate(cls, top_n: pd.DataFrame, items: list) -> float:
 
         """
         Compute the coverage of a model by using its recommendation list.
@@ -62,8 +62,8 @@ class Novelty(BeyondAccuracyMetric):
     or in terms of percentage of user-item interactions.
     """
 
-    @staticmethod
-    def evaluate(top_n: pd.DataFrame, popularity_definition='group') -> float:
+    @classmethod
+    def evaluate(cls, top_n: pd.DataFrame, popularity_definition='group') -> float:
 
         """
         Compute the novelty of a model by using its recommendation list and the segmented item groups.
