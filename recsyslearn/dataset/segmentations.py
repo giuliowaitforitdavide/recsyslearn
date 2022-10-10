@@ -22,8 +22,8 @@ class InteractionSegmentation(Segmentation):
     Segmentation of items based on the number of interaction they have.
     """
 
-    @staticmethod
-    def segment(dataset: pd.DataFrame, proportion=None, min_interaction: int = 0) -> pd.DataFrame:
+    @classmethod
+    def segment(cls, dataset: pd.DataFrame, proportion=None, min_interaction: int = 0) -> pd.DataFrame:
 
         """
         Segmentation of items based on their interactions with different users.
@@ -92,8 +92,8 @@ class PopularityPercentage(Segmentation):
     """
 
 
-    @staticmethod
-    def segment(dataset: pd.DataFrame, group: str = 'item') -> pd.DataFrame:
+    @classmethod
+    def segment(cls, dataset: pd.DataFrame, group: str = 'item') -> pd.DataFrame:
 
         """
         Calculate item or user popularity based on the percentage of interaction they have.
@@ -128,8 +128,8 @@ class ActivitySegmentation(Segmentation):
     Segmentation of users based on their number of interaction.
     """
 
-    @staticmethod
-    def segment(dataset: pd.DataFrame, proportions=None, min_interaction: int = 0) -> pd.DataFrame:
+    @classmethod
+    def segment(cls, dataset: pd.DataFrame, proportions: list = None, min_interaction: int = 0) -> pd.DataFrame:
 
         """
         Segmentation of users based on their interactions with different items.
@@ -195,8 +195,8 @@ class DiscreteFeatureSegmentation(Segmentation):
     their features (e.g., gender for users or genre for items)
     """
 
-    @staticmethod
-    def segment(feature: pd.DataFrame, fill_na=-1) -> pd.DataFrame:
+    @classmethod
+    def segment(cls, feature: pd.DataFrame, fill_na: int = -1) -> pd.DataFrame:
 
         """
         Segmentation of users/items based on one of their features.

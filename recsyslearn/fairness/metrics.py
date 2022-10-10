@@ -3,7 +3,6 @@ import numpy as np
 from recsyslearn.fairness.utils import eff_matrix, prob_matrix, exp_matrix
 from abc import ABC
 from recsyslearn.utils import check_columns_exist
-from recsyslearn.errors.errors import FlagNotValidException
 
 
 class FairnessMetric(ABC):
@@ -64,7 +63,7 @@ class KullbackLeibler(FairnessMetric):
     """
 
     def evaluate(self, top_n: pd.DataFrame, target_representation: pd.DataFrame,
-                 rel_matrix: pd.DataFrame = None) -> float:
+                rel_matrix: pd.DataFrame = None) -> float:
 
         """
         Compute the Kullback-Leibler divergence of a model, for a given target representation, by using its recommendation list.
@@ -133,8 +132,6 @@ class MutualInformation(FairnessMetric):
         ColumnsNotExistException
             If top_n not in the form ('user', 'item', 'rank', 'group').
 
-        FlagNotValidException
-            If flag is not valid.
 
 
         Return
@@ -145,9 +142,6 @@ class MutualInformation(FairnessMetric):
         check_columns_exist(top_n, ['user', 'item', 'rank', 'group'])
 
         not_flagged = {'user': 'item', 'item': 'user'}
-
-        if flag not in list(not_flagged.keys()):
-            raise FlagNotValidException()
 
         top_n = eff_matrix(top_n, rel_matrix) if rel_matrix is not None else exp_matrix(top_n)
         top_n = prob_matrix(top_n)
