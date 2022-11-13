@@ -24,14 +24,16 @@ class KullbackLeiblerTest(unittest.TestCase):
     def test_user_effectiveness(self) -> None:
         top_n = second_example.merge(user_groups, on='user')
         rel_matrix = rel_matrix_1.merge(user_groups, on='user')
-        target_representation = pd.DataFrame([['1', 0.5], ['2', 0.5]], columns=['group', 'target_representation'])
-        divergence = KullbackLeibler().evaluate(top_n, target_representation, rel_matrix)
+        target_representation = pd.DataFrame([['1', 0.5], ['2', 0.5]], columns=[
+                                             'group', 'target_representation'])
+        divergence = KullbackLeibler().evaluate(
+            top_n, target_representation, rel_matrix)
         self.assertAlmostEqual(divergence, 0.08530, delta=1e-5)
 
     def test_item_exposure(self) -> None:
         top_n = first_example.merge(item_groups, on='item')
         target_representation = pd.DataFrame([['1', 0.2], ['2', 0.3], ['3', 0.5]],
-                                            columns=['group', 'target_representation'])
+                                             columns=['group', 'target_representation'])
         divergence = KullbackLeibler().evaluate(top_n, target_representation)
         self.assertAlmostEqual(divergence, 0, delta=1e-5)
 
@@ -81,17 +83,20 @@ class NoveltyTest(unittest.TestCase):
     def test_novelty_one(self) -> None:
         top_n = first_example.merge(item_groups, on='item')
         nov = Novelty().evaluate(top_n)
-        self.assertAlmostEqual(nov, self.novelty(top_n['group'].to_numpy()), delta=1e-5)
+        self.assertAlmostEqual(nov, self.novelty(
+            top_n['group'].to_numpy()), delta=1e-5)
 
     def test_novelty_two(self) -> None:
         top_n = second_example.merge(item_groups, on='item')
         nov = Novelty().evaluate(top_n)
-        self.assertAlmostEqual(nov, self.novelty(top_n['group'].to_numpy()), delta=1e-5)
+        self.assertAlmostEqual(nov, self.novelty(
+            top_n['group'].to_numpy()), delta=1e-5)
 
     def test_novelty_three(self) -> None:
         top_n = first_example.merge(item_pop_perc, on='item')
         nov = Novelty().evaluate(top_n, popularity_definition='percentage')
-        self.assertAlmostEqual(nov, self.novelty(top_n['percentage'].to_numpy()), delta=1e-5)
+        self.assertAlmostEqual(nov, self.novelty(
+            top_n['percentage'].to_numpy()), delta=1e-5)
 
 
 if __name__ == '__main__':

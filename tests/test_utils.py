@@ -265,6 +265,7 @@ class TestEffMatrix(unittest.TestCase):
             rtol=1e-3,
         )
 
+
 class SmallUtilsTester(unittest.TestCase):
 
     def test_columns_exist_one(self):
@@ -272,9 +273,11 @@ class SmallUtilsTester(unittest.TestCase):
 
     def test_columns_dont_exist(self):
         with self.assertRaises(ColumnsNotExistException) as context:
-            check_columns_exist(pd.DataFrame(columns=['user']), ['user', 'item'])
+            check_columns_exist(pd.DataFrame(
+                columns=['user']), ['user', 'item'])
 
-        self.assertTrue("Dataframe does not contain columns. ['user', 'item']" in str(context.exception))
+        self.assertTrue("Dataframe does not contain columns. ['user', 'item']" in str(
+            context.exception))
 
 
 if __name__ == "__main__":

@@ -4,7 +4,6 @@ from recsyslearn.utils import check_columns_exist
 
 
 def exp_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
-
     """
     Compute exposure matrix for given recommendation lists.
 
@@ -33,7 +32,6 @@ def exp_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
 
 
 def prob_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
-
     """
     Compute probability distribution matrix for given recommendation lists.
 
@@ -62,7 +60,6 @@ def prob_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
 
 
 def eff_matrix(top_n: pd.DataFrame, rel_matrix: pd.DataFrame) -> pd.DataFrame:
-
     """
     Compute effectiveness matrix for given recommendation lists.
 
@@ -93,6 +90,7 @@ def eff_matrix(top_n: pd.DataFrame, rel_matrix: pd.DataFrame) -> pd.DataFrame:
 
     top_n = exp_matrix(top_n)
     top_n = top_n.merge(rel_matrix, on=["user", "item", "group"], how="outer")
-    top_n.loc[:, ["rank_x", "rank_y"]] = top_n.loc[:, ["rank_x", "rank_y"]].fillna(0)
+    top_n.loc[:, ["rank_x", "rank_y"]] = top_n.loc[:,
+                                                   ["rank_x", "rank_y"]].fillna(0)
     top_n["rank"] = top_n["rank_x"] * top_n["rank_y"]
     return top_n[["user", "item", "rank", "group"]]
