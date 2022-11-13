@@ -18,7 +18,7 @@ class RecListTooShortException(Exception):
 class SegmentationNotSupportedException(Exception):
 
     """Exception raised when there are too many group to be segmented."""
-    
+
     def __init__(self, message="Number of supported group is between 1 and 3.") -> None:
         super().__init__(message)
 

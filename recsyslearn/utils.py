@@ -3,7 +3,6 @@ from recsyslearn.errors.errors import ColumnsNotExistException, RecListTooShortE
 
 
 def check_columns_exist(df: pd.DataFrame, columns: list) -> pd.DataFrame:
-
     """
     Raise ColumnsNotExistException if pd.Dataframe does not contain the expected columns.
 

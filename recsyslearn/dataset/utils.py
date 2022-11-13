@@ -4,7 +4,6 @@ from recsyslearn.utils import check_columns_exist
 
 
 def find_relevant_items(target_df: pd.DataFrame) -> pd.DataFrame:
-
     """
     Find relevant items for every user in the dataset.
 
@@ -30,6 +29,7 @@ def find_relevant_items(target_df: pd.DataFrame) -> pd.DataFrame:
 
     check_columns_exist(target_df, ['user', 'item'])
     target_df = target_df[['user', 'item']]
-    pos_items = target_df.groupby('user')['item'].apply(np.asarray).reset_index()
+    pos_items = target_df.groupby(
+        'user')['item'].apply(np.asarray).reset_index()
     pos_items.columns = ['user', 'pos_items']
     return pos_items
