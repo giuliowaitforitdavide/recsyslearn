@@ -170,7 +170,7 @@ class ActivitySegmentation(Segmentation):
             raise SegmentationNotSupportedException()
 
         mpmath.mp.dps = 1
-        if np.sum([mpmath.mpf(proportion) for proportion in proportions]) != 1:
+        if np.sum(mpmath.mpf(proportion) for proportion in proportions) != 1:
             raise WrongProportionsException()
 
         if len(proportions) == 1:
