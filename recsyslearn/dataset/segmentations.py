@@ -189,7 +189,7 @@ class ActivitySegmentation(Segmentation):
         user_groups.loc[user_groups['count'] <= threshold, 'group'] = '1'
         user_groups.loc[user_groups['count'] > threshold, 'group'] = '2'
 
-        return user_groups[['user', 'group']]
+        return user_groups[['user', 'group']].astype({'user': str, 'group': str})
 
 
 class DiscreteFeatureSegmentation(Segmentation):
