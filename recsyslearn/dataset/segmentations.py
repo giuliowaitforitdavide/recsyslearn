@@ -23,7 +23,7 @@ class InteractionSegmentation(Segmentation):
     """
 
     @classmethod
-    def segment(cls, dataset: pd.DataFrame, proportion=None, min_interaction: int = 0) -> pd.DataFrame:
+    def segment(cls, dataset: pd.DataFrame, proportions: list = None, min_interaction: int = 0) -> pd.DataFrame:
         """
         Segmentation of items based on their interactions with different users.
 
@@ -33,20 +33,20 @@ class InteractionSegmentation(Segmentation):
         dataset : pd.DataFrame
             The complete dataset.
 
-        proportion : list, default [0.8, 0.2]
-            The proportion of interactions wanted for every group. Its length should be between 1 and 3.
+        proportions : list, default [0.8, 0.2]
+            The proportions of interactions wanted for every group. Its length should be between 1 and 3.
 
         min_interaction : int, default 0
-            The minimum number of interaction. Items below this threshold will be removed.
+            The minimum number of interaction allowed for items. Items below this threshold will be removed.
 
 
         Raises
         ------
         SegmentationNotSupportedException
-            If len(proportion) not in (1, 2, 3).
+            If len(proportions) not in (1, 2, 3).
 
         WrongProportionsException
-            If sum(proportion) is not 1, which means it doesn't cover all the items/users.
+            If sum(proportions) is not 1, which means it doesn't cover all the items/users.
 
 
         Return
@@ -54,17 +54,18 @@ class InteractionSegmentation(Segmentation):
         DataFrame with items and belonging group.
         """
 
-        if proportion is None:
-            proportion = [0.8, 0.2]
+        if proportions is None:
+            proportions = [0.8, 0.2]
 
-        if len(proportion) not in (1, 2, 3):
-            raise SegmentationNotSupportedException()
-
-        if np.sum(proportion * 10) / 10 != 1:
-            raise WrongProportionsException()
-
-        if len(proportion) == 1:
+        if len(proportions) == 1:
             return dataset
+
+        if len(proportions) not in (2, 3):
+            raise SegmentationNotSupportedException(
+                "Number of supported group is between 1 and 3.")
+
+        if np.sum(proportions * 10) / 10 != 1:
+            raise WrongProportionsException()
 
         item_groups = dataset.groupby('item').size().reset_index(
             name='count').sort_values('count', ascending=False)
@@ -72,8 +73,8 @@ class InteractionSegmentation(Segmentation):
         tmp = item_groups[item_groups['count'] > min_interaction]
         n_int = tmp['count'].sum()
 
-        short_thr = np.rint(proportion[0] * n_int)
-        mid_thr = np.rint(proportion[1] * n_int) + short_thr
+        short_thr = np.rint(proportions[0] * n_int)
+        mid_thr = np.rint(proportions[1] * n_int) + short_thr
         tmp.loc[:, 'cumulative_sum'] = tmp['count'].cumsum()
 
         short_head = tmp.loc[tmp['cumulative_sum'].lt(short_thr), 'item']
@@ -82,7 +83,7 @@ class InteractionSegmentation(Segmentation):
         conditions = [item_groups['item'].isin(
             short_head), item_groups['item'].isin(mid_tail)]
         choices = (1, 2)
-        default = len(proportion)
+        default = len(proportions)
         item_groups.loc[:, 'group'] = np.select(
             conditions, choices, default=default)
         return item_groups[['item', 'group']].astype({'item': str, 'group': str})
@@ -146,13 +147,13 @@ class ActivitySegmentation(Segmentation):
             The proportion of interactions wanted for every group.
 
         min_interaction : int, default 0
-            The minimum number of interaction. Users below this threshold will be removed.
+            The minimum number of interaction allowed per user. Users below this threshold will be removed.
 
 
         Raises
         ------
         SegmentationNotSupportedException
-            If len(proportion) not in (1, 2, 3).
+            If len(proportion) not in (1, 2).
 
         WrongProportionsException
             If sum(proportion) is not 1, which means it doesn't cover all the items/users.
@@ -166,15 +167,16 @@ class ActivitySegmentation(Segmentation):
         if proportions is None:
             proportions = [0.1, 0.9]
 
-        if len(proportions) not in (1, 2, 3):
-            raise SegmentationNotSupportedException()
+        if len(proportions) == 1:
+            return dataset
+
+        if len(proportions) != 2:
+            raise SegmentationNotSupportedException(
+                "Number of supported group is 1 or 2.")
 
         mpmath.mp.dps = 1
         if np.sum(mpmath.mpf(proportion) for proportion in proportions) != 1:
             raise WrongProportionsException()
-
-        if len(proportions) == 1:
-            return dataset
 
         user_groups = dataset.groupby('user').size().reset_index(name='count')
         user_groups = user_groups[user_groups['count'] > min_interaction]
