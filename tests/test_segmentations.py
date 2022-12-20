@@ -99,9 +99,6 @@ class ActivitySegmentationTest(unittest.TestCase):
         self.assertTrue(
             segmented_groups.loc[segmented_groups['user'] == '3', 'group'].eq('2').all())
 
-    def test_segmentation_mantissa(self) -> None:
-        ActivitySegmentation().segment(dataset_user_example, [0.6, 0.3, 0.1])
-
     def test_segmentation_entire_dataset(self) -> None:
         self.assertIsNone(assert_frame_equal(
             dataset_user_example, ActivitySegmentation().segment(dataset_user_example, [1])))
@@ -109,10 +106,10 @@ class ActivitySegmentationTest(unittest.TestCase):
     def test_segmentation_not_supported(self) -> None:
         with self.assertRaises(SegmentationNotSupportedException) as context:
             ActivitySegmentation().segment(
-                dataset_user_example, [0.7, 0.1, 0.1, 0.1])
+                dataset_user_example, [0.7, 0.2, 0.1])
 
         self.assertTrue(
-            'Number of supported group is between 1 and 3.' in str(context.exception))
+            'Number of supported group is 1 or 2.' in str(context.exception))
 
     def test_segmentation_wrong_proportion(self) -> None:
         with self.assertRaises(WrongProportionsException) as context:
