@@ -9,7 +9,7 @@ class TestErrors(unittest.TestCase):
     """
 
     def test_exceptions(self) -> None:
-        SegmentationNotSupportedException()
+        SegmentationNotSupportedException('')
         WrongProportionsException()
         RecListTooShortException(10)
         ColumnsNotExistException(['A', 'B', 'C'])
