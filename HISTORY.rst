@@ -28,3 +28,11 @@ History
 -------------------
 
 * Added accuracy computation with NDCG@k
+
+1.0.0 (2022-12-21)
+-------------------
+
+* Added usage example
+* Breaking library refactor
+* Improved jobs' workflows, linting and other developing stuffs
+* Fix typos in docs and functions
