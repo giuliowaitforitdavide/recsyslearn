@@ -98,9 +98,6 @@ class NDCG(AccuracyMetric):
         top_n : pd.DataFrame
             Top N recommendations' lists for every user. Columns: ['user', 'item', 'rank'].
 
-        target_df : pd.DataFrame
-            Target Interaction dataframe of, i.e., items to be recommended. Columns: ['user', 'item'].
-
         pos_items : pd.DataFrame
             Relevant items per user. Columns: ['user', 'pos_items'].
 
@@ -114,7 +111,7 @@ class NDCG(AccuracyMetric):
             If top_n does not contain columns ('user', 'item', 'rank').
 
         ColumnsNotExistException
-            If target_df does not contain columns ('user', 'item').
+            If pos_items does not contain columns ('user', 'pos_items').
 
         RecListTooShortException
             If the top_n list does not contain enough items.
