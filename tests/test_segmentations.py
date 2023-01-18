@@ -20,6 +20,15 @@ class InteractionSegmentationTest(unittest.TestCase):
         self.assertTrue(
             segmented_groups.loc[segmented_groups['item'] == '2', 'group'].eq('2').all())
 
+    def test_segmentation(self) -> None:
+        segmented_groups = InteractionSegmentation().segment(dataset_item_example)
+        self.assertTrue(
+            segmented_groups.loc[segmented_groups['item'] == '1', 'group'].eq('1').all())
+        self.assertTrue(
+            segmented_groups.loc[segmented_groups['item'] == '2', 'group'].eq('2').all())
+        self.assertTrue(
+            segmented_groups.loc[segmented_groups['item'] == '3', 'group'].eq('2').all())
+
     def test_segmentation_mantissa(self) -> None:
         InteractionSegmentation().segment(
             dataset_item_example, [0.6, 0.3, 0.1])
