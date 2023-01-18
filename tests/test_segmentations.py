@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from recsyslearn.dataset.segmentations import ActivitySegmentation, PopularityPercentage, InteractionSegmentation, \
     DiscreteFeatureSegmentation
-from recsyslearn.errors.errors import InvalidValueException, SegmentationNotSupportedException, WrongProportionsException
+from recsyslearn.errors.errors import InvalidValueException, SegmentationNotSupportedException, WrongProportionsException, InvalidGroupException
 from tests.utils import dataset_item_example, dataset_user_example, dataset_popularity, user_feature, item_feature, \
     user_error_feature
 from pandas.testing import assert_frame_equal
@@ -46,6 +46,14 @@ class InteractionSegmentationTest(unittest.TestCase):
 
         self.assertTrue(
             "Proportions doesn't cover all the items/users." in str(context.exception))
+
+    def test_segmentation_group_typo(self) -> None:
+        with self.assertRaises(InvalidGroupException) as context:
+            InteractionSegmentation().segment(
+                dataset_item_example, [0.7, 0.3], 1, 'users')
+
+        self.assertTrue(
+            "users is not a valid group" in str(context.exception))
 
 
 class ItemPopularityPercentageTest(unittest.TestCase):

@@ -38,3 +38,11 @@ class InvalidValueException(Exception):
     def __init__(self, fill_na) -> None:
         message = f"Feature contains {fill_na} as value. Please select another fill_na value."
         super().__init__(message)
+
+
+class InvalidGroupException(Exception):
+
+    """Exception raised when user wants to segment a non valid group"""
+
+    def __init__(self, user_group) -> None:
+        super().__init__(f"{user_group} is not a valid group")
