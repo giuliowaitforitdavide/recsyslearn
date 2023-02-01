@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from abc import ABC
 from collections import Counter
-from recsyslearn.errors.errors import SegmentationNotSupportedException, WrongProportionsException, InvalidValueException
+from recsyslearn.errors.errors import SegmentationNotSupportedException, WrongProportionsException, InvalidValueException, InvalidGroupException
 
 
 class Segmentation(ABC):
@@ -23,7 +23,7 @@ class InteractionSegmentation(Segmentation):
     """
 
     @classmethod
-    def segment(cls, dataset: pd.DataFrame, proportions: list = None, min_interaction: int = 0) -> pd.DataFrame:
+    def segment(cls, dataset: pd.DataFrame, proportions: list = None, min_interaction: int = 0, group='item') -> pd.DataFrame:
         """
         Segmentation of items based on their interactions with different users.
 
@@ -39,6 +39,9 @@ class InteractionSegmentation(Segmentation):
         min_interaction : int, default 0
             The minimum number of interaction allowed for items. Items below this threshold will be removed.
 
+        group : str, default 'item'
+            The group which has to be segmented based on their number of interaction.
+
 
         Raises
         ------
@@ -47,6 +50,9 @@ class InteractionSegmentation(Segmentation):
 
         WrongProportionsException
             If sum(proportions) is not 1, which means it doesn't cover all the items/users.
+
+        InvalidGroupException
+            If group is not equal to 'user' or 'item'.
 
 
         Return
@@ -67,7 +73,10 @@ class InteractionSegmentation(Segmentation):
         if np.sum(proportions * 10) / 10 != 1:
             raise WrongProportionsException()
 
-        item_groups = dataset.groupby('item').size().reset_index(
+        if group not in ['user', 'item']:
+            raise InvalidGroupException(group)
+
+        item_groups = dataset.groupby(group).size().reset_index(
             name='count').sort_values('count', ascending=False)
 
         tmp = item_groups[item_groups['count'] > min_interaction]
@@ -77,16 +86,16 @@ class InteractionSegmentation(Segmentation):
         mid_thr = np.rint(proportions[1] * n_int) + short_thr
         tmp.loc[:, 'cumulative_sum'] = tmp['count'].cumsum()
 
-        short_head = tmp.loc[tmp['cumulative_sum'].lt(short_thr), 'item']
+        short_head = tmp.loc[tmp['cumulative_sum'].lt(short_thr), group]
         mid_tail = tmp.loc[tmp['cumulative_sum'].lt(
-            mid_thr) & ~tmp['item'].isin(short_head), 'item']
-        conditions = [item_groups['item'].isin(
-            short_head), item_groups['item'].isin(mid_tail)]
+            mid_thr) & ~tmp[group].isin(short_head), group]
+        conditions = [item_groups[group].isin(
+            short_head), item_groups[group].isin(mid_tail)]
         choices = (1, 2)
         default = len(proportions)
         item_groups.loc[:, 'group'] = np.select(
             conditions, choices, default=default)
-        return item_groups[['item', 'group']].astype({'item': str, 'group': str})
+        return item_groups[[group, 'group']].astype({f'{group}': str, 'group': str})
 
 
 class PopularityPercentage(Segmentation):
