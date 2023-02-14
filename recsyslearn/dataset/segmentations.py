@@ -1,4 +1,3 @@
-import mpmath
 import numpy as np
 import pandas as pd
 from abc import ABC
@@ -23,7 +22,7 @@ class InteractionSegmentation(Segmentation):
     """
 
     @classmethod
-    def segment(cls, dataset: pd.DataFrame, proportions: list = None, min_interaction: int = 0, group='item') -> pd.DataFrame:
+    def segment(cls, dataset: pd.DataFrame, proportions = None, min_interaction: int = 0, group='item') -> pd.DataFrame:
         """
         Segmentation of items based on their interactions with different users.
 
@@ -142,7 +141,7 @@ class ActivitySegmentation(Segmentation):
     """
 
     @classmethod
-    def segment(cls, dataset: pd.DataFrame, proportions: list = None, min_interaction: int = 0) -> pd.DataFrame:
+    def segment(cls, dataset: pd.DataFrame, proportions = None, min_interaction: int = 0) -> pd.DataFrame:
         """
         Segmentation of users based on their interactions with different items.
 
@@ -162,7 +161,7 @@ class ActivitySegmentation(Segmentation):
         Raises
         ------
         SegmentationNotSupportedException
-            If len(proportion) not in (1, 2).
+            If len(proportion) not in (1, 2, 3).
 
         WrongProportionsException
             If sum(proportion) is not 1, which means it doesn't cover all the items/users.
@@ -179,12 +178,11 @@ class ActivitySegmentation(Segmentation):
         if len(proportions) == 1:
             return dataset
 
-        if len(proportions) != 2:
+        if len(proportions) not in (2, 3):
             raise SegmentationNotSupportedException(
-                "Number of supported group is 1 or 2.")
+                "Number of supported group is between 1 and 3.")
 
-        mpmath.mp.dps = 1
-        if np.sum(mpmath.mpf(proportion) for proportion in proportions) != 1:
+        if np.sum(proportions * 10) / 10 != 1:
             raise WrongProportionsException()
 
         user_groups = dataset.groupby('user').size().reset_index(name='count')
@@ -238,9 +236,9 @@ class DiscreteFeatureSegmentation(Segmentation):
         if fill_na in feature[feature.columns[1]].unique():
             raise InvalidValueException(fill_na)
 
-        feature = feature.fillna({feature.columns[1]: fill_na})
+        feature = feature.fillna({str(feature.columns[1]): fill_na})
 
         feature.loc[:, feature.columns[1]] = feature[feature.columns[1]].astype(
             'category').cat.codes
-        feature = feature.rename({feature.columns[1]: 'group'}, axis='columns')
+        feature = feature.rename({str(feature.columns[1]): 'group'}, axis='columns')
         return feature
