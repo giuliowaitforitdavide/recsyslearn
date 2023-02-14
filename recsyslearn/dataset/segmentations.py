@@ -22,7 +22,7 @@ class InteractionSegmentation(Segmentation):
     """
 
     @classmethod
-    def segment(cls, dataset: pd.DataFrame, proportions = None, min_interaction: int = 0, group='item') -> pd.DataFrame:
+    def segment(cls, dataset: pd.DataFrame, proportions=None, min_interaction: int = 0, group='item') -> pd.DataFrame:
         """
         Segmentation of items based on their interactions with different users.
 
@@ -141,7 +141,7 @@ class ActivitySegmentation(Segmentation):
     """
 
     @classmethod
-    def segment(cls, dataset: pd.DataFrame, proportions = None, min_interaction: int = 0) -> pd.DataFrame:
+    def segment(cls, dataset: pd.DataFrame, proportions=None, min_interaction: int = 0) -> pd.DataFrame:
         """
         Segmentation of users based on their interactions with different items.
 
@@ -186,17 +186,27 @@ class ActivitySegmentation(Segmentation):
             raise WrongProportionsException()
 
         user_groups = dataset.groupby('user').size().reset_index(name='count')
-        user_groups = user_groups[user_groups['count'] > min_interaction]
+        user_groups = user_groups.loc[user_groups['count']
+                                      >= min_interaction, :]
 
         user_groups.loc[:, 'count'] = user_groups.loc[:, 'count'].apply(
             lambda x: x + np.random.choice(list(range(10))))
         user_groups = user_groups.sort_values('count', ascending=False)
         user_groups.loc[:, 'count'] = np.arange(user_groups.shape[0]) + 1
-        threshold = round(user_groups.shape[0] * proportions[0]) if round(
-            user_groups.shape[0] * proportions[0]) > 0 else 1
+        first_thr = np.rint(proportions[0] * user_groups.shape[0])
+        second_thr = np.rint(proportions[1] * user_groups.shape[0]) + first_thr
+        first_thr = first_thr if first_thr > 0 else 1
+        first_group = user_groups.loc[user_groups['count'] <=
+            first_thr, 'user']
+        second_group = user_groups.loc[user_groups['count'].lt(
+            second_thr), 'user']
 
-        user_groups.loc[user_groups['count'] <= threshold, 'group'] = '1'
-        user_groups.loc[user_groups['count'] > threshold, 'group'] = '2'
+        conditions = [user_groups['user'].isin(
+            first_group), user_groups['user'].isin(second_group)]
+        choices = (1, 2)
+        default = len(proportions)
+        user_groups.loc[:, 'group'] = np.select(
+            conditions, choices, default=default)
 
         return user_groups[['user', 'group']].astype({'user': str, 'group': str})
 
@@ -240,5 +250,6 @@ class DiscreteFeatureSegmentation(Segmentation):
 
         feature.loc[:, feature.columns[1]] = feature[feature.columns[1]].astype(
             'category').cat.codes
-        feature = feature.rename({str(feature.columns[1]): 'group'}, axis='columns')
+        feature = feature.rename(
+            {str(feature.columns[1]): 'group'}, axis='columns')
         return feature
