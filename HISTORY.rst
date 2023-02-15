@@ -36,3 +36,11 @@ History
 * Breaking library refactor
 * Improved jobs' workflows, linting and other developing stuffs
 * Fix typos in docs and functions
+
+1.0.1 (2023-02-15)
+-------------------
+
+* Bump certifi from 2022.9.14 to 2022.12.7
+* Added compatibility with pyenv for contributors
+* Fixed segmentation based on interactions (now compatible with users)
+* Fixed number of supported groups for users' activity (now could be three)
