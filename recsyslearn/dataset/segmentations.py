@@ -1,4 +1,3 @@
-import mpmath
 import numpy as np
 import pandas as pd
 from abc import ABC
@@ -23,7 +22,7 @@ class InteractionSegmentation(Segmentation):
     """
 
     @classmethod
-    def segment(cls, dataset: pd.DataFrame, proportions: list = None, min_interaction: int = 0, group='item') -> pd.DataFrame:
+    def segment(cls, dataset: pd.DataFrame, proportions=None, min_interaction: int = 0, group='item') -> pd.DataFrame:
         """
         Segmentation of items based on their interactions with different users.
 
@@ -142,7 +141,7 @@ class ActivitySegmentation(Segmentation):
     """
 
     @classmethod
-    def segment(cls, dataset: pd.DataFrame, proportions: list = None, min_interaction: int = 0) -> pd.DataFrame:
+    def segment(cls, dataset: pd.DataFrame, proportions=None, min_interaction: int = 0) -> pd.DataFrame:
         """
         Segmentation of users based on their interactions with different items.
 
@@ -162,7 +161,7 @@ class ActivitySegmentation(Segmentation):
         Raises
         ------
         SegmentationNotSupportedException
-            If len(proportion) not in (1, 2).
+            If len(proportion) not in (1, 2, 3).
 
         WrongProportionsException
             If sum(proportion) is not 1, which means it doesn't cover all the items/users.
@@ -179,26 +178,35 @@ class ActivitySegmentation(Segmentation):
         if len(proportions) == 1:
             return dataset
 
-        if len(proportions) != 2:
+        if len(proportions) not in (2, 3):
             raise SegmentationNotSupportedException(
-                "Number of supported group is 1 or 2.")
+                "Number of supported group is between 1 and 3.")
 
-        mpmath.mp.dps = 1
-        if np.sum(mpmath.mpf(proportion) for proportion in proportions) != 1:
+        if np.sum(proportions * 10) / 10 != 1:
             raise WrongProportionsException()
 
         user_groups = dataset.groupby('user').size().reset_index(name='count')
-        user_groups = user_groups[user_groups['count'] > min_interaction]
+        user_groups = user_groups.loc[user_groups['count']
+                                      >= min_interaction, :]
 
         user_groups.loc[:, 'count'] = user_groups.loc[:, 'count'].apply(
             lambda x: x + np.random.choice(list(range(10))))
         user_groups = user_groups.sort_values('count', ascending=False)
         user_groups.loc[:, 'count'] = np.arange(user_groups.shape[0]) + 1
-        threshold = round(user_groups.shape[0] * proportions[0]) if round(
-            user_groups.shape[0] * proportions[0]) > 0 else 1
+        first_thr = np.rint(proportions[0] * user_groups.shape[0])
+        second_thr = np.rint(proportions[1] * user_groups.shape[0]) + first_thr
+        first_thr = first_thr if first_thr > 0 else 1
+        first_group = user_groups.loc[user_groups['count'] <=
+            first_thr, 'user']
+        second_group = user_groups.loc[user_groups['count'].lt(
+            second_thr), 'user']
 
-        user_groups.loc[user_groups['count'] <= threshold, 'group'] = '1'
-        user_groups.loc[user_groups['count'] > threshold, 'group'] = '2'
+        conditions = [user_groups['user'].isin(
+            first_group), user_groups['user'].isin(second_group)]
+        choices = (1, 2)
+        default = len(proportions)
+        user_groups.loc[:, 'group'] = np.select(
+            conditions, choices, default=default)
 
         return user_groups[['user', 'group']].astype({'user': str, 'group': str})
 
@@ -238,9 +246,10 @@ class DiscreteFeatureSegmentation(Segmentation):
         if fill_na in feature[feature.columns[1]].unique():
             raise InvalidValueException(fill_na)
 
-        feature = feature.fillna({feature.columns[1]: fill_na})
+        feature = feature.fillna({str(feature.columns[1]): fill_na})
 
         feature.loc[:, feature.columns[1]] = feature[feature.columns[1]].astype(
             'category').cat.codes
-        feature = feature.rename({feature.columns[1]: 'group'}, axis='columns')
+        feature = feature.rename(
+            {str(feature.columns[1]): 'group'}, axis='columns')
         return feature
