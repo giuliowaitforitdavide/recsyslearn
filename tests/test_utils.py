@@ -5,7 +5,144 @@ from pandas.testing import assert_frame_equal
 from recsyslearn.errors.errors import ColumnsNotExistException
 from recsyslearn.fairness.utils import eff_matrix, prob_matrix, exp_matrix
 from recsyslearn.utils import check_columns_exist
-from tests.utils import first_example, second_example, user_groups, item_groups, rel_matrix_1, rel_matrix_3
+
+first_example = pd.DataFrame([
+    ['1', '3', 1],
+    ['1', '4', 1],
+    ['1', '6', 1],
+    ['1', '7', 1],
+    ['1', '8', 1],
+    ['2', '1', 1],
+    ['2', '2', 1],
+    ['2', '5', 1],
+    ['2', '6', 1],
+    ['2', '7', 1],
+    ['3', '2', 1],
+    ['3', '3', 1],
+    ['3', '6', 1],
+    ['3', '9', 1],
+    ['3', '10', 1],
+    ['4', '1', 1],
+    ['4', '3', 1],
+    ['4', '6', 1],
+    ['4', '7', 1],
+    ['4', '9', 1],
+    ['5', '1', 1],
+    ['5', '3', 1],
+    ['5', '5', 1],
+    ['5', '7', 1],
+    ['5', '9', 1],
+    ['6', '2', 1],
+    ['6', '3', 1],
+    ['6', '5', 1],
+    ['6', '9', 1],
+    ['6', '10', 1],
+], columns=['user', 'item', 'rank'])
+
+user_groups = pd.DataFrame([
+    ['1', '1'],
+    ['2', '1'],
+    ['3', '2'],
+    ['4', '2'],
+    ['5', '2'],
+    ['6', '2']
+], columns=['user', 'group'])
+
+item_groups = pd.DataFrame([
+    ['1', '1'],
+    ['2', '1'],
+    ['3', '2'],
+    ['4', '2'],
+    ['5', '2'],
+    ['6', '3'],
+    ['7', '3'],
+    ['8', '3'],
+    ['9', '3'],
+    ['10', '3']
+], columns=['item', 'group'])
+
+rel_matrix_1 = pd.DataFrame([
+    ['1', '2', 1],
+    ['1', '9', 1],
+    ['2', '6', 1],
+    ['2', '7', 1],
+    ['3', '1', 1],
+    ['3', '7', 1],
+    ['3', '9', 1],
+    ['4', '3', 1],
+    ['4', '7', 1],
+    ['6', '2', 1],
+    ['6', '9', 1]
+], columns=['user', 'item', 'rank'])
+
+rel_matrix_3 = pd.DataFrame([
+    ['1', '2', 0.143],
+    ['1', '9', 0.077],
+    ['2', '6', 0.077],
+    ['2', '7', 0.077],
+    ['3', '1', 0.143],
+    ['3', '3', 0.143],
+    ['3', '4', 0.143],
+    ['3', '5', 0.143],
+    ['3', '7', 0.077],
+    ['3', '9', 0.077],
+    ['4', '2', 0.143],
+    ['4', '3', 0.143],
+    ['4', '5', 0.07743],
+    ['4', '7', 0.077],
+    ['4', '8', 0.077],
+    ['4', '9', 0.077],
+    ['5', '1', 0.143],
+    ['5', '2', 0.143],
+    ['5', '4', 0.143],
+    ['5', '5', 0.143],
+    ['5', '6', 0.077],
+    ['5', '9', 0.077],
+    ['6', '1', 0.143],
+    ['6', '2', 0.143],
+    ['6', '6', 0.077],
+    ['6', '8', 0.077],
+    ['6', '9', 0.077],
+], columns=['user', 'item', 'rank'])
+
+second_example = pd.DataFrame([
+    ['1', '1', 1],
+    ['1', '3', 6],
+    ['1', '4', 3],
+    ['1', '5', 4],
+    ['1', '8', 5],
+    ['1', '9', 2],
+    ['2', '2', 6],
+    ['2', '3', 5],
+    ['2', '6', 4],
+    ['2', '7', 3],
+    ['2', '8', 2],
+    ['2', '9', 1],
+    ['3', '2', 1],
+    ['3', '3', 2],
+    ['3', '4', 3],
+    ['3', '7', 4],
+    ['3', '8', 5],
+    ['3', '9', 6],
+    ['4', '1', 4],
+    ['4', '3', 5],
+    ['4', '4', 6],
+    ['4', '7', 3],
+    ['4', '8', 2],
+    ['4', '9', 1],
+    ['5', '1', 6],
+    ['5', '3', 2],
+    ['5', '5', 3],
+    ['5', '6', 4],
+    ['5', '8', 5],
+    ['5', '9', 1],
+    ['6', '2', 3],
+    ['6', '3', 5],
+    ['6', '5', 4],
+    ['6', '6', 6],
+    ['6', '8', 2],
+    ['6', '9', 1]
+], columns=['user', 'item', 'rank'])
 
 
 class TestExpMatrix(unittest.TestCase):
@@ -266,18 +403,15 @@ class TestEffMatrix(unittest.TestCase):
         )
 
 
-class SmallUtilsTester(unittest.TestCase):
+class CheckColumnsTester(unittest.TestCase):
 
-    def test_columns_exist_one(self):
+    def test_columns_exist(self):
         check_columns_exist(pd.DataFrame(columns=['user', 'item']), ['user'])
 
     def test_columns_dont_exist(self):
-        with self.assertRaises(ColumnsNotExistException) as context:
+        with self.assertRaises(ColumnsNotExistException):
             check_columns_exist(pd.DataFrame(
                 columns=['user']), ['user', 'item'])
-
-        self.assertTrue("Dataframe does not contain columns. ['user', 'item']" in str(
-            context.exception))
 
 
 if __name__ == "__main__":

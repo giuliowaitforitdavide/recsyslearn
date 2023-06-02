@@ -52,6 +52,9 @@ lint/flake8: ## check style with flake8
 
 lint: lint/flake8 ## check style
 
+unit: ## run single test
+	python setup.py test -s $(TEST)
+
 test: ## run tests quickly with the default Python
 	python setup.py test
 

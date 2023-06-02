@@ -1,12 +1,94 @@
 import unittest
 import numpy as np
+import pandas as pd
 from recsyslearn.dataset.segmentations import ActivitySegmentation, PopularityPercentage, InteractionSegmentation, \
     DiscreteFeatureSegmentation
 from recsyslearn.errors.errors import InvalidValueException, SegmentationNotSupportedException, WrongProportionsException, InvalidGroupException
-from tests.utils import dataset_item_example, dataset_user_example, dataset_popularity, user_feature, item_feature, \
-    user_error_feature
 from pandas.testing import assert_frame_equal
 
+dataset_item_example = pd.DataFrame([
+    ['1', '1', 1],
+    ['2', '1', 1],
+    ['3', '1', 1],
+    ['1', '2', 1],
+    ['1', '2', 1]
+], columns=['user', 'item', 'rank'])
+
+
+dataset_user_example = pd.DataFrame([
+    ['1', '1', 1],
+    ['1', '2', 1],
+    ['1', '3', 1],
+    ['1', '4', 1],
+    ['1', '5', 1],
+    ['1', '6', 1],
+    ['1', '7', 1],
+    ['1', '8', 1],
+    ['1', '9', 1],
+    ['1', '1', 1],
+    ['1', '2', 1],
+    ['1', '3', 1],
+    ['1', '4', 1],
+    ['1', '5', 1],
+    ['1', '6', 1],
+    ['1', '7', 1],
+    ['1', '8', 1],
+    ['1', '9', 1],
+    ['1', '1', 1],
+    ['1', '2', 1],
+    ['1', '3', 1],
+    ['1', '4', 1],
+    ['1', '5', 1],
+    ['1', '6', 1],
+    ['1', '7', 1],
+    ['1', '8', 1],
+    ['1', '9', 1],
+    ['1', '1', 1],
+    ['1', '2', 1],
+    ['1', '3', 1],
+    ['1', '4', 1],
+    ['1', '5', 1],
+    ['1', '6', 1],
+    ['1', '7', 1],
+    ['1', '8', 1],
+    ['1', '9', 1],
+    ['2', '1', 1],
+    ['2', '1', 1],
+    ['3', '1', 1]
+], columns=['user', 'item', 'rank'])
+
+dataset_popularity = pd.DataFrame([
+    ['1', '1', 1],
+    ['1', '1', 1],
+    ['1', '1', 1],
+    ['1', '1', 1],
+    ['2', '1', 1],
+    ['3', '1', 1],
+    ['1', '2', 1],
+    ['1', '2', 1],
+    ['2', '2', 1],
+    ['1', '3', 1]
+], columns=['user', 'item', 'rank'])
+
+item_feature = pd.DataFrame([
+    ['1', 'pop'],
+    ['2', 'pop'],
+    ['3', 'electronic'],
+    ['4', 'rock'],
+], columns=['item', 'genre'])
+
+user_feature = pd.DataFrame([
+    ['1', 'm'],
+    ['2', 'f'],
+    ['3', None],
+    ['4', np.nan],
+], columns=['user', 'gender'])
+
+user_error_feature = pd.DataFrame([
+    ['1', 19],
+    ['2', 30],
+    ['3', -1],
+], columns=['user', 'age'])
 
 class InteractionSegmentationTest(unittest.TestCase):
     """
@@ -42,21 +124,18 @@ class InteractionSegmentationTest(unittest.TestCase):
         )
 
     def test_segmentation_not_supported(self) -> None:
-        with self.assertRaises(SegmentationNotSupportedException) as context:
+        with self.assertRaises(SegmentationNotSupportedException):
             InteractionSegmentation().segment(
                 dataset_item_example, [0.7, 0.1, 0.1, 0.1])
 
-
     def test_segmentation_wrong_proportion(self) -> None:
-        with self.assertRaises(WrongProportionsException) as context:
+        with self.assertRaises(WrongProportionsException):
             InteractionSegmentation().segment(dataset_item_example, [0.7, 0.4])
 
-
     def test_segmentation_group_typo(self) -> None:
-        with self.assertRaises(InvalidGroupException) as context:
+        with self.assertRaises(InvalidGroupException):
             InteractionSegmentation().segment(
                 dataset_item_example, [0.7, 0.3], 1, 'users')
-
 
 
 class ItemPopularityPercentageTest(unittest.TestCase):
@@ -115,13 +194,12 @@ class ActivitySegmentationTest(unittest.TestCase):
             dataset_user_example, ActivitySegmentation().segment(dataset_user_example, [1])))
 
     def test_segmentation_not_supported(self) -> None:
-        with self.assertRaises(SegmentationNotSupportedException) as context:
-            InteractionSegmentation().segment(
-                dataset_item_example, [0.7, 0.1, 0.1, 0.1])
-
+        with self.assertRaises(SegmentationNotSupportedException):
+            ActivitySegmentation().segment(
+                dataset_user_example, [0.7, 0.2, 0.1])
 
     def test_segmentation_wrong_proportion(self) -> None:
-        with self.assertRaises(WrongProportionsException) as context:
+        with self.assertRaises(WrongProportionsException):
             ActivitySegmentation().segment(dataset_user_example, [0.7, 0.4])
 
 
@@ -142,9 +220,8 @@ class UserDiscreteFeatureSegmentationTest(unittest.TestCase):
                                            segmented_groups.loc[segmented_groups['user'] == '4'].group)) == 1)
 
     def test_segmentation_invalid_value(self) -> None:
-        with self.assertRaises(InvalidValueException) as context:
+        with self.assertRaises(InvalidValueException):
             DiscreteFeatureSegmentation().segment(feature=user_error_feature)
-
 
 
 class ItemDiscreteFeatureSegmentationTest(unittest.TestCase):

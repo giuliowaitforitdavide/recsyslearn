@@ -62,7 +62,7 @@ class Novelty(BeyondAccuracyMetric):
     """
 
     @classmethod
-    def evaluate(cls, top_n: pd.DataFrame, popularity_definition="group") -> pd.Series:
+    def evaluate(cls, top_n: pd.DataFrame, popularity_definition='group') -> pd.DataFrame:
         """
         Compute the novelty of a model by using its recommendation list and the segmented item groups.
 
@@ -87,11 +87,11 @@ class Novelty(BeyondAccuracyMetric):
         The pd.Series with the novelty computed for each user. The user ID is the index of the pd.Series.
         """
 
-        check_columns_exist(top_n, ["user", "item", "rank", popularity_definition])
-        top_n.loc[:, popularity_definition] = pd.to_numeric(
-            top_n.loc[:, popularity_definition]
-        )
-        top_n: pd.Series = top_n.groupby("user")[popularity_definition].apply(
-            lambda x: np.mean(-np.log2(x.astype(float)))
+        check_columns_exist(
+            top_n, ['user', 'item', 'rank', popularity_definition])
+        top_n.loc[:, 'rank'] = pd.to_numeric(
+            top_n.loc[:, popularity_definition])
+        top_n = top_n.groupby('user', as_index=False)['rank'].apply(
+            lambda x: np.mean(- np.log2(x.astype(float)))
         )
         return top_n

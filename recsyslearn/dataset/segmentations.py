@@ -69,7 +69,7 @@ class InteractionSegmentation(Segmentation):
             raise SegmentationNotSupportedException(
                 "Number of supported group is between 1 and 3.")
 
-        if np.sum(proportions * 10) / 10 != 1:
+        if sum(proportion * 10 for proportion in proportions) / 10 != 1:
             raise WrongProportionsException()
 
         if group not in ['user', 'item']:
@@ -182,7 +182,7 @@ class ActivitySegmentation(Segmentation):
             raise SegmentationNotSupportedException(
                 "Number of supported group is between 1 and 3.")
 
-        if np.sum(proportions * 10) / 10 != 1:
+        if sum(proportion * 10 for proportion in proportions) / 10 != 1:
             raise WrongProportionsException()
 
         user_groups = dataset.groupby('user').size().reset_index(name='count')
