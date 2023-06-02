@@ -194,9 +194,9 @@ class ActivitySegmentationTest(unittest.TestCase):
             dataset_user_example, ActivitySegmentation().segment(dataset_user_example, [1])))
 
     def test_segmentation_not_supported(self) -> None:
-        with self.assertRaises(SegmentationNotSupportedException):
+        with self.assertRaises(SegmentationNotSupportedException) as context:
             ActivitySegmentation().segment(
-                dataset_user_example, [0.7, 0.2, 0.1])
+                dataset_item_example, [0.7, 0.1, 0.1, 0.1])
 
     def test_segmentation_wrong_proportion(self) -> None:
         with self.assertRaises(WrongProportionsException):
