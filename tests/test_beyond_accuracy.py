@@ -139,7 +139,7 @@ class NoveltyTest(unittest.TestCase):
             ['4', -1.150978],
             ['5', -1.033985],
             ['6', -1.033985],
-        ], columns=['user', 'rank'])
+        ], columns=['user', 'group'])
 
         assert_frame_equal(novelty_df, expected_novelty_df)
 
@@ -154,7 +154,7 @@ class NoveltyTest(unittest.TestCase):
             ['4', -1.125815],
             ['5', -1.125815],
             ['6', -1.125815],
-        ], columns=['user', 'rank'])
+        ], columns=['user', 'group'])
 
         assert_frame_equal(novelty_df, expected_novelty_df)
 
@@ -170,7 +170,7 @@ class NoveltyTest(unittest.TestCase):
             ['4', 3.338251],
             ['5', 3.455243],
             ['6', 4.501007],
-        ], columns=['user', 'rank'])
+        ], columns=['user', 'percentage'])
 
         assert_frame_equal(novelty_df, expected_novelty_df)
 
