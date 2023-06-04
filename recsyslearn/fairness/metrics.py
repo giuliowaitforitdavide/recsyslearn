@@ -38,7 +38,7 @@ class Entropy(FairnessMetric):
         Raises
         ------
         ColumnsNotExistException
-            If top_n not in the form ('user', 'item', 'rank').
+            If top_n not in the form ('user', 'item', 'rank', 'group').
 
 
         Return

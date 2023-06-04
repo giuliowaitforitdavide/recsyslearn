@@ -102,7 +102,9 @@ second_example = pd.DataFrame([
     ['6', '9', 1]
 ], columns=['user', 'item', 'rank'])
 
+
 class CoverageTest(unittest.TestCase):
+
     def test_coverage_one(self) -> None:
         top_n = first_example[
             (first_example["item"] != "3")
