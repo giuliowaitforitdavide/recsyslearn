@@ -103,7 +103,6 @@ class ActivitySegmentationTest(unittest.TestCase):
 
     def test_segmentation(self) -> None:
         segmented_groups = ActivitySegmentation().segment(dataset_user_example)
-        print(segmented_groups.head())
         self.assertTrue(
             segmented_groups.loc[segmented_groups['user'] == '1', 'group'].eq('1').all())
         self.assertTrue(

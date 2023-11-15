@@ -5,17 +5,17 @@ on:
         branches:
             - "**"
     pull_request:
-        branches: [ "main" ]
+        branches: ["main"]
 
 jobs:
-  pre-commit:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v3
-    - name: Autoflake8 linting
-      run: |
-          python -m pip install --upgrade pip
-          python -m pip install autoflake8
-          autoflake8 --in-place --expand-star-imports --remove-duplicate-keys --remove-unused-variables -v -v  ./recsyslearn/*/*.py 
+    pre-commit:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - name: Set up Python
+              uses: actions/setup-python@v3
+            - name: Autoflake8 linting
+              run: |
+                  python -m pip install --upgrade pip
+                  python -m pip install autoflake8
+                  autoflake8 --in-place --expand-star-imports --remove-duplicate-keys --remove-unused-variables -v -v  ./recsyslearn/*/*.py

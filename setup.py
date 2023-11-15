@@ -17,7 +17,7 @@ test_requirements = ["numpy", "pandas", "mpmath"]
 setup(
     author="Giulio Davide Carparelli",
     author_email="giulio.davide.97@gmail.com",
-    python_requires=">=3.7",
+    python_requires=">=3.10",
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
@@ -25,7 +25,7 @@ setup(
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Software Development :: Version Control :: Git",
         "Topic :: Software Development :: Libraries :: Python Modules",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.10",
     ],
     description="A small library to compute fairness of recommender systems.",
     install_requires=requirements,
@@ -37,7 +37,7 @@ setup(
     packages=find_packages(include=["recsyslearn", "recsyslearn.*"]),
     test_suite="tests",
     tests_require=test_requirements,
-    url='https://github.com/giuliowaitforitdavide/recsyslearn',
-    version='1.0.1',
+    url="https://github.com/giuliowaitforitdavide/recsyslearn",
+    version="1.0.1",
     zip_safe=False,
 )
