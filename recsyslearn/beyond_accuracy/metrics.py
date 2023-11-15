@@ -47,7 +47,7 @@ class Coverage(BeyondAccuracyMetric):
         The computed coverage.
         """
 
-        check_columns_exist(top_n, ['user', 'item', 'rank'])
+        check_columns_exist(top_n, ["user", "item", "rank"])
         return len(top_n.item.unique().tolist()) / len(items)
 
 
@@ -62,7 +62,7 @@ class Novelty(BeyondAccuracyMetric):
     """
 
     @classmethod
-    def evaluate(cls, top_n: pd.DataFrame, popularity_definition='group') -> float:
+    def evaluate(cls, top_n: pd.DataFrame, popularity_definition="group") -> float:
         """
         Compute the novelty of a model by using its recommendation list and the segmented item groups.
 
@@ -87,10 +87,11 @@ class Novelty(BeyondAccuracyMetric):
         The computed novelty.
         """
 
-        check_columns_exist(
-            top_n, ['user', 'item', 'rank', popularity_definition])
+        check_columns_exist(top_n, ["user", "item", "rank", popularity_definition])
         top_n.loc[:, popularity_definition] = pd.to_numeric(
-            top_n.loc[:, popularity_definition])
-        top_n = top_n.groupby('user')[popularity_definition].apply(
-            lambda x: np.mean(- np.log2(x)))
+            top_n.loc[:, popularity_definition]
+        )
+        top_n = top_n.groupby("user")[popularity_definition].apply(
+            lambda x: np.mean(-np.log2(x.astype(float)))
+        )
         return top_n.mean()
