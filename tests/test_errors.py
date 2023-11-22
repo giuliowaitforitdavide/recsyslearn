@@ -9,7 +9,7 @@ from recsyslearn.errors.errors import (
 )
 
 
-class TestErrors(unittest.TestCase):
+class ErrorTest(unittest.TestCase):
 
     """
     Tester for the test_pattern function.

@@ -16,7 +16,7 @@ from tests.utils import (
 )
 
 
-class TestExpMatrix(unittest.TestCase):
+class ExpMatrixTest(unittest.TestCase):
 
     """
     Tester for the exp_matrix function.
@@ -113,7 +113,7 @@ class TestExpMatrix(unittest.TestCase):
         )
 
 
-class TestProbMatrix(unittest.TestCase):
+class ProbMatrixTest(unittest.TestCase):
 
     """
     Tester for the prob_matrix function.
@@ -210,7 +210,7 @@ class TestProbMatrix(unittest.TestCase):
         )
 
 
-class TestEffMatrix(unittest.TestCase):
+class EffMatrixTest(unittest.TestCase):
     def test_eff_matrix_1(self) -> None:
         top_n = second_example.merge(user_groups, on=["user"])
         rel_matrix = rel_matrix_1.merge(user_groups, on=["user"])
@@ -274,7 +274,7 @@ class TestEffMatrix(unittest.TestCase):
         )
 
 
-class SmallUtilsTester(unittest.TestCase):
+class SmallUtilsTest(unittest.TestCase):
     def test_columns_exist_one(self):
         check_columns_exist(pd.DataFrame(columns=["user", "item"]), ["user"])
 

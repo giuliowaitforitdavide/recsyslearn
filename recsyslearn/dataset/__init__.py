@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .segmentation import (
+from .segmentations import (
     ActivitySegmentation,
     DiscreteFeatureSegmentation,
     InteractionSegmentation,
