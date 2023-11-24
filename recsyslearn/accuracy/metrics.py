@@ -9,11 +9,6 @@ from recsyslearn.utils import check_columns_exist
 
 
 class AccuracyMetric(ABC):
-
-    """
-    Abstract Class for Metrics.
-    """
-
     def __init__(self) -> None:
         return
 
@@ -26,19 +21,6 @@ class NDCG(AccuracyMetric):
 
     @classmethod
     def __dcg(cls, scores: pd.DataFrame) -> float:
-        r"""Compute DCG score, based on https://github.com/recsyspolimi/RecSys_Course_AT_PoliMi implementation.
-
-        Parameters
-        ----------
-        scores : pd.DataFrame
-            Scores of the recommended items.
-
-
-        Return
-        ------
-        The DCG of the single user.
-        """
-
         return np.sum(
             np.divide(
                 np.power(2, scores) - 1,
@@ -55,29 +37,6 @@ class NDCG(AccuracyMetric):
         relevance: pd.DataFrame = None,
         at: int = None,
     ) -> float:
-        r"""Compute NDCG score, based on https://github.com/recsyspolimi/RecSys_Course_AT_PoliMi implementation.
-
-
-        Parameters
-        ----------
-        ranked_list : pd.DataFrame
-            Recommendation list of length \"at\".
-
-        pos_items : pd.DataFrame
-            Relevant items per user. Columns: ['user', 'pos_items'].
-
-        relevance: pd.DataFrame
-            Relevance score associated with pos_items, default None.
-
-        at: int
-            Length of reclist to be evaluated, default None.
-
-
-        Return
-        ------
-        The NDCG@at of the single user.
-        """
-
         if relevance is None:
             relevance = np.ones_like(pos_items, dtype=np.int32)
         assert len(relevance) == pos_items.shape[0]

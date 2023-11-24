@@ -171,7 +171,6 @@ class MutualInformation(FairnessMetric):
             .groupby(not_grouped, as_index=False)
             .agg({"rank": "sum"})
         )
-        print(P_xP_y.head())
         P_xP_y = P_xy[[not_grouped, "group"]].merge(P_xP_y, on=not_grouped)
         tmp = top_n[["group", "rank"]].groupby("group", as_index=False).sum()
         P_xP_y = P_xP_y.merge(tmp, on=["group"])

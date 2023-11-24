@@ -2,18 +2,8 @@ Welcome to recsyslearn's documentation!
 =======================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   readme
-   installation
-   usage
-   modules
-   authors
-   history
-
-Indices and tables
-==================
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   :maxdepth: 1
+   :hidden:
+   
+   API Reference <api_ref/index>
+   User Guide  <user/index>
