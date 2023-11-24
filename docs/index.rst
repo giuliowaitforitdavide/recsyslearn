@@ -9,7 +9,6 @@ Welcome to recsyslearn's documentation!
    installation
    usage
    modules
-   contributing
    authors
    history
 
