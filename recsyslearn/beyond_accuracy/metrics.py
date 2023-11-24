@@ -1,6 +1,8 @@
+from abc import ABC
+
 import numpy as np
 import pandas as pd
-from abc import ABC
+
 from recsyslearn.utils import check_columns_exist
 
 

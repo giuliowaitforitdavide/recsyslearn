@@ -1,14 +1,22 @@
-from multiprocessing import context
 import unittest
+
 import pandas as pd
 from pandas.testing import assert_frame_equal
+
 from recsyslearn.errors.errors import ColumnsNotExistException
-from recsyslearn.fairness.utils import eff_matrix, prob_matrix, exp_matrix
+from recsyslearn.fairness.utils import eff_matrix, exp_matrix, prob_matrix
 from recsyslearn.utils import check_columns_exist
-from tests.utils import first_example, second_example, user_groups, item_groups, rel_matrix_1, rel_matrix_3
+from tests.utils import (
+    first_example,
+    item_groups,
+    rel_matrix_1,
+    rel_matrix_3,
+    second_example,
+    user_groups,
+)
 
 
-class TestExpMatrix(unittest.TestCase):
+class ExpMatrixTest(unittest.TestCase):
 
     """
     Tester for the exp_matrix function.
@@ -105,7 +113,7 @@ class TestExpMatrix(unittest.TestCase):
         )
 
 
-class TestProbMatrix(unittest.TestCase):
+class ProbMatrixTest(unittest.TestCase):
 
     """
     Tester for the prob_matrix function.
@@ -202,7 +210,7 @@ class TestProbMatrix(unittest.TestCase):
         )
 
 
-class TestEffMatrix(unittest.TestCase):
+class EffMatrixTest(unittest.TestCase):
     def test_eff_matrix_1(self) -> None:
         top_n = second_example.merge(user_groups, on=["user"])
         rel_matrix = rel_matrix_1.merge(user_groups, on=["user"])
@@ -266,18 +274,18 @@ class TestEffMatrix(unittest.TestCase):
         )
 
 
-class SmallUtilsTester(unittest.TestCase):
-
+class SmallUtilsTest(unittest.TestCase):
     def test_columns_exist_one(self):
-        check_columns_exist(pd.DataFrame(columns=['user', 'item']), ['user'])
+        check_columns_exist(pd.DataFrame(columns=["user", "item"]), ["user"])
 
     def test_columns_dont_exist(self):
         with self.assertRaises(ColumnsNotExistException) as context:
-            check_columns_exist(pd.DataFrame(
-                columns=['user']), ['user', 'item'])
+            check_columns_exist(pd.DataFrame(columns=["user"]), ["user", "item"])
 
-        self.assertTrue("Dataframe does not contain columns. ['user', 'item']" in str(
-            context.exception))
+        self.assertTrue(
+            "Dataframe does not contain columns. ['user', 'item']"
+            in str(context.exception)
+        )
 
 
 if __name__ == "__main__":

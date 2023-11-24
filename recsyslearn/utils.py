@@ -1,5 +1,6 @@
 import pandas as pd
-from recsyslearn.errors.errors import ColumnsNotExistException, RecListTooShortException
+
+from recsyslearn.errors.errors import ColumnsNotExistException
 
 
 def check_columns_exist(df: pd.DataFrame, columns: list) -> pd.DataFrame:
@@ -32,6 +33,4 @@ def check_columns_exist(df: pd.DataFrame, columns: list) -> pd.DataFrame:
         "target_representation": float,
     }
 
-    return df.astype(
-        {col: dtypes[col] for col in df.columns if col in dtypes.keys()}
-    )
+    return df.astype({col: dtypes[col] for col in df.columns if col in dtypes.keys()})

@@ -1,1 +1,69 @@
-"""Unit test package for recsyslearn."""
+from .test_accuracy import NDCGTest
+from .test_beyond_accuracy import CoverageTest, NoveltyTest
+from .test_errors import ErrorTest
+from .test_fairness import EntropyTest, KullbackLeiblerTest, MutualInformationTest
+from .test_segmentations import (
+    ActivitySegmentationTest,
+    InteractionSegmentationTest,
+    ItemDiscreteFeatureSegmentationTest,
+    ItemPopularityPercentageTest,
+    UserDiscreteFeatureSegmentationTest,
+    UserPopularityPercentageTest,
+)
+from .test_utils import EffMatrixTest, ExpMatrixTest, ProbMatrixTest, SmallUtilsTest
+from .utils import (
+    dataset_item_example,
+    dataset_popularity,
+    first_example,
+    item_feature,
+    item_groups,
+    item_pop_perc,
+    pos_items,
+    rel_matrix_1,
+    rel_matrix_2,
+    rel_matrix_3,
+    rel_matrix_4,
+    second_example,
+    top_n_1,
+    user_error_feature,
+    user_feature,
+    user_groups,
+    user_pop_perc,
+)
+
+__all__ = [
+    "NDCGTest",
+    "CoverageTest",
+    "NoveltyTest",
+    "ErrorTest",
+    "EntropyTest",
+    "KullbackLeiblerTest",
+    "MutualInformationTest",
+    "ActivitySegmentationTest",
+    "InteractionSegmentationTest",
+    "ItemDiscreteFeatureSegmentationTest",
+    "ItemPopularityPercentageTest",
+    "UserDiscreteFeatureSegmentationTest",
+    "UserPopularityPercentageTest",
+    "EffMatrixTest",
+    "ExpMatrixTest",
+    "ProbMatrixTest",
+    "SmallUtilsTest",
+    "dataset_item_example",
+    "dataset_popularity",
+    "first_example",
+    "item_feature",
+    "item_groups",
+    "item_pop_perc",
+    "pos_items",
+    "rel_matrix_1",
+    "rel_matrix_2",
+    "rel_matrix_3",
+    "rel_matrix_4",
+    "second_example",
+    "top_n_1",
+    "user_error_feature",
+    "user_feature",
+    "user_groups",
+    "user_pop_perc",
+]

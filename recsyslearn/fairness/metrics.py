@@ -1,7 +1,9 @@
-import pandas as pd
-import numpy as np
-from recsyslearn.fairness.utils import eff_matrix, prob_matrix, exp_matrix
 from abc import ABC
+
+import numpy as np
+import pandas as pd
+
+from recsyslearn.fairness.utils import eff_matrix, exp_matrix, prob_matrix
 from recsyslearn.utils import check_columns_exist
 
 
