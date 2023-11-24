@@ -1,3 +1,11 @@
 {
-  "python.analysis.typeCheckingMode": "basic"
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.tabSize": 4,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.ruff": true,
+    },
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+  },
 }

@@ -1,9 +1,11 @@
+import warnings
+from abc import ABC
+
 import numpy as np
 import pandas as pd
-from abc import ABC
+
 from recsyslearn.errors.errors import RecListTooShortException
 from recsyslearn.utils import check_columns_exist
-import warnings
 
 
 class AccuracyMetric(ABC):
@@ -40,12 +42,19 @@ class NDCG(AccuracyMetric):
         return np.sum(
             np.divide(
                 np.power(2, scores) - 1,
-                np.log(np.arange(scores.shape[0], dtype=np.float32) + 2)
+                np.log(np.arange(scores.shape[0], dtype=np.float32) + 2),
             ),
-            dtype=np.float32)
+            dtype=np.float32,
+        )
 
     @classmethod
-    def __ndcg(cls, ranked_list: pd.DataFrame, pos_items: pd.DataFrame, relevance: pd.DataFrame = None, at: int = None) -> float:
+    def __ndcg(
+        cls,
+        ranked_list: pd.DataFrame,
+        pos_items: pd.DataFrame,
+        relevance: pd.DataFrame = None,
+        at: int = None,
+    ) -> float:
         r"""Compute NDCG score, based on https://github.com/recsyspolimi/RecSys_Course_AT_PoliMi implementation.
 
 
@@ -75,8 +84,9 @@ class NDCG(AccuracyMetric):
 
         it2rel = {it: r for it, r in zip(pos_items, relevance)}
 
-        rank_scores = np.asarray([it2rel.get(it, 0.0)
-                                 for it in ranked_list[:at]], dtype=np.float32)
+        rank_scores = np.asarray(
+            [it2rel.get(it, 0.0) for it in ranked_list[:at]], dtype=np.float32
+        )
         ideal_dcg = cls.__dcg(np.sort(relevance)[::-1][:at])
         rank_dcg = cls.__dcg(rank_scores)
 
@@ -88,7 +98,9 @@ class NDCG(AccuracyMetric):
         return ndcg_
 
     @classmethod
-    def evaluate(cls, top_n: pd.DataFrame, pos_items: pd.DataFrame, ats: tuple = (5, 10)) -> pd.Series:
+    def evaluate(
+        cls, top_n: pd.DataFrame, pos_items: pd.DataFrame, ats: tuple = (5, 10)
+    ) -> pd.Series:
         r"""Compute the NDCG@k of a model by using its recommendation list.
         Returns the NDCG averaged over users.
 
@@ -122,10 +134,10 @@ class NDCG(AccuracyMetric):
         The pd.Series with the NDCG@n averaged over users, in the form ('NDCG@k_0', ..., 'NDCG@k_n')
         """
 
-        check_columns_exist(top_n, ['user', 'item', 'rank'])
-        check_columns_exist(pos_items, ['user', 'pos_items'])
+        check_columns_exist(top_n, ["user", "item", "rank"])
+        check_columns_exist(pos_items, ["user", "pos_items"])
 
-        min_calculable_at = top_n.groupby('user').size().min()
+        min_calculable_at = top_n.groupby("user").size().min()
         calculable_ats = [k for k in ats if k <= min_calculable_at]
 
         if len(calculable_ats) == 0:
@@ -133,19 +145,24 @@ class NDCG(AccuracyMetric):
 
         if len(calculable_ats) != len(ats):
             non_calulable_ats = list(set(calculable_ats) - set(ats))
-            warnings.warn(non_calulable_ats.join(
-                ' ') + ' ats won\'t be calculated')
+            warnings.warn(non_calulable_ats.join(" ") + " ats won't be calculated")
 
-        top_n = top_n[['user', 'item', 'rank']]
-        top_n = top_n[['user', 'item']].groupby(
-            'user')['item'].apply(np.asarray).reset_index()
-        full_df = top_n.merge(pos_items, on='user')
+        top_n = top_n[["user", "item", "rank"]]
+        top_n = (
+            top_n[["user", "item"]]
+            .groupby("user")["item"]
+            .apply(np.asarray)
+            .reset_index()
+        )
+        full_df = top_n.merge(pos_items, on="user")
 
         for k in calculable_ats:
-            full_df.loc[:, f'NDCG@{k}'] = full_df.apply(
-                lambda x: cls.__ndcg(x['item'][:k], x['pos_items'], at=k), axis=1)
+            full_df.loc[:, f"NDCG@{k}"] = full_df.apply(
+                lambda x: cls.__ndcg(x["item"][:k], x["pos_items"], at=k), axis=1
+            )
 
         cols_to_be_returned = [
-            col for col in full_df.columns if col not in ['item', 'pos_items']]
+            col for col in full_df.columns if col not in ["item", "pos_items"]
+        ]
 
         return full_df.loc[:, cols_to_be_returned]

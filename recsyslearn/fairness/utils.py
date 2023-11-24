@@ -1,5 +1,6 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
+
 from recsyslearn.utils import check_columns_exist
 
 
@@ -90,7 +91,6 @@ def eff_matrix(top_n: pd.DataFrame, rel_matrix: pd.DataFrame) -> pd.DataFrame:
 
     top_n = exp_matrix(top_n)
     top_n = top_n.merge(rel_matrix, on=["user", "item", "group"], how="outer")
-    top_n.loc[:, ["rank_x", "rank_y"]] = top_n.loc[:,
-                                                   ["rank_x", "rank_y"]].fillna(0)
+    top_n.loc[:, ["rank_x", "rank_y"]] = top_n.loc[:, ["rank_x", "rank_y"]].fillna(0)
     top_n["rank"] = top_n["rank_x"] * top_n["rank_y"]
     return top_n[["user", "item", "rank", "group"]]
