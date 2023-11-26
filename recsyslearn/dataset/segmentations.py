@@ -39,37 +39,19 @@ class InteractionSegmentation(Segmentation):
         """
         Segmentation of items based on their interactions with different users.
 
-
-        Parameters
-        ----------
-        dataset : pd.DataFrame
-            The complete dataset.
-
-        proportions : list, default [0.8, 0.2]
-            The proportions of interactions wanted for every group. Its length should be between 1 and 3.
-
-        min_interaction : int, default 0
-            The minimum number of interaction allowed for items. Items below this threshold will be removed.
-
-        group : str, default 'item'
-            The group which has to be segmented based on their number of interaction.
-
-
-        Raises
-        ------
-        SegmentationNotSupportedException
-            If len(proportions) not in (1, 2, 3).
-
-        WrongProportionsException
-            If sum(proportions) is not 1, which means it doesn't cover all the items/users.
-
-        InvalidGroupException
-            If group is not equal to 'user' or 'item'.
-
-
-        Return
-        ------
-        DataFrame with items and belonging group.
+        :param dataset: The complete dataset.
+        :type dataset: pd.DataFrame
+        :param proportions: The proportion of interactions wanted for every group.
+        :type proportions: list, default [0.8, 0.2]
+        :param min_interaction: The minimum number of interaction allowed for items. Items below this threshold will be removed.
+        :type min_interaction: int, default 0
+        :param group: The group which has to be segmented based on their number of interaction.
+        :type group: str, default 'item'
+        :raises SegmentationNotSupportedException: If len(proportions) not in (1, 2, 3).
+        :raises WrongProportionsException: If sum(proportions) is not 1, which means it doesn't cover all the items/users.
+        :raises InvalidGroupException: If group is not equal to 'user' or 'item'.
+        :return: DataFrame with items and belonging group.
+        :rtype: pd.DataFrame
         """
 
         if proportions is None:
@@ -128,17 +110,12 @@ class PopularityPercentage(Segmentation):
         """
         Calculate item or user popularity based on the percentage of interaction they have.
 
-
-        Parameters
-        ----------
-        dataset : pd.DataFrame
-            The complete dataset.
-        group : str
-            Whether to calculate the popularity of users or items
-
-        Return
-        ------
-        DataFrame with items/user and corresponding popularity.
+        :param dataset: The complete dataset.
+        :type dataset: pd.DataFrame
+        :param group: Whether to calculate the popularity of users or items.
+        :type group: str, default 'item'
+        :return: DataFrame with items/user and corresponding popularity.
+        :rtype: pd.DataFrame
         """
 
         item_interactions = dataset[group].values
@@ -169,31 +146,16 @@ class ActivitySegmentation(Segmentation):
         """
         Segmentation of users based on their interactions with different items.
 
-
-        Parameters
-        ----------
-        dataset : pd.DataFrame
-            The complete dataset.
-
-        proportions : list, default [0.8, 0.2]
-            The proportion of interactions wanted for every group.
-
-        min_interaction : int, default 0
-            The minimum number of interaction allowed per user. Users below this threshold will be removed.
-
-
-        Raises
-        ------
-        SegmentationNotSupportedException
-            If len(proportion) not in (1, 2, 3).
-
-        WrongProportionsException
-            If sum(proportion) is not 1, which means it doesn't cover all the items/users.
-
-
-        Return
-        ------
-        DataFrame with users and belonging group.
+        :param dataset: The complete dataset.
+        :type dataset: pd.DataFrame
+        :param proportions: The proportion of interactions wanted for every group.
+        :type proportions: list, default [0.8, 0.2]
+        :param min_interaction: The minimum number of interaction allowed per user. Users below this threshold will be removed.
+        :type min_interaction: int, default 0
+        :raises SegmentationNotSupportedException: If len(proportion) not in (1, 2, 3).
+        :raises WrongProportionsException: If sum(proportion) is not 1, which means it doesn't cover all the items/users.
+        :return: DataFrame with users and belonging group.
+        :rtype: pd.DataFrame
         """
 
         if proportions is None:
@@ -249,22 +211,13 @@ class DiscreteFeatureSegmentation(Segmentation):
         Before assigning the group, the nans are given a -1 value by default.
         Make sure that this is not one of the feature values, already.
 
-        Parameters
-        ----------
-        feature : pd.DataFrame
-            The feature dataframe in form of [id, feature] storing the categorical feature
-            to be used for grouping.
-        fill_na :
-            The value with which to fill not assigned values. Default is -1.
-
-        Raises
-        ------
-        InvalidValueException
-            If the fill_na value is already present in the features dataframe.
-
-        Return
-        ------
-        DataFrame with items and belonging group.
+        :param feature: The feature dataframe in form of [id, feature] storing the categorical feature to be used for grouping.
+        :type feature: pd.DataFrame
+        :param fill_na: The value with which to fill not assigned values. Default is -1.
+        :type fill_na: int, default -1
+        :raises InvalidValueException: If the fill_na value is already present in the features dataframe.
+        :return: DataFrame with items and belonging group.
+        :rtype: pd.DataFrame
         """
 
         if fill_na in feature[feature.columns[1]].unique():

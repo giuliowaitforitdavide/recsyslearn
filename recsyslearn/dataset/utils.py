@@ -8,24 +8,11 @@ def find_relevant_items(target_df: pd.DataFrame) -> pd.DataFrame:
     """
     Find relevant items for every user in the dataset.
 
-
-    Parameters
-    ----------
-
-    target_df : pd.DataFrame
-        Target Interaction dataframe of, i.e., items to be recommended. Columns: ['user', 'item'].
-
-
-    Raises
-    ------
-
-    ColumnsNotExistException
-        If target_df does not contain columns ('user', 'item').
-
-
-    Return
-    ------
-    The DataFrame containing all the relevant items per user in the form ('user', 'pos_items').
+    :param target_df: Target Interaction dataframe of, i.e., items to be recommended. Columns: ['user', 'item'].
+    :type target_df: pd.DataFrame
+    :raises ColumnsNotExistException: If target_df does not contain columns ('user', 'item').
+    :return: The DataFrame containing all the relevant items per user in the form ('user', 'pos_items').
+    :rtype: pd.DataFrame
     """
 
     check_columns_exist(target_df, ["user", "item"])

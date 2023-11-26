@@ -1,6 +1,8 @@
 Installation
 ===================
 
+.. contents:: Table of Contents
+
 Install Python
 --------------
 recsyslearn is officially tested on Python from version 3.10. If you do not have at least this python
@@ -68,7 +70,7 @@ by running the following command on your favourite terminal/command prompt:
 You should see the following output:
 
 .. parsed-literal::
-    1.0.1
+    |version|
 
 Congratulations! Your machine has recsyslearn and you're now ready to
 create your first experiment!

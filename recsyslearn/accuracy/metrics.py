@@ -60,37 +60,19 @@ class NDCG(AccuracyMetric):
     def evaluate(
         cls, top_n: pd.DataFrame, pos_items: pd.DataFrame, ats: tuple = (5, 10)
     ) -> pd.Series:
-        r"""Compute the NDCG@k of a model by using its recommendation list.
+        """Compute the NDCG@k of a model by using its recommendation list.
         Returns the NDCG averaged over users.
 
-
-        Parameters
-        ----------
-        top_n : pd.DataFrame
-            Top N recommendations' lists for every user. Columns: ['user', 'item', 'rank'].
-
-        pos_items : pd.DataFrame
-            Relevant items per user. Columns: ['user', 'pos_items'].
-
-        ats: tuple, default (5, 10)
-            The tuple of values at which to evaluate NDCG@k.
-
-
-        Raises
-        ------
-        ColumnsNotExistException
-            If top_n does not contain columns ('user', 'item', 'rank').
-
-        ColumnsNotExistException
-            If pos_items does not contain columns ('user', 'pos_items').
-
-        RecListTooShortException
-            If the top_n list does not contain enough items.
-
-
-        Return
-        ------
-        The pd.Series with the NDCG@n averaged over users, in the form ('NDCG@k_0', ..., 'NDCG@k_n')
+        :param top_n: Top N recommendations' lists for every user. Columns: ['user', 'item', 'rank'].
+        :type top_n: pd.DataFrame
+        :param pos_items: Relevant items per user. Columns: ['user', 'pos_items'].
+        :type pos_items: pd.DataFrame
+        :param ats: The tuple of values at which to evaluate NDCG@k.
+        :type ats: tuple, default (5, 10)
+        :raises ColumnsNotExistException: If top_n does not contain columns ('user', 'item', 'rank') or pos_items does not contain columns ('user', 'pos_items').
+        :raises RecListTooShortException: If the top_n list does not contain enough items.
+        :return: The NDCG@n averaged over users, in the form ('NDCG@k_0', ..., 'NDCG@k_n')
+        :rtype: pd.Series
         """
 
         check_columns_exist(top_n, ["user", "item", "rank"])

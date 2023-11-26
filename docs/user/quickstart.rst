@@ -1,6 +1,8 @@
 Quickstart
 ==========
 
+.. contents:: Table of Contents
+
 To use recsyslearn in a project:
 
 .. code-block:: python

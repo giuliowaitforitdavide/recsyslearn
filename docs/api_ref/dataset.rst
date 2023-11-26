@@ -1,10 +1,11 @@
 Dataset Utilities
 =================
 
+
 .. automodule:: recsyslearn.dataset.segmentations
-    :undoc-members:
+    :members: InteractionSegmentation, PopularityPercentage, ActivitySegmentation, DiscreteFeatureSegmentation
     :show-inheritance:
 
 .. automodule:: recsyslearn.dataset.utils
-    :undoc-members:
+    :members:
     :show-inheritance:

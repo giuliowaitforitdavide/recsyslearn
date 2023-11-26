@@ -1,11 +1,13 @@
+import recsyslearn
+
 project = "Recsyslearn"
 copyright = "2022, Giulio Davide Carparelli"
 author = "Giulio Davide Carparelli"
+version = recsyslearn.__version__
 
 
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx_design",
 ]
 
 templates_path = ["_templates"]
