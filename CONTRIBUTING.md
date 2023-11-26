@@ -148,7 +148,16 @@ Ready to contribute? Here's how to set up `recsyslearn` for local development.
 
 7. Submit a pull request through the GitHub website.
 
+## Improving The Documentation
 
+Improvements to the documentation are always welcome. If you want to contribute to the documentation, you can do so by editing the files in the [docs](./docs) folder. The documentation is written in [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) and built with [Sphinx](https://www.sphinx-doc.org/en/master/). The documentation is manually (for the moment) built and published on [Read the Docs](https://recsyslearn.readthedocs.io) when changes are made to the `master` branch.
+To locally test the documentation, after installing all the [dependencies](./docs/requirements.txt) and then use the following commands:
+
+```bash
+  $ cd docs
+  $ make html
+```
+The documentation will be built in the `docs/_build` folder. You can open the `html/index.html` file in your browser to view the documentation.
 
 ## Styleguides
 ### Commit Messages
