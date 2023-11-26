@@ -123,9 +123,10 @@ Ready to contribute? Here's how to set up `recsyslearn` for local development.
 
 3. Install your local copy into a virtualenv. Assuming you are using the default python virtual environment, this is how you set up your fork for local development
   ```bash
-    $ python3 -m venv venv
+    $ python3.10 -m venv venv
     $ source venv/bin/activate
     $ pip install -r requirements_dev.txt
+    $ python setup.py develop
   ```
 
 4. Create a branch for local development
@@ -136,7 +137,7 @@ Ready to contribute? Here's how to set up `recsyslearn` for local development.
 
 5. When you're done making changes, check that your changes pass tests
   ```bash
-    $ make test
+    $ python setup.py test
   ```
 
 6. Commit your changes and push your branch to GitHub
