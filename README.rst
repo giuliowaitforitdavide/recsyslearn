@@ -16,7 +16,7 @@ Recsyslearn
         :alt: Library Version
 
 
-*recsyslearn* is a Python library designed to evaluate and benchmark recommendation systems comprehensively.
+*recsyslearn* is a Python library designed to evaluate recommendation systems comprehensively.
 It offers a set of tools to measure recommendation accuracy, coverage, novelty, and fairness.
 This library is a valuable resource for data scientists and engineers who aim to enhance the performance
 and fairness of their recommendation algorithms.
@@ -30,8 +30,8 @@ Dataset Utilities
 ^^^^^^^^^^^^^^^^^
 
 *recsyslearn* simplifies the process of calculating item popularity and user activity, and of
-segmenting (i.e., categorizing) users and items into groups. The users and items can be seg-
-mented based on various criteria, hence providing the basis for group fairness analyses on
+segmenting (i.e., categorizing) users and items into groups. The users and items can be segmented
+based on various criteria, hence providing the basis for group fairness analyses on
 several dimensions.
 
 In particular, the following type of segmentations are provided:
@@ -60,7 +60,7 @@ Beyond Accuracy metrics
 Fairness metrics
 ^^^^^^^^^^^^^^^^
 
-* Entropy: the Shannon’s entropy of utility (i.e., recommendations or accurate recommendations) over user or item groups.
+* Entropy: the measure of diversity (i.e., recommendations or accurate recommendations) over user or item groups.
 * Mutual Information: measures to what extent the information on the user group provides information about the groups to which the recommendations belong.
 * Kullback-Leibler: measures the KL divergence between the distribution of utility over user or item groups, computed on the list of recommendations, and a target distribution.
 

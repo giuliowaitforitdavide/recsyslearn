@@ -25,7 +25,7 @@ class Segmentation(ABC):
 class InteractionSegmentation(Segmentation):
 
     """
-    Segmentation of items based on the number of interaction they have.
+    Segmentation of items based on the number of cumulative interaction they have.
     """
 
     @classmethod
@@ -37,7 +37,7 @@ class InteractionSegmentation(Segmentation):
         group="item",
     ) -> pd.DataFrame:
         """
-        Segmentation of items based on their interactions with different users.
+        Segmentation of items based on their cumulative interactions with different users.
 
         :param dataset: The complete dataset.
         :type dataset: pd.DataFrame
