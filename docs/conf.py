@@ -11,7 +11,7 @@ extensions = [
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**/site-packages/*"]
 pygments_style = "sphinx"
 
 html_theme = "sphinx_rtd_theme"
