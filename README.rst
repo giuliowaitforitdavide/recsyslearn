@@ -76,6 +76,24 @@ Documentation
 For in-depth documentation, detailed explanations of functions, and usage examples, please visit the
 `official documentation`_.
 
+Citation
+--------
+
+If you use *recsyslearn* in your research, please cite the following paper:
+
+.. code-block:: console
+        
+        @proceedings{Moscati2023MultiObjectiveHyperOpt,
+        title = {Multiobjective Hyperparameter Optimization of Recommender Systems},
+        author = {Moscati, Marta and Deldjoo, Yashar and Carparelli, Giulio Davide and Schedl, Markus},
+        booktitle = {Proceedings of the 3rd Workshop on Perspectives on the Evaluation of Recommender Systems co-located with the 17th ACM Conference on Recommender Systems (RecSys 2023), Singapore, Singapore.},
+        editor = {Said, Alan and Zangerle, Eva and Bauer, Christine},
+        publisher = {CEUR-WS.org},
+        url = {https://ceur-ws.org/Vol-3476/paper3.pdf},
+        volume = {3476},
+        year = {2023}
+        }
+
 
 Credits
 -------

@@ -41,7 +41,7 @@ Before you ask a question, it is best to search for existing [Issues](https://gi
 If you then still feel the need to ask a question and need clarification, we recommend the following:
 
 - Open an [Issue](https://github.com/giuliowaitforitdavide/recsyslearn/issues/new/choose).
-- Provide as much context as you can about what you're running into.
+- Provide as much context as you can about what you're running into (e.g., error type, expected output, actual output, ...).
 - Provide project and platform versions (nodejs, npm, etc), depending on what seems relevant.
 
 We will then take care of the issue as soon as possible.
