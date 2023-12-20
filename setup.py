@@ -7,12 +7,9 @@ from setuptools import setup, find_packages
 with open("README.rst") as readme_file:
     readme = readme_file.read()
 
-with open("HISTORY.rst") as history_file:
-    history = history_file.read()
-
 requirements = ["numpy", "pandas"]
 
-test_requirements = ["numpy", "pandas", "mpmath"]
+test_requirements = ["numpy", "pandas"]
 
 setup(
     author="Giulio Davide Carparelli",
@@ -28,7 +25,7 @@ setup(
     description="A library to compute fairness of recommender systems.",
     install_requires=requirements,
     license="GNU General Public License v3",
-    long_description=readme + "\n\n" + history,
+    long_description=readme,
     include_package_data=True,
     keywords="recsyslearn",
     name="recsyslearn",
