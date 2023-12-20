@@ -8,22 +8,11 @@ def exp_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
     """
     Compute exposure matrix for given recommendation lists.
 
-    Parameters
-    ----------
-    top_n : pd.DataFrame
-        Recommendation lists per user in the form (user, item, rank, group).
-
-
-    Raises
-    ------
-    ColumnsNotExistException
-        If top_n is not in the form (user, item, rank, group).
-
-
-    Return
-    ------
-    top_n : pd.DataFrame
-        The DataFrame with computed exposure.
+    :param top_n: Recommendation lists per user in the form (user, item, rank, group).
+    :type top_n: pd.DataFrame
+    :raises ColumnsNotExistException: If top_n is not in the form (user, item, rank, group).
+    :return: The DataFrame with computed exposure.
+    :rtype: pd.DataFrame
     """
 
     check_columns_exist(top_n, ["user", "item", "rank", "group"])
@@ -36,22 +25,11 @@ def prob_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
     """
     Compute probability distribution matrix for given recommendation lists.
 
-    Parameters
-    ----------
-    top_n : pd.DataFrame
-        Recommendation lists per user in the form (user, item, rank, group).
-
-
-    Return
-    ------
-    top_n : pd.DataFrame
-        The DataFrame with computed probability distribution.
-
-
-    Raises
-    ------
-    ColumnsNotExistException
-        If top_n is not in the form (user, item, rank, group).
+    :param top_n: Recommendation lists per user in the form (user, item, rank, group).
+    :type top_n: pd.DataFrame
+    :raises ColumnsNotExistException: If top_n is not in the form (user, item, rank, group).
+    :return: The DataFrame with computed probability distribution.
+    :rtype: pd.DataFrame
     """
 
     check_columns_exist(top_n, ["user", "item", "rank", "group"])
@@ -64,26 +42,14 @@ def eff_matrix(top_n: pd.DataFrame, rel_matrix: pd.DataFrame) -> pd.DataFrame:
     """
     Compute effectiveness matrix for given recommendation lists.
 
-    Parameters
-    ----------
-    top_n : pd.DataFrame
-        Recommendation lists per user in the form (user, item, rank, group).
-
-    rel_matrix : pd.DataFrame
-        Dataframe containing relevant items for every user.
-
-
-    Return
-    ------
-    top_n : pd.DataFrame
-        The DataFrame with computed effectiveness.
-
-
-    Raises
-    ------
-    ColumnsNotExistException
-        If top_n header is not in the form (user, item, rank, group).
-        If rel_matrix header is not in the form (user, item, rank).
+    :param top_n: Recommendation lists per user in the form (user, item, rank, group).
+    :type top_n: pd.DataFrame
+    :param rel_matrix: Dataframe containing relevant items for every user.
+    :type rel_matrix: pd.DataFrame
+    :raises ColumnsNotExistException: If top_n header is not in the form (user, item, rank, group)
+        of if rel_matrix header is not in the form (user, item, rank).
+    :return: The DataFrame with computed effectiveness.
+    :rtype: pd.DataFrame
     """
 
     check_columns_exist(top_n, ["user", "item", "rank", "group"])

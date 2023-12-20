@@ -27,25 +27,13 @@ class Entropy(FairnessMetric):
         """
         Compute the entropy of a model by using its recommendation list.
 
-
-        Parameters
-        ----------
-        top_n : pd.DataFrame
-            Top N recommendations' lists for every user with items or users already segmented.
-
-        rel_matrix : pd.DataFrame, default None
-            Relevant items for users. It could be, for example, the items with a rating >= threshold.
-
-
-        Raises
-        ------
-        ColumnsNotExistException
-            If top_n not in the form ('user', 'item', 'rank', 'group').
-
-
-        Return
-        ------
-        The computed entropy.
+        :param top_n: Top N recommendations' lists for every user with items or users already segmented.
+        :type top_n: pd.DataFrame
+        :param rel_matrix: Relevant items for users. It could be, for example, the items with a rating >= threshold.
+        :type rel_matrix: pd.DataFrame, default None
+        :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group').
+        :return: The computed entropy.
+        :rtype: float
         """
 
         check_columns_exist(top_n, ["user", "item", "rank", "group"])
@@ -72,28 +60,15 @@ class KullbackLeibler(FairnessMetric):
         """
         Compute the Kullback-Leibler divergence of a model, for a given target representation, by using its recommendation list.
 
-
-        Parameters
-        ----------
-        top_n : pd.DataFrame
-            Top N recommendations' lists for every user with items or users already segmented.
-
-        target_representation : pd.DataFrame
-            The target representation desired for each group.
-
-        rel_matrix : pd.DataFrame, default None
-            Relevant items for users. It could be, for example, the items with a rating >= threshold.
-
-
-        Raises
-        ------
-        ColumnsNotExistException
-            If top_n not in the form ('user', 'item', 'rank', 'group') or if target_representation not in the form ('group', 'target_representation').
-
-
-        Return
-        ------
-        The computed KL Divergence for the given target representation.
+        :param top_n: Top N recommendations' lists for every user with items or users already segmented.
+        :type top_n: pd.DataFrame
+        :param target_representation: The target representation desired for each group.
+        :type target_representation: pd.DataFrame
+        :param rel_matrix: Relevant items for users. It could be, for example, the items with a rating >= threshold.
+        :type rel_matrix: pd.DataFrame, default None
+        :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group') or if target_representation not in the form ('group', 'target_representation').
+        :return: The computed KL Divergence for the given target representation.
+        :rtype: float
         """
 
         check_columns_exist(top_n, ["user", "item", "rank", "group"])
@@ -125,29 +100,15 @@ class MutualInformation(FairnessMetric):
         """
         Compute the Mutual Information of a model by using its recommendation list.
 
-
-        Parameters
-        ----------
-        top_n : pd.DataFrame
-            Top N recommendations' lists for every user with items or users already segmented.
-
-        flag : str
-            Which actor of the recommendation scenario has been segmented (i.e. user).
-
-        rel_matrix : pd.DataFrame, default None
-            Relevant items for users. It could be, for example, the items with a rating >= threshold.
-
-
-        Raises
-        ------
-        ColumnsNotExistException
-            If top_n not in the form ('user', 'item', 'rank', 'group').
-
-
-
-        Return
-        ------
-        The computed Mutual Information.
+        :param top_n: Top N recommendations' lists for every user with items or users already segmented.
+        :type top_n: pd.DataFrame
+        :param flag: Which actor of the recommendation scenario has been segmented (i.e. user).
+        :type flag: str
+        :param rel_matrix: Relevant items for users. It could be, for example, the items with a rating >= threshold.
+        :type rel_matrix: pd.DataFrame, default None
+        :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group').
+        :return: The computed Mutual Information.
+        :rtype: float
         """
 
         check_columns_exist(top_n, ["user", "item", "rank", "group"])
@@ -171,7 +132,6 @@ class MutualInformation(FairnessMetric):
             .groupby(not_grouped, as_index=False)
             .agg({"rank": "sum"})
         )
-        print(P_xP_y.head())
         P_xP_y = P_xy[[not_grouped, "group"]].merge(P_xP_y, on=not_grouped)
         tmp = top_n[["group", "rank"]].groupby("group", as_index=False).sum()
         P_xP_y = P_xP_y.merge(tmp, on=["group"])
