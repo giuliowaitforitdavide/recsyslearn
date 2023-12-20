@@ -28,25 +28,13 @@ class Coverage(BeyondAccuracyMetric):
         """
         Compute the coverage of a model by using its recommendation list.
 
-
-        Parameters
-        ----------
-        top_n : pd.DataFrame
-            Top-N recommendations' lists for every user with items or users already segmented.
-
-        items : list or array-like
-            List of items in the dataset.
-
-
-        Raises
-        ------
-        ColumnsNotExistException
-            If top_n not in the form ('user', 'item', 'rank', 'group').
-
-
-        Return
-        ------
-        The computed coverage.
+        :param top_n: Top-N recommendations' lists for every user with items or users already segmented.
+        :type top_n: pd.DataFrame
+        :param items: List of items in the dataset.
+        :type items: list or array-like
+        :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group').
+        :return: The computed coverage.
+        :rtype: float
         """
 
         check_columns_exist(top_n, ["user", "item", "rank"])
@@ -68,25 +56,15 @@ class Novelty(BeyondAccuracyMetric):
         """
         Compute the novelty of a model by using its recommendation list and the segmented item groups.
 
-
-        Parameters
-        ----------
-        top_n : pd.DataFrame
-            Top-N recommendations' lists for every user with items or users already segmented.
-        popularity_definition: str
-            Either 'group' or 'percentage', to choose whether popularity is computed in terms of
+        :param top_n: Top-N recommendations' lists for every user with items or users already segmented.
+        :type top_n: pd.DataFrame
+        :param popularity_definition: Either 'group' or 'percentage', to choose whether popularity is computed in terms of
             segmenting items/users according to the distribution of user-item interactions
             or if it is defined as the percentage of user-item interactions.
-
-        Raises
-        ------
-        ColumnsNotExistException
-            If top_n not in the form ('user', 'item', 'rank', popularity_definition).
-
-
-        Return
-        ------
-        The computed novelty.
+        :type popularity_definition: str
+        :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', popularity_definition).
+        :return: The computed novelty.
+        :rtype: float
         """
 
         check_columns_exist(top_n, ["user", "item", "rank", popularity_definition])

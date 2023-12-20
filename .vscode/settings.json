@@ -3,7 +3,7 @@
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.tabSize": 4,
     "editor.codeActionsOnSave": {
-      "source.organizeImports.ruff": true,
+      "source.organizeImports.ruff": "explicit"
     },
     "editor.formatOnSave": true,
     "editor.formatOnPaste": true,
