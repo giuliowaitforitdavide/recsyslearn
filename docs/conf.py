@@ -1,7 +1,7 @@
 project = "Recsyslearn"
 copyright = "2022, Giulio Davide Carparelli"
 author = "Giulio Davide Carparelli"
-version = "2.0.1"
+version = "2.0.2"
 
 
 extensions = [
