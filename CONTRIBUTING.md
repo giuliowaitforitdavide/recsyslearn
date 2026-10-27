@@ -126,7 +126,7 @@ Ready to contribute? Here's how to set up `recsyslearn` for local development.
     $ python3.10 -m venv venv
     $ source venv/bin/activate
     $ pip install -r requirements_dev.txt
-    $ python setup.py develop
+    $ pip install -e .
   ```
 
 4. Create a branch for local development
@@ -137,7 +137,7 @@ Ready to contribute? Here's how to set up `recsyslearn` for local development.
 
 5. When you're done making changes, check that your changes pass tests
   ```bash
-    $ python setup.py test
+    $ python -m unittest discover -s tests -t .
   ```
 
 6. Commit your changes and push your branch to GitHub

@@ -9,8 +9,6 @@ with open("README.rst") as readme_file:
 
 requirements = ["numpy", "pandas"]
 
-test_requirements = ["numpy", "pandas"]
-
 setup(
     author="Giulio Davide Carparelli",
     author_email="giulio.davide.97@gmail.com",
@@ -30,8 +28,6 @@ setup(
     keywords="recsyslearn",
     name="recsyslearn",
     packages=find_packages(include=["recsyslearn", "recsyslearn.*"]),
-    test_suite="tests",
-    tests_require=test_requirements,
     url="https://github.com/giuliowaitforitdavide/recsyslearn",
     version="2.0.2",
     zip_safe=False,
