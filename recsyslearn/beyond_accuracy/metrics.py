@@ -68,9 +68,7 @@ class Novelty(BeyondAccuracyMetric):
         """
 
         check_columns_exist(top_n, ["user", "item", "rank", popularity_definition])
-        top_n.loc[:, popularity_definition] = pd.to_numeric(
-            top_n.loc[:, popularity_definition]
-        )
+        top_n[popularity_definition] = pd.to_numeric(top_n[popularity_definition])
         top_n = top_n.groupby("user")[popularity_definition].apply(
             lambda x: np.mean(-np.log2(x.astype(float)))
         )

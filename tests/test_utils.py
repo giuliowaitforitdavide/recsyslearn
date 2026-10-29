@@ -16,6 +16,19 @@ from tests.utils import (
 )
 
 
+def assert_frame_equal_unordered(
+    left: pd.DataFrame, right: pd.DataFrame, **kwargs
+) -> None:
+    """
+    Compare DataFrames regardless of row order, since merge row order changed in pandas 2.2.
+    """
+
+    def sort(df: pd.DataFrame) -> pd.DataFrame:
+        return df.sort_values(["user", "item"]).reset_index(drop=True)
+
+    assert_frame_equal(sort(left), sort(right), **kwargs)
+
+
 class ExpMatrixTest(unittest.TestCase):
 
     """
@@ -70,7 +83,7 @@ class ExpMatrixTest(unittest.TestCase):
     def test_exp_matrix_2(self) -> None:
         top_n = first_example.merge(item_groups, on=["item"])
         result = exp_matrix(top_n)
-        assert_frame_equal(
+        assert_frame_equal_unordered(
             result,
             pd.DataFrame(
                 [
@@ -167,7 +180,7 @@ class ProbMatrixTest(unittest.TestCase):
     def test_prob_matrix_2(self) -> None:
         top_n = first_example.merge(item_groups, on=["item"])
         result = prob_matrix(top_n)
-        assert_frame_equal(
+        assert_frame_equal_unordered(
             result,
             pd.DataFrame(
                 [
@@ -242,7 +255,7 @@ class EffMatrixTest(unittest.TestCase):
         rel_matrix = rel_matrix_3.merge(item_groups, on=["item"])
         result = eff_matrix(top_n, rel_matrix)
         result = result[result["rank"] != 0].reset_index(drop=True)
-        assert_frame_equal(
+        assert_frame_equal_unordered(
             result,
             pd.DataFrame(
                 [
