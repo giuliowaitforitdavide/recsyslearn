@@ -2,4 +2,4 @@ from __future__ import annotations
 
 __author__ = "Giulio Davide Carparelli"
 __email__ = "giulio.davide.97@gmail.com"
-__version__ = "2.0.2"
+__version__ = "3.0.0"
