@@ -68,7 +68,7 @@ Fairness metrics
 License
 -------
 
-Recsyslearn is released as free software under the GNU General Public License v3.
+Recsyslearn is released as free software under the MIT License.
 
 Documentation
 -------------
