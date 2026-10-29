@@ -223,9 +223,12 @@ class DiscreteFeatureSegmentation(Segmentation):
         if fill_na in feature[feature.columns[1]].unique():
             raise InvalidValueException(fill_na)
 
+        # The str dtype (default for strings since pandas 3) rejects a non-string fill_na
+        if isinstance(feature[feature.columns[1]].dtype, pd.StringDtype):
+            feature[feature.columns[1]] = feature[feature.columns[1]].astype(object)
         feature = feature.fillna({str(feature.columns[1]): fill_na})
 
-        feature.loc[:, feature.columns[1]] = (
+        feature[feature.columns[1]] = (
             feature[feature.columns[1]].astype("category").cat.codes
         )
         feature = feature.rename({str(feature.columns[1]): "group"}, axis="columns")

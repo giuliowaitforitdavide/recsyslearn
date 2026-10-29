@@ -62,7 +62,7 @@ class MutualInformationTest(unittest.TestCase):
             top_n = first_example.merge(item_groups, on="item")
             MutualInformation().evaluate(top_n, "ratings")
 
-        self.assertTrue("[None] not in index" in str(context.exception))
+        self.assertIn("Invalid flag 'ratings'", str(context.exception))
 
 
 if __name__ == "__main__":

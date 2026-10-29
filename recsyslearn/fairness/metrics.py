@@ -107,6 +107,7 @@ class MutualInformation(FairnessMetric):
         :param rel_matrix: Relevant items for users. It could be, for example, the items with a rating >= threshold.
         :type rel_matrix: pd.DataFrame, default None
         :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group').
+        :raises KeyError: If flag is neither 'user' nor 'item'.
         :return: The computed Mutual Information.
         :rtype: float
         """
@@ -114,6 +115,8 @@ class MutualInformation(FairnessMetric):
         check_columns_exist(top_n, ["user", "item", "rank", "group"])
 
         not_flagged = {"user": "item", "item": "user"}
+        if flag not in not_flagged:
+            raise KeyError(f"Invalid flag {flag!r}, expected 'user' or 'item'")
 
         top_n = (
             eff_matrix(top_n, rel_matrix)

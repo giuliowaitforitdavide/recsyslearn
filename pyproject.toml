@@ -36,9 +36,6 @@ docs = ["sphinx", "sphinx-rtd-theme"]
 
 [tool.uv]
 default-groups = ["dev"]
-# Lock-only constraints (not published): tests/test_utils.py fails on pandas>=2.2,
-# and pandas<2.2 is built against numpy 1.x
-constraint-dependencies = ["numpy<2", "pandas<2.2"]
 
 [tool.setuptools.packages.find]
 include = ["recsyslearn", "recsyslearn.*"]
