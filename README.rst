@@ -7,8 +7,8 @@ Recsyslearn
         :target: https://github.com/giuliowaitforitdavide/recsyslearn/actions/workflows/tests.yml
         :alt: Test Status
 
-.. image:: https://readthedocs.org/projects/recsyslearn/badge/?version=latest
-     :target: https://recsyslearn.readthedocs.io/en/latest/?version=latest
+.. image:: https://readthedocs.org/projects/recsyslearn/badge/?version=stable
+     :target: https://recsyslearn.readthedocs.io/en/stable/
      :alt: Documentation Status
 
 .. image:: https://img.shields.io/pypi/v/recsyslearn.svg
@@ -102,5 +102,5 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
-.. _`official documentation`: https://recsyslearn.readthedocs.io/en/latest/?version=latest
+.. _`official documentation`: https://recsyslearn.readthedocs.io/en/stable/
 
