@@ -7,7 +7,6 @@ from recsyslearn.utils import check_columns_exist
 
 
 class BeyondAccuracyMetric(ABC):
-
     """
     Abstract Class for Metrics.
     """
@@ -17,7 +16,6 @@ class BeyondAccuracyMetric(ABC):
 
 
 class Coverage(BeyondAccuracyMetric):
-
     """
     Coverage evaluator for recommender systems.
     Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2
@@ -42,7 +40,6 @@ class Coverage(BeyondAccuracyMetric):
 
 
 class Novelty(BeyondAccuracyMetric):
-
     """
     Novelty evaluator for recommender systems.
     Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2

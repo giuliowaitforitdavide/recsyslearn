@@ -1,5 +1,4 @@
 class ColumnsNotExistException(Exception):
-
     """Exception raised when columns are not found in the DataFrame."""
 
     def __init__(
@@ -9,7 +8,6 @@ class ColumnsNotExistException(Exception):
 
 
 class RecListTooShortException(Exception):
-
     """Exception raised when the values for the recommendation list length is not compatbile with the dataset."""
 
     def __init__(
@@ -21,7 +19,6 @@ class RecListTooShortException(Exception):
 
 
 class SegmentationNotSupportedException(Exception):
-
     """Exception raised when there are too many group to be segmented."""
 
     def __init__(self, message: str) -> None:
@@ -29,7 +26,6 @@ class SegmentationNotSupportedException(Exception):
 
 
 class WrongProportionsException(Exception):
-
     """Exception raised when proportions of the segmentation does not cover all the items or users."""
 
     def __init__(
@@ -39,7 +35,6 @@ class WrongProportionsException(Exception):
 
 
 class InvalidValueException(Exception):
-
     """Exception raised when the value of fill_na of the segmentation value is invalid."""
 
     def __init__(self, fill_na) -> None:
@@ -50,7 +45,6 @@ class InvalidValueException(Exception):
 
 
 class InvalidGroupException(Exception):
-
     """Exception raised when user wants to segment a non valid group"""
 
     def __init__(self, user_group) -> None:

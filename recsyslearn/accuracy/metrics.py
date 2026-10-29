@@ -14,7 +14,6 @@ class AccuracyMetric(ABC):
 
 
 class NDCG(AccuracyMetric):
-
     """
     NDCG evaluator for recommender systems.
     """
