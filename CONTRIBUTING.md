@@ -121,13 +121,12 @@ Ready to contribute? Here's how to set up `recsyslearn` for local development.
     $ git clone git@github.com:your_name_here/recsyslearn.git
   ```
 
-3. Install your local copy into a virtualenv. Assuming you are using the default python virtual environment, this is how you set up your fork for local development
+3. Install your local copy into a virtual environment. Dependencies are managed with [uv](https://docs.astral.sh/uv/): direct dependencies are declared in [pyproject.toml](./pyproject.toml) and the resolved versions are locked in [uv.lock](./uv.lock). This is how you set up your fork for local development
   ```bash
-    $ python3.10 -m venv venv
-    $ source venv/bin/activate
-    $ pip install -r requirements_dev.txt
-    $ pip install -e .
+    $ uv sync
+    $ uv run pre-commit install
   ```
+  `uv sync` creates the `.venv` folder with the package installed in editable mode and the `dev` dependency group. To add or update a dependency use `uv add` / `uv lock --upgrade-package <name>` instead of editing `uv.lock` by hand.
 
 4. Create a branch for local development
   ```bash
@@ -137,7 +136,7 @@ Ready to contribute? Here's how to set up `recsyslearn` for local development.
 
 5. When you're done making changes, check that your changes pass tests
   ```bash
-    $ python -m unittest discover -s tests -t .
+    $ uv run python -m unittest discover -s tests -t .
   ```
 
 6. Commit your changes and push your branch to GitHub
@@ -152,11 +151,12 @@ Ready to contribute? Here's how to set up `recsyslearn` for local development.
 ## Improving The Documentation
 
 Improvements to the documentation are always welcome. If you want to contribute to the documentation, you can do so by editing the files in the [docs](./docs) folder. The documentation is written in [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) and built with [Sphinx](https://www.sphinx-doc.org/en/master/). The documentation is manually (for the moment) built and published on [Read the Docs](https://recsyslearn.readthedocs.io) when changes are made to the `master` branch.
-To locally test the documentation, first install all the [dependencies](./docs/requirements.txt) and then use the following commands:
+To locally test the documentation, first install the `docs` dependency group and then use the following commands:
 
 ```bash
+  $ uv sync --group docs
   $ cd docs
-  $ make html
+  $ uv run make html
 ```
 The documentation will be built in the `docs/_build` folder. You can open the `html/index.html` file in your browser to view the documentation.
 
