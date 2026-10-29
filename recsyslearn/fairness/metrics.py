@@ -8,7 +8,6 @@ from recsyslearn.utils import check_columns_exist
 
 
 class FairnessMetric(ABC):
-
     """
     Abstract Class for Metrics.
     """
@@ -18,7 +17,6 @@ class FairnessMetric(ABC):
 
 
 class Entropy(FairnessMetric):
-
     """
     Entropy evaluator for recommender systems.
     """
@@ -46,7 +44,6 @@ class Entropy(FairnessMetric):
 
 
 class KullbackLeibler(FairnessMetric):
-
     """
     Kullback-Leibler divergence evaluator for recommender systems.
     """
@@ -89,7 +86,6 @@ class KullbackLeibler(FairnessMetric):
 
 
 class MutualInformation(FairnessMetric):
-
     """
     Mutual Information evaluator for recommender systems.
     """

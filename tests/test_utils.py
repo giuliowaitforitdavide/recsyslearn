@@ -30,7 +30,6 @@ def assert_frame_equal_unordered(
 
 
 class ExpMatrixTest(unittest.TestCase):
-
     """
     Tester for the exp_matrix function.
     """
@@ -127,7 +126,6 @@ class ExpMatrixTest(unittest.TestCase):
 
 
 class ProbMatrixTest(unittest.TestCase):
-
     """
     Tester for the prob_matrix function.
     """

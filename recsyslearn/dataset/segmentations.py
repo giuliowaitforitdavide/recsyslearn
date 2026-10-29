@@ -13,7 +13,6 @@ from recsyslearn.errors.errors import (
 
 
 class Segmentation(ABC):
-
     """
     Abstract class for different group segmentations.
     """
@@ -23,7 +22,6 @@ class Segmentation(ABC):
 
 
 class InteractionSegmentation(Segmentation):
-
     """
     Segmentation of items based on the number of cumulative interaction they have.
     """
@@ -100,7 +98,6 @@ class InteractionSegmentation(Segmentation):
 
 
 class PopularityPercentage(Segmentation):
-
     """
     Calculate item or user popularity based on the percentage of interaction they have.
     """
@@ -134,7 +131,6 @@ class PopularityPercentage(Segmentation):
 
 
 class ActivitySegmentation(Segmentation):
-
     """
     Segmentation of users based on their number of interaction.
     """
@@ -198,7 +194,6 @@ class ActivitySegmentation(Segmentation):
 
 
 class DiscreteFeatureSegmentation(Segmentation):
-
     """
     Segmentation of entities (users or items) according to one of
     their features (e.g., gender for users or genre for items)

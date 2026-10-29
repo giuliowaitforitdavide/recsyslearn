@@ -10,7 +10,6 @@ from recsyslearn.errors.errors import (
 
 
 class ErrorTest(unittest.TestCase):
-
     """
     Tester for the test_pattern function.
     """

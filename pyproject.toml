@@ -30,12 +30,16 @@ dev = [
     "bump-my-version",
     "pre-commit",
     # Keep in sync with the ruff-pre-commit rev in .pre-commit-config.yaml
-    "ruff==0.1.6",
+    "ruff==0.17.2",
 ]
 docs = ["sphinx", "sphinx-rtd-theme"]
 
 [tool.uv]
 default-groups = ["dev"]
+
+[tool.ruff.lint]
+# Pin the rule set to Ruff 0.1.6 defaults so upgrades don't silently enable new rules
+select = ["E4", "E7", "E9", "F"]
 
 [tool.setuptools.packages.find]
 include = ["recsyslearn", "recsyslearn.*"]
