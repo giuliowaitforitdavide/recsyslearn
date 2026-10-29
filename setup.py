@@ -14,7 +14,7 @@ setup(
     author_email="giulio.davide.97@gmail.com",
     python_requires=">=3.10",
     classifiers=[
-        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "License :: OSI Approved :: MIT License",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Software Development :: Libraries :: Python Modules",
@@ -22,7 +22,7 @@ setup(
     ],
     description="A library to compute fairness of recommender systems.",
     install_requires=requirements,
-    license="GNU General Public License v3",
+    license="MIT",
     long_description=readme,
     include_package_data=True,
     keywords="recsyslearn",
