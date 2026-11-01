@@ -30,7 +30,7 @@ dev = [
     "bump-my-version",
     "pre-commit",
     # Keep in sync with the ruff-pre-commit rev in .pre-commit-config.yaml
-    "ruff==0.17.2",
+    "ruff==0.17.3",
 ]
 docs = ["sphinx", "sphinx-rtd-theme"]
 
