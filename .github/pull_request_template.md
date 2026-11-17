@@ -1,5 +1,6 @@
 <!-- Fill in every section. Write N/A if a section does not apply; do not delete it. -->
 <!-- The PR title must follow Conventional Commits (e.g. "feat: add Recall metric"): it becomes the squash commit message. -->
+<!-- Assign the same labels as the linked issue, or the most likely existing label (see AGENTS.md, section 2). -->
 
 ## Summary
 
@@ -29,6 +30,7 @@ Closes #
 - [ ] New or changed metrics cite their paper, equation and formula
 - [ ] Inputs are not mutated
 - [ ] Benchmarks run locally for changes to metrics or shared utilities (or N/A)
+- [ ] Labels assigned (same as the linked issue)
 
 ## AI assistance
 

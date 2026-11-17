@@ -46,7 +46,20 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
   4. pass the result with `--body-file`.
 
   Blank issues and free-form PR descriptions are not accepted.
-- **Definition of Done:** tests green, `pre-commit` clean, docstrings and `docs/` updated, PR linked to its issue, PR template filled in.
+- **Labels are mandatory** on every issue and pull request, from the moment it is opened. Use only the labels that already exist in the repository (`gh label list`); never create new ones.
+  - **Issues:** the issue templates set a default label; keep it or replace it with a more accurate one. Agents pass it explicitly with `gh issue create --label <name>`.
+  - **Pull requests:** use the same labels as the linked issue. If the PR has no linked issue, or the issue has no label, choose the most likely one from the available labels, starting from the PR type:
+
+    | PR type (Conventional Commits) | Label |
+    |---|---|
+    | `feat`, `perf`, `refactor` | `enhancement` |
+    | `fix` | `bug` |
+    | `docs` | `documentation` |
+    | `build(deps)` | `dependencies` |
+    | `ci` | `github_actions` |
+
+    Agents pass it explicitly with `gh pr create --label <name>`.
+- **Definition of Done:** tests green, `pre-commit` clean, docstrings and `docs/` updated, PR linked to its issue, PR template filled in, labels assigned.
 - **Semantic Versioning.** Breaking changes include: renaming or removing an exported name, changing the expected input columns, changing the return type or shape of a metric, raising where a value was returned before (or the opposite).
 - **Deprecation.** Before removing or renaming a public API, emit a `DeprecationWarning` for at least one minor release. Changes that cannot be deprecated gradually (e.g. a new return type) ship in a new major version with a migration note in the changelog.
 - **Releases** are made by maintainers only: `bump-my-version` updates every version string, one commit per release (`chore(release): X.Y.Z`). Contributors and agents never change the version.
