@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from recsyslearn.fairness.utils import eff_matrix, exp_matrix, prob_matrix
-from recsyslearn.utils import check_columns_exist
+from recsyslearn.utils import check_columns_exist, safe_divide
 
 
 class FairnessMetric(ABC):
@@ -30,14 +30,19 @@ class Entropy(FairnessMetric):
         :param rel_matrix: Relevant items for users. It could be, for example, the items with a rating >= threshold.
         :type rel_matrix: pd.DataFrame, default None
         :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group').
+        :raises DivisionByZeroException: If the total exposure is zero, so that the distribution over groups is undefined.
         :return: The computed entropy.
         :rtype: float
         """
 
         check_columns_exist(top_n, ["user", "item", "rank", "group"])
 
-        top_n = eff_matrix(top_n, rel_matrix) if rel_matrix is not None else top_n
-        top_n = prob_matrix(top_n)
+        top_n = (
+            eff_matrix(top_n, rel_matrix, metric="Entropy")
+            if rel_matrix is not None
+            else top_n
+        )
+        top_n = prob_matrix(top_n, metric="Entropy")
         top_n = top_n[["group", "rank"]].groupby("group", as_index=False).sum()
         top_n["rank"] = top_n["rank"] * np.log2(top_n["rank"])
         return -top_n["rank"].sum()
@@ -57,6 +62,8 @@ class KullbackLeibler(FairnessMetric):
         """
         Compute the Kullback-Leibler divergence of a model, for a given target representation, by using its recommendation list.
 
+        Groups with zero probability contribute 0 to the divergence (convention 0 · log(0 / q) = 0).
+
         :param top_n: Top N recommendations' lists for every user with items or users already segmented.
         :type top_n: pd.DataFrame
         :param target_representation: The target representation desired for each group.
@@ -64,6 +71,7 @@ class KullbackLeibler(FairnessMetric):
         :param rel_matrix: Relevant items for users. It could be, for example, the items with a rating >= threshold.
         :type rel_matrix: pd.DataFrame, default None
         :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group') or if target_representation not in the form ('group', 'target_representation').
+        :raises DivisionByZeroException: If the total exposure is zero, if a rank is 0, or if a group with non-zero probability has a target representation of 0 (infinite divergence).
         :return: The computed KL Divergence for the given target representation.
         :rtype: float
         """
@@ -72,17 +80,21 @@ class KullbackLeibler(FairnessMetric):
         check_columns_exist(target_representation, ["group", "target_representation"])
 
         top_n = (
-            eff_matrix(top_n, rel_matrix)
+            eff_matrix(top_n, rel_matrix, metric="KullbackLeibler")
             if rel_matrix is not None
-            else exp_matrix(top_n)
+            else exp_matrix(top_n, metric="KullbackLeibler")
         )
-        top_n = prob_matrix(top_n)
+        top_n = prob_matrix(top_n, metric="KullbackLeibler")
         top_n = top_n[["group", "rank"]].groupby("group", as_index=False).sum()
         top_n = top_n.merge(target_representation, on="group")
-        top_n["rank"] = top_n["rank"] * np.log2(
-            top_n["rank"] / top_n["target_representation"]
+        support = top_n[top_n["rank"] > 0]
+        ratio = safe_divide(
+            support["rank"],
+            support["target_representation"],
+            metric="KullbackLeibler",
+            labels=support["group"],
         )
-        return top_n["rank"].sum()
+        return (support["rank"] * np.log2(ratio)).sum()
 
 
 class MutualInformation(FairnessMetric):
@@ -96,6 +108,8 @@ class MutualInformation(FairnessMetric):
         """
         Compute the Mutual Information of a model by using its recommendation list.
 
+        Pairs with zero joint probability contribute 0 to the sum (convention 0 · log(0 / q) = 0).
+
         :param top_n: Top N recommendations' lists for every user with items or users already segmented.
         :type top_n: pd.DataFrame
         :param flag: Which actor of the recommendation scenario has been segmented (i.e. user).
@@ -104,6 +118,7 @@ class MutualInformation(FairnessMetric):
         :type rel_matrix: pd.DataFrame, default None
         :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group').
         :raises KeyError: If flag is neither 'user' nor 'item'.
+        :raises DivisionByZeroException: If the total exposure is zero or if a rank is 0.
         :return: The computed Mutual Information.
         :rtype: float
         """
@@ -115,11 +130,11 @@ class MutualInformation(FairnessMetric):
             raise KeyError(f"Invalid flag {flag!r}, expected 'user' or 'item'")
 
         top_n = (
-            eff_matrix(top_n, rel_matrix)
+            eff_matrix(top_n, rel_matrix, metric="MutualInformation")
             if rel_matrix is not None
-            else exp_matrix(top_n)
+            else exp_matrix(top_n, metric="MutualInformation")
         )
-        top_n = prob_matrix(top_n)
+        top_n = prob_matrix(top_n, metric="MutualInformation")
         not_grouped = not_flagged.get(flag)
         P_xy = (
             top_n[[not_grouped, "group", "rank"]]
@@ -138,5 +153,11 @@ class MutualInformation(FairnessMetric):
         tmp = P_xP_y[[not_grouped, "group", "rank"]].merge(
             P_xy, on=[not_grouped, "group"]
         )
-        tmp["rank"] = tmp["rank_y"] * np.log2(tmp["rank_y"] / tmp["rank_x"])
-        return tmp["rank"].sum()
+        support = tmp[tmp["rank_y"] > 0]
+        ratio = safe_divide(
+            support["rank_y"],
+            support["rank_x"],
+            metric="MutualInformation",
+            labels=support["group"],
+        )
+        return (support["rank_y"] * np.log2(ratio)).sum()

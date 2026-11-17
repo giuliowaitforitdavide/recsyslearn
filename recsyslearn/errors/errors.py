@@ -1,51 +1,44 @@
-class ColumnsNotExistException(Exception):
-    """Exception raised when columns are not found in the DataFrame."""
+"""
+Deprecated: import the exceptions from the module of their domain instead.
 
-    def __init__(
-        self, columns: list, message: str = "Dataframe does not contain columns."
-    ) -> None:
-        super().__init__(f"{message} {columns}")
+- ``recsyslearn.errors.base``: ``RecsyslearnException``
+- ``recsyslearn.errors.validation``: ``ColumnsNotExistException``
+- ``recsyslearn.errors.metrics``: ``DivisionByZeroException``, ``RecListTooShortException``
+- ``recsyslearn.errors.segmentation``: ``InvalidGroupException``, ``InvalidValueException``,
+  ``SegmentationNotSupportedException``, ``WrongProportionsException``
 
+This module will be removed in a future major release.
+"""
 
-class RecListTooShortException(Exception):
-    """Exception raised when the values for the recommendation list length is not compatbile with the dataset."""
+from __future__ import annotations
 
-    def __init__(
-        self,
-        ats: int,
-        message: str = "Values for the recommendation list length is not compatbile with the dataset.",
-    ) -> None:
-        super().__init__(f"{message} ats={ats}")
+import warnings
 
+from recsyslearn.errors.base import RecsyslearnException
+from recsyslearn.errors.metrics import DivisionByZeroException, RecListTooShortException
+from recsyslearn.errors.segmentation import (
+    InvalidGroupException,
+    InvalidValueException,
+    SegmentationNotSupportedException,
+    WrongProportionsException,
+)
+from recsyslearn.errors.validation import ColumnsNotExistException
 
-class SegmentationNotSupportedException(Exception):
-    """Exception raised when there are too many group to be segmented."""
+__all__ = [
+    "ColumnsNotExistException",
+    "DivisionByZeroException",
+    "InvalidGroupException",
+    "InvalidValueException",
+    "RecListTooShortException",
+    "RecsyslearnException",
+    "SegmentationNotSupportedException",
+    "WrongProportionsException",
+]
 
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-
-
-class WrongProportionsException(Exception):
-    """Exception raised when proportions of the segmentation does not cover all the items or users."""
-
-    def __init__(
-        self, message: str = "Proportions doesn't cover all the items/users."
-    ) -> None:
-        super().__init__(message)
-
-
-class InvalidValueException(Exception):
-    """Exception raised when the value of fill_na of the segmentation value is invalid."""
-
-    def __init__(self, fill_na) -> None:
-        message = (
-            f"Feature contains {fill_na} as value. Please select another fill_na value."
-        )
-        super().__init__(message)
-
-
-class InvalidGroupException(Exception):
-    """Exception raised when user wants to segment a non valid group"""
-
-    def __init__(self, user_group) -> None:
-        super().__init__(f"{user_group} is not a valid group")
+warnings.warn(
+    "recsyslearn.errors.errors is deprecated: import the exceptions from "
+    "recsyslearn.errors.base, recsyslearn.errors.validation, "
+    "recsyslearn.errors.metrics or recsyslearn.errors.segmentation instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
