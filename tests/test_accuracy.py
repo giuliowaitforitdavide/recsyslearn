@@ -49,6 +49,13 @@ class NDCGTest(unittest.TestCase):
         )
         assert_frame_equal(ndcg_df, ndcg_vals)
 
+    def test_ndcg_partially_computable_ats(self) -> None:
+        """NDCG skips the cut-offs longer than the shortest list and warns about them (#69)."""
+        with self.assertWarnsRegex(UserWarning, r"\[10, 20\]"):
+            ndcg_df = NDCG().evaluate(top_n_1, pos_items, ats=(2, 10, 20))
+
+        assert_frame_equal(ndcg_df, NDCG().evaluate(top_n_1, pos_items, ats=(2,)))
+
     def test_ndcg_error(self) -> None:
         with self.assertRaises(RecListTooShortException) as context:
             NDCG().evaluate(top_n_1.iloc[[0, 1]], pos_items, ats=(3,))
