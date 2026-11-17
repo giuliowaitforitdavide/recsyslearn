@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/giuliowaitforitdavide/recsyslearn/security/advisories/new
+    about: Please report security vulnerabilities privately, never in public issues. See SECURITY.md.
+  - name: Documentation
+    url: https://recsyslearn.readthedocs.io
+    about: Usage questions are often answered in the documentation.

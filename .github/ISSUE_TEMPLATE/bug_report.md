@@ -1,32 +1,47 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Report a crash, an exception or a wrong result
 title: ''
-labels: ''
+labels: 'bug'
 assignees: ''
 
 ---
 
-**Describe the bug**
+<!-- Fill in every section. Write N/A if a section does not apply; do not delete it. -->
+<!-- Never report security vulnerabilities here: see SECURITY.md. -->
+
+## Describe the bug
+
 <!-- A clear and concise description of what the bug is. -->
 
-**To Reproduce**
-<!-- Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error -->
+## Minimal reproducible example
 
-**Expected behavior**
-<!-- A clear and concise description of what you expected to happen. -->
+<!-- The smallest piece of code that reproduces the problem, including the input DataFrames. -->
 
-**Screenshots**
-<!-- If applicable, add screenshots to help explain your problem. -->
+```python
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser: [e.g. chrome, safari]
- - Version: [e.g. 22]
+```
 
-**Additional context**
-<!-- Add any other context about the problem here. -->
+## Expected behavior
+
+<!-- What you expected to happen (e.g. the expected value, and how you computed it). -->
+
+## Actual behavior
+
+<!-- What happened instead: the wrong output, or the full traceback. -->
+
+```text
+
+```
+
+## Environment
+
+- recsyslearn version:
+- Python version:
+- numpy version:
+- pandas version:
+- OS:
+
+## Additional context
+
+<!-- Anything else that may help: when it started, workarounds, related issues. -->
