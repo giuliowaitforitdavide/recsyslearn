@@ -3,7 +3,7 @@
 Development guidelines for `recsyslearn`, for human contributors and AI coding agents alike.
 This file is the single source of truth for technical rules: other files (`CONTRIBUTING.md`, `CLAUDE.md`, `.github/copilot-instructions.md`) point here instead of repeating them.
 
-Rules marked **(planned, #N)** describe the target state: the code does not comply yet, and issue #N tracks the change. Apply them to new code anyway.
+Rules marked **(planned, #N)** describe the target state: the code does not comply yet, and issue #N tracks the change. Apply them to new code anyway, but do not build the missing infrastructure (helpers, result types, …) in an unrelated PR: it belongs to #N. The PR that closes #N removes its markers from this file.
 
 **How rules are enforced.** Every rule about the library's observable behaviour (section 3) is enforced by an automated test (see section 4); performance rules (section 6) are checked with benchmarks. Rules about the form of the code are enforced by tools (Ruff through `pre-commit`). Process rules (sections 2 and 7) are enforced by templates, CI checks and review. Do not write unit tests for rules that are not about the library's behaviour.
 
