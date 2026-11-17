@@ -9,7 +9,7 @@ description = "A library to compute fairness of recommender systems."
 readme = "README.rst"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{ name = "Giulio Davide Carparelli", email = "giulio.davide.97@gmail.com" }]
+authors = [{ name = "Giulio Davide Carparelli", email = "giuliowaitforitdavide@duck.com" }]
 keywords = ["recsyslearn"]
 requires-python = ">=3.10"
 classifiers = [
