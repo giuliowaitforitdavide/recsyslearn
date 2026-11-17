@@ -11,14 +11,13 @@ def exp_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
     :param top_n: Recommendation lists per user in the form (user, item, rank, group).
     :type top_n: pd.DataFrame
     :raises ColumnsNotExistException: If top_n is not in the form (user, item, rank, group).
-    :return: The DataFrame with computed exposure.
+    :return: A new DataFrame with computed exposure in the rank column; top_n is not modified.
     :rtype: pd.DataFrame
     """
 
     check_columns_exist(top_n, ["user", "item", "rank", "group"])
 
-    top_n["rank"] = 1 / np.log2(1 + top_n["rank"])
-    return top_n
+    return _with_rank(top_n, 1 / np.log2(1 + top_n["rank"]))
 
 
 def prob_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
@@ -28,14 +27,33 @@ def prob_matrix(top_n: pd.DataFrame) -> pd.DataFrame:
     :param top_n: Recommendation lists per user in the form (user, item, rank, group).
     :type top_n: pd.DataFrame
     :raises ColumnsNotExistException: If top_n is not in the form (user, item, rank, group).
-    :return: The DataFrame with computed probability distribution.
+    :return: A new DataFrame with the probability distribution in the rank column; top_n is not modified.
     :rtype: pd.DataFrame
     """
 
     check_columns_exist(top_n, ["user", "item", "rank", "group"])
 
-    top_n["rank"] = top_n["rank"] / top_n["rank"].sum()
-    return top_n
+    return _with_rank(top_n, top_n["rank"] / top_n["rank"].sum())
+
+
+def _with_rank(top_n: pd.DataFrame, rank: pd.Series) -> pd.DataFrame:
+    """
+    Return a new DataFrame equal to top_n with the rank column replaced, leaving top_n unchanged.
+
+    Only the new rank column is allocated: the other columns are shared with top_n through a
+    shallow copy, so that large DataFrames are not duplicated in memory.
+
+    :param top_n: Recommendation lists per user with a rank column.
+    :type top_n: pd.DataFrame
+    :param rank: The new values of the rank column, aligned with top_n.
+    :type rank: pd.Series
+    :return: A new DataFrame with the given rank column.
+    :rtype: pd.DataFrame
+    """
+
+    result = top_n.copy(deep=False)
+    result["rank"] = rank
+    return result
 
 
 def eff_matrix(top_n: pd.DataFrame, rel_matrix: pd.DataFrame) -> pd.DataFrame:
