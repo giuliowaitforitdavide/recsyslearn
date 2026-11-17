@@ -83,9 +83,12 @@ class NDCG(AccuracyMetric):
         if len(calculable_ats) == 0:
             raise RecListTooShortException(ats)
 
-        if len(calculable_ats) != len(ats):
-            non_calulable_ats = list(set(calculable_ats) - set(ats))
-            warnings.warn(non_calulable_ats.join(" ") + " ats won't be calculated")
+        non_calculable_ats = [k for k in ats if k > min_calculable_at]
+        if non_calculable_ats:
+            warnings.warn(
+                f"NDCG@k won't be calculated for k in {non_calculable_ats}: "
+                f"the shortest recommendation list has {min_calculable_at} items."
+            )
 
         top_n = top_n[["user", "item", "rank"]]
         top_n = (
