@@ -3,7 +3,9 @@
 Development guidelines for `recsyslearn`, for human contributors and AI coding agents alike.
 This file is the single source of truth for technical rules: other files (`CONTRIBUTING.md`, `CLAUDE.md`, `.github/copilot-instructions.md`) point here instead of repeating them.
 
-Rules marked **(planned, #N)** describe the target state: the code does not comply yet, and issue #N tracks the change. Apply them to new code anyway.
+Rules marked **(planned, #N)** describe the target state: the code does not comply yet, and issue #N tracks the change. Apply them to new code anyway, but do not build the missing infrastructure (helpers, result types, …) in an unrelated PR: it belongs to #N. The PR that closes #N removes its markers from this file.
+
+**How rules are enforced.** Every rule about the library's observable behaviour (section 3) is enforced by an automated test (see section 4); performance rules (section 6) are checked with benchmarks. Rules about the form of the code are enforced by tools (Ruff through `pre-commit`). Process rules (sections 2 and 7) are enforced by templates, CI checks and review. Do not write unit tests for rules that are not about the library's behaviour.
 
 ## 1. Overview and commands
 
@@ -124,7 +126,14 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 - **Fixtures** are built by small builder functions in `tests/utils.py` (e.g. `make_top_n({"1": ["3", "4"]})` → rows `user, item, rank`) that return a new DataFrame on every call. No DataFrame shared at module level: a test that mutates its input must not affect other tests. Fixture data stays small and explicit, so that expected values can be computed by hand; no randomly generated data in value-based tests. **(planned, #71)**
 - **Expected values** are computed in the test from the formula taken from the cited paper, with the reference in the test method docstring (e.g. `"""NDCG@2, Järvelin & Kekäläinen 2002, eq. 3."""`). Never copy expected values from the output of the implementation.
 - **Property-based tests** with [Hypothesis](https://hypothesis.readthedocs.io) complement, and never replace, value-based tests. They check mathematical invariants on generated inputs: NDCG in [0, 1] and equal to 1 for a perfect ranking, `Coverage` ≤ 1, KL ≥ 0, result unchanged when rows are shuffled, input not mutated. Hypothesis runs with `derandomize=True` so that CI stays deterministic. **(planned, #71)**
-- **Minimum coverage per metric:** nominal case, edge cases, raised exceptions, input not mutated.
+- **Minimum coverage per metric**, one test for each behavioural rule of section 3:
+  - nominal case;
+  - edge cases documented in the docstring;
+  - raised exceptions;
+  - a zero denominator raises `DivisionByZeroException` **(planned, #70)**;
+  - input not mutated;
+  - same input, and same `seed` where the function takes one, gives the same output;
+  - result type and shape: `per_user` and `aggregate`, or `per_user` is `None` for population-level metrics **(planned, #71)**.
 - **Every bug fix** comes with a regression test that fails before the fix.
 - Tests are deterministic (fixed seeds, no dependence on row or group order), fast, and use no network or filesystem.
 
