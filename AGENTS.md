@@ -63,7 +63,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
     Agents pass it explicitly with `gh pr create --label <name>`.
 - **Definition of Done:** tests green, `pre-commit` clean, docstrings and `docs/` updated, PR linked to its issue, PR template filled in, labels assigned.
 - **Semantic Versioning.** Breaking changes include: renaming or removing an exported name, changing the expected input columns, changing the return type or shape of a metric, raising where a value was returned before (or the opposite).
-- **Deprecation.** Before removing or renaming a public API, emit a `DeprecationWarning` for at least one minor release. Changes that cannot be deprecated gradually (e.g. a new return type) ship in a new major version with a migration note in the changelog.
+- **Deprecation.** Before removing or renaming a public API, emit a `DeprecationWarning` for at least one minor release. A `DeprecationWarning` is needed only when a release is published before the change is removed: if the rename or removal ships in the next major release, a migration note in the release notes is enough, and no deprecated alias is added. Changes that cannot be deprecated gradually (e.g. a new return type) ship in a new major version with a migration note in the release notes.
 - **Releases** are made by maintainers only: `bump-my-version` updates every version string, one commit per release (`chore(release): X.Y.Z`). Contributors and agents never change the version.
 - **AI-assisted contributions** are allowed. The human opening the PR is responsible for the whole change, has reviewed it, and declares the AI assistance in the PR template.
 
