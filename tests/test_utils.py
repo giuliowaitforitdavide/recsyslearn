@@ -37,7 +37,7 @@ class ExpMatrixTest(unittest.TestCase):
     """
 
     def test_exp_matrix_1(self) -> None:
-        top_n = first_example.merge(user_groups, on=["user"])
+        top_n = first_example().merge(user_groups(), on=["user"])
         result = exp_matrix(top_n)
         assert_frame_equal(
             result,
@@ -82,7 +82,7 @@ class ExpMatrixTest(unittest.TestCase):
         )
 
     def test_exp_matrix_2(self) -> None:
-        top_n = first_example.merge(item_groups, on=["item"])
+        top_n = first_example().merge(item_groups(), on=["item"])
         result = exp_matrix(top_n)
         assert_frame_equal_unordered(
             result,
@@ -133,7 +133,7 @@ class ProbMatrixTest(unittest.TestCase):
     """
 
     def test_prob_matrix_1(self) -> None:
-        top_n = first_example.merge(user_groups, on=["user"])
+        top_n = first_example().merge(user_groups(), on=["user"])
         result = prob_matrix(top_n)
         assert_frame_equal(
             result,
@@ -178,7 +178,7 @@ class ProbMatrixTest(unittest.TestCase):
         )
 
     def test_prob_matrix_2(self) -> None:
-        top_n = first_example.merge(item_groups, on=["item"])
+        top_n = first_example().merge(item_groups(), on=["item"])
         result = prob_matrix(top_n)
         assert_frame_equal_unordered(
             result,
@@ -225,8 +225,8 @@ class ProbMatrixTest(unittest.TestCase):
 
 class EffMatrixTest(unittest.TestCase):
     def test_eff_matrix_1(self) -> None:
-        top_n = second_example.merge(user_groups, on=["user"])
-        rel_matrix = rel_matrix_1.merge(user_groups, on=["user"])
+        top_n = second_example().merge(user_groups(), on=["user"])
+        rel_matrix = rel_matrix_1().merge(user_groups(), on=["user"])
         result = eff_matrix(top_n, rel_matrix)
         result = result[result["rank"] != 0].reset_index(drop=True)
         assert_frame_equal(
@@ -251,8 +251,8 @@ class EffMatrixTest(unittest.TestCase):
         )
 
     def test_eff_matrix_2(self) -> None:
-        top_n = second_example.merge(item_groups, on=["item"])
-        rel_matrix = rel_matrix_3.merge(item_groups, on=["item"])
+        top_n = second_example().merge(item_groups(), on=["item"])
+        rel_matrix = rel_matrix_3().merge(item_groups(), on=["item"])
         result = eff_matrix(top_n, rel_matrix)
         result = result[result["rank"] != 0].reset_index(drop=True)
         assert_frame_equal_unordered(

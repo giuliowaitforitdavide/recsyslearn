@@ -16,13 +16,11 @@ class NDCGTest(unittest.TestCase):
             {"user": ["1"], "pos_items": [np.array([], dtype=object)]}
         )
         with self.assertRaises(DivisionByZeroException) as context:
-            NDCG().evaluate(
-                top_n_1[top_n_1["user"] == "1"], no_relevant_items, ats=(2,)
-            )
+            NDCG().evaluate(top_n_1().query("user == '1'"), no_relevant_items, ats=(2,))
         self.assertEqual(str(context.exception), "NDCG: division by zero for user 1.")
 
     def test_ndcg(self) -> None:
-        ndcg_df = NDCG().evaluate(top_n_1, pos_items, ats=(2,))
+        ndcg_df = NDCG().evaluate(top_n_1(), pos_items(), ats=(2,))
         ndcg_vals = pd.DataFrame(
             [
                 [
@@ -63,13 +61,13 @@ class NDCGTest(unittest.TestCase):
     def test_ndcg_partially_computable_ats(self) -> None:
         """NDCG skips the cut-offs longer than the shortest list and warns about them (#69)."""
         with self.assertWarnsRegex(UserWarning, r"\[10, 20\]"):
-            ndcg_df = NDCG().evaluate(top_n_1, pos_items, ats=(2, 10, 20))
+            ndcg_df = NDCG().evaluate(top_n_1(), pos_items(), ats=(2, 10, 20))
 
-        assert_frame_equal(ndcg_df, NDCG().evaluate(top_n_1, pos_items, ats=(2,)))
+        assert_frame_equal(ndcg_df, NDCG().evaluate(top_n_1(), pos_items(), ats=(2,)))
 
     def test_ndcg_error(self) -> None:
         with self.assertRaises(RecListTooShortException) as context:
-            NDCG().evaluate(top_n_1.iloc[[0, 1]], pos_items, ats=(3,))
+            NDCG().evaluate(top_n_1().iloc[[0, 1]], pos_items(), ats=(3,))
 
         self.assertTrue(
             "Values for the recommendation list length is not compatbile with the dataset. ats=(3,)"
