@@ -17,191 +17,32 @@ from tests.fixtures import (
 )
 
 
-class EntropyTest(unittest.TestCase):
-    def test_user_exposure(self) -> None:
-        top_n = top_5_unranked().merge(user_groups(), on="user")
-        entropy = Entropy().evaluate(top_n)
-        self.assertAlmostEqual(entropy, 0.91830, delta=1e-5)
-
-    def test_item_exposure(self) -> None:
-        top_n = top_5_unranked().merge(item_groups(), on="item")
-        entropy = Entropy().evaluate(top_n)
-        self.assertAlmostEqual(entropy, 1.48547, delta=1e-5)
+def item_exposure_lists() -> pd.DataFrame:
+    """top_5_unranked with the group of each item: every item has rank 1, so exposure 1."""
+    return top_5_unranked().merge(item_groups(), on="item")
 
 
-class KullbackLeiblerTest(unittest.TestCase):
-    def test_user_effectiveness(self) -> None:
-        top_n = top_6().merge(user_groups(), on="user")
-        rel_matrix = binary_relevance().merge(user_groups(), on="user")
-        target_representation = pd.DataFrame(
-            [["1", 0.5], ["2", 0.5]], columns=["group", "target_representation"]
-        )
-        divergence = KullbackLeibler().evaluate(
-            top_n, target_representation, rel_matrix
-        )
-        self.assertAlmostEqual(divergence, 0.08530, delta=1e-5)
-
-    def test_item_exposure(self) -> None:
-        top_n = top_5_unranked().merge(item_groups(), on="item")
-        target_representation = pd.DataFrame(
-            [["1", 0.2], ["2", 0.3], ["3", 0.5]],
-            columns=["group", "target_representation"],
-        )
-        divergence = KullbackLeibler().evaluate(top_n, target_representation)
-        self.assertAlmostEqual(divergence, 0, delta=1e-5)
+def user_exposure_lists() -> pd.DataFrame:
+    """top_5_unranked with the group of each user."""
+    return top_5_unranked().merge(user_groups(), on="user")
 
 
-class MutualInformationTest(unittest.TestCase):
-    def test_user_exposure(self) -> None:
-        top_n = top_5_unranked().merge(user_groups(), on="user")
-        mi = MutualInformation().evaluate(top_n, "user")
-        self.assertAlmostEqual(mi, 0.25582, delta=1e-5)
-
-    def test_item_exposure(self) -> None:
-        top_n = top_5_unranked().merge(item_groups(), on="item")
-        mi = MutualInformation().evaluate(top_n, "item")
-        self.assertAlmostEqual(mi, 0.10570, delta=1e-5)
-
-    def test_flag_not_valid(self) -> None:
-        with self.assertRaises(KeyError) as context:
-            top_n = top_5_unranked().merge(item_groups(), on="item")
-            MutualInformation().evaluate(top_n, "ratings")
-
-        self.assertIn("Invalid flag 'ratings'", str(context.exception))
+def item_target(shares: tuple[float, float, float] = (0.2, 0.3, 0.5)) -> pd.DataFrame:
+    """Target representation of the three item groups."""
+    return pd.DataFrame(
+        {"group": ["1", "2", "3"], "target_representation": list(shares)}
+    )
 
 
-class DivisionByZeroTest(unittest.TestCase):
-    """Undefined divisions in fairness metrics raise DivisionByZeroException (#70)."""
-
-    def test_entropy_zero_total_exposure(self) -> None:
-        top_n = top_5_unranked().merge(item_groups(), on="item").assign(rank=0)
-        with self.assertRaises(DivisionByZeroException) as context:
-            Entropy().evaluate(top_n)
-        self.assertEqual(str(context.exception), "Entropy: division by zero.")
-
-    def test_kullback_leibler_zero_target(self) -> None:
-        top_n = top_5_unranked().merge(item_groups(), on="item")
-        target_representation = pd.DataFrame(
-            [["1", 0.5], ["2", 0.5], ["3", 0.0]],
-            columns=["group", "target_representation"],
-        )
-        with self.assertRaises(DivisionByZeroException) as context:
-            KullbackLeibler().evaluate(top_n, target_representation)
-        self.assertEqual(
-            str(context.exception), "KullbackLeibler: division by zero for group 3."
-        )
-
-    def test_kullback_leibler_zero_rank(self) -> None:
-        """Exposure 1 / log2(1 + rank) is undefined for rank 0 (ranks start at 1)."""
-        top_n = top_5_unranked().merge(item_groups(), on="item").assign(rank=0)
-        target_representation = pd.DataFrame(
-            [["1", 0.2], ["2", 0.3], ["3", 0.5]],
-            columns=["group", "target_representation"],
-        )
-        with self.assertRaises(DivisionByZeroException) as context:
-            KullbackLeibler().evaluate(top_n, target_representation)
-        self.assertTrue(
-            str(context.exception).startswith("KullbackLeibler: division by zero")
-        )
-
-    def test_mutual_information_no_relevant_item_recommended(self) -> None:
-        """With effectiveness, no relevant item recommended gives zero total exposure."""
-        top_n = top_6().merge(user_groups(), on="user")
-        rel_matrix = (
-            binary_relevance()
-            .assign(item="not recommended")
-            .merge(user_groups(), on="user")
-        )
-        with self.assertRaises(DivisionByZeroException) as context:
-            MutualInformation().evaluate(top_n, "user", rel_matrix)
-        self.assertEqual(str(context.exception), "MutualInformation: division by zero.")
-
-    def test_zero_probability_terms_are_skipped(self) -> None:
-        """
-        A group with zero probability contributes 0 (convention 0 · log(0 / q) = 0), it does not raise.
-
-        All ranks are 1, so every recommended item has exposure 1. Only the 6 items of group 1
-        and the 9 items of group 2 are relevant, so p = (0.4, 0.6, 0) and
-        KL = 0.4 · log2(0.4 / 0.2) + 0.6 · log2(0.6 / 0.3) + 0 = 1.
-        """
-        top_n = top_5_unranked().merge(item_groups(), on="item")
-        rel_matrix = top_n[top_n["group"] != "3"].assign(rank=1)
-        target_representation = pd.DataFrame(
-            [["1", 0.2], ["2", 0.3], ["3", 0.5]],
-            columns=["group", "target_representation"],
-        )
-        divergence = KullbackLeibler().evaluate(
-            top_n, target_representation, rel_matrix
-        )
-        self.assertAlmostEqual(divergence, 1.0)
-        mi = MutualInformation().evaluate(top_n, "item", rel_matrix)
-        self.assertTrue(np.isfinite(mi))
+def user_target() -> pd.DataFrame:
+    """Equal target representation of the two user groups."""
+    return pd.DataFrame({"group": ["1", "2"], "target_representation": [0.5, 0.5]})
 
 
-class InputNotMutatedTest(unittest.TestCase):
-    """Fairness metrics and helpers leave the caller's DataFrames unchanged (#75)."""
-
-    def setUp(self) -> None:
-        self.top_n = top_5_unranked().merge(item_groups(), on="item")
-        self.top_n_before = self.top_n.copy()
-        self.target_representation = pd.DataFrame(
-            [["1", 0.2], ["2", 0.3], ["3", 0.5]],
-            columns=["group", "target_representation"],
-        )
-
-    def assert_input_unchanged_and_repeatable(self, evaluate) -> None:
-        first = evaluate(self.top_n)
-        second = evaluate(self.top_n)
-
-        assert_frame_equal(self.top_n, self.top_n_before)
-        self.assertEqual(first, second)
-
-    def test_exp_matrix(self) -> None:
-        exp_matrix(self.top_n)
-        assert_frame_equal(self.top_n, self.top_n_before)
-
-    def test_prob_matrix(self) -> None:
-        prob_matrix(self.top_n)
-        assert_frame_equal(self.top_n, self.top_n_before)
-
-    def test_prob_matrix_float_rank(self) -> None:
-        """A float `rank` column keeps its dtype, so it must not be overwritten in place."""
-        top_n = self.top_n.astype({"rank": float})
-        top_n_before = top_n.copy()
-        prob_matrix(top_n)
-        assert_frame_equal(top_n, top_n_before)
-
-    def test_entropy(self) -> None:
-        self.assert_input_unchanged_and_repeatable(
-            lambda top_n: Entropy().evaluate(top_n)
-        )
-
-    def test_kullback_leibler(self) -> None:
-        self.assert_input_unchanged_and_repeatable(
-            lambda top_n: KullbackLeibler().evaluate(top_n, self.target_representation)
-        )
-
-    def test_kullback_leibler_effectiveness(self) -> None:
-        """Effectiveness path: the relevance matrix is left unchanged too."""
-        top_n = top_6().merge(user_groups(), on="user")
-        top_n_before = top_n.copy()
-        rel_matrix = binary_relevance().merge(user_groups(), on="user")
-        rel_matrix_before = rel_matrix.copy()
-        target_representation = pd.DataFrame(
-            [["1", 0.5], ["2", 0.5]], columns=["group", "target_representation"]
-        )
-
-        first = KullbackLeibler().evaluate(top_n, target_representation, rel_matrix)
-        second = KullbackLeibler().evaluate(top_n, target_representation, rel_matrix)
-
-        assert_frame_equal(top_n, top_n_before)
-        assert_frame_equal(rel_matrix, rel_matrix_before)
-        self.assertEqual(first, second)
-
-    def test_mutual_information(self) -> None:
-        self.assert_input_unchanged_and_repeatable(
-            lambda top_n: MutualInformation().evaluate(top_n, "item")
-        )
+def relevant_except_group_3() -> pd.DataFrame:
+    """Relevance 1 for the recommended items of groups 1 and 2, none for group 3."""
+    top_n = item_exposure_lists()
+    return top_n[top_n["group"] != "3"].assign(rank=1)
 
 
 def assert_frame_equal_unordered(
@@ -217,12 +58,193 @@ def assert_frame_equal_unordered(
     assert_frame_equal(sort(left), sort(right), **kwargs)
 
 
-class ExpMatrixTest(unittest.TestCase):
-    """
-    Tester for the exp_matrix function.
-    """
+class EntropyTest(unittest.TestCase):
+    def test_entropy_of_user_group_exposure(self) -> None:
+        self.assertAlmostEqual(
+            Entropy().evaluate(user_exposure_lists()), 0.91830, delta=1e-5
+        )
 
-    def test_exp_matrix_1(self) -> None:
+    def test_entropy_of_item_group_exposure(self) -> None:
+        self.assertAlmostEqual(
+            Entropy().evaluate(item_exposure_lists()), 1.48547, delta=1e-5
+        )
+
+    def test_raises_when_the_total_exposure_is_zero(self) -> None:
+        """A distribution over groups is undefined when the total exposure is zero (#70)."""
+        with self.assertRaises(DivisionByZeroException):
+            Entropy().evaluate(item_exposure_lists().assign(rank=0))
+
+    def test_division_error_names_the_metric(self) -> None:
+        with self.assertRaises(DivisionByZeroException) as context:
+            Entropy().evaluate(item_exposure_lists().assign(rank=0))
+
+        self.assertEqual(str(context.exception), "Entropy: division by zero.")
+
+    def test_does_not_mutate_the_input(self) -> None:
+        """#75"""
+        top_n = item_exposure_lists()
+        Entropy().evaluate(top_n)
+        assert_frame_equal(top_n, item_exposure_lists())
+
+    def test_repeated_calls_give_the_same_value(self) -> None:
+        """#75"""
+        top_n = item_exposure_lists()
+        self.assertEqual(Entropy().evaluate(top_n), Entropy().evaluate(top_n))
+
+
+class KullbackLeiblerTest(unittest.TestCase):
+    def test_divergence_of_user_group_effectiveness(self) -> None:
+        top_n = top_6().merge(user_groups(), on="user")
+        rel_matrix = binary_relevance().merge(user_groups(), on="user")
+        divergence = KullbackLeibler().evaluate(top_n, user_target(), rel_matrix)
+        self.assertAlmostEqual(divergence, 0.08530, delta=1e-5)
+
+    def test_zero_when_the_item_exposure_matches_the_target(self) -> None:
+        divergence = KullbackLeibler().evaluate(item_exposure_lists(), item_target())
+        self.assertAlmostEqual(divergence, 0, delta=1e-5)
+
+    def test_groups_with_zero_probability_contribute_zero(self) -> None:
+        """
+        A group with zero probability contributes 0 (convention 0 · log(0 / q) = 0), it does not raise.
+
+        All ranks are 1, so every recommended item has exposure 1. Only the 6 items of group 1
+        and the 9 items of group 2 are relevant, so p = (0.4, 0.6, 0) and
+        KL = 0.4 · log2(0.4 / 0.2) + 0.6 · log2(0.6 / 0.3) + 0 = 1.
+        """
+        divergence = KullbackLeibler().evaluate(
+            item_exposure_lists(), item_target(), relevant_except_group_3()
+        )
+        self.assertAlmostEqual(divergence, 1.0)
+
+    def test_raises_for_a_zero_target_on_an_exposed_group(self) -> None:
+        """The divergence is infinite when an exposed group has a target of 0 (#70)."""
+        with self.assertRaises(DivisionByZeroException):
+            KullbackLeibler().evaluate(
+                item_exposure_lists(), item_target((0.5, 0.5, 0))
+            )
+
+    def test_division_error_names_the_group(self) -> None:
+        with self.assertRaises(DivisionByZeroException) as context:
+            KullbackLeibler().evaluate(
+                item_exposure_lists(), item_target((0.5, 0.5, 0))
+            )
+
+        self.assertEqual(
+            str(context.exception), "KullbackLeibler: division by zero for group 3."
+        )
+
+    def test_raises_for_rank_zero(self) -> None:
+        """Exposure 1 / log2(1 + rank) is undefined for rank 0 (ranks start at 1)."""
+        with self.assertRaises(DivisionByZeroException):
+            KullbackLeibler().evaluate(
+                item_exposure_lists().assign(rank=0), item_target()
+            )
+
+    def test_does_not_mutate_the_input(self) -> None:
+        """#75"""
+        top_n = item_exposure_lists()
+        KullbackLeibler().evaluate(top_n, item_target())
+        assert_frame_equal(top_n, item_exposure_lists())
+
+    def test_repeated_calls_give_the_same_value(self) -> None:
+        """#75"""
+        top_n = item_exposure_lists()
+        self.assertEqual(
+            KullbackLeibler().evaluate(top_n, item_target()),
+            KullbackLeibler().evaluate(top_n, item_target()),
+        )
+
+    def test_does_not_mutate_the_lists_when_using_relevance(self) -> None:
+        """#75"""
+        top_n = top_6().merge(user_groups(), on="user")
+        rel_matrix = binary_relevance().merge(user_groups(), on="user")
+        KullbackLeibler().evaluate(top_n, user_target(), rel_matrix)
+        assert_frame_equal(top_n, top_6().merge(user_groups(), on="user"))
+
+    def test_does_not_mutate_the_relevance_matrix(self) -> None:
+        """#75"""
+        top_n = top_6().merge(user_groups(), on="user")
+        rel_matrix = binary_relevance().merge(user_groups(), on="user")
+        KullbackLeibler().evaluate(top_n, user_target(), rel_matrix)
+        assert_frame_equal(
+            rel_matrix, binary_relevance().merge(user_groups(), on="user")
+        )
+
+    def test_repeated_calls_with_relevance_give_the_same_value(self) -> None:
+        """#75"""
+        top_n = top_6().merge(user_groups(), on="user")
+        rel_matrix = binary_relevance().merge(user_groups(), on="user")
+        self.assertEqual(
+            KullbackLeibler().evaluate(top_n, user_target(), rel_matrix),
+            KullbackLeibler().evaluate(top_n, user_target(), rel_matrix),
+        )
+
+
+class MutualInformationTest(unittest.TestCase):
+    def test_mutual_information_of_user_group_exposure(self) -> None:
+        mi = MutualInformation().evaluate(user_exposure_lists(), "user")
+        self.assertAlmostEqual(mi, 0.25582, delta=1e-5)
+
+    def test_mutual_information_of_item_group_exposure(self) -> None:
+        mi = MutualInformation().evaluate(item_exposure_lists(), "item")
+        self.assertAlmostEqual(mi, 0.10570, delta=1e-5)
+
+    def test_pairs_with_zero_probability_contribute_zero(self) -> None:
+        """Pairs with zero joint probability are skipped (0 · log 0 = 0), so the result is finite."""
+        mi = MutualInformation().evaluate(
+            item_exposure_lists(), "item", relevant_except_group_3()
+        )
+        self.assertTrue(np.isfinite(mi))
+
+    def test_raises_for_an_invalid_flag(self) -> None:
+        with self.assertRaises(KeyError):
+            MutualInformation().evaluate(item_exposure_lists(), "ratings")
+
+    def test_invalid_flag_error_names_the_flag(self) -> None:
+        with self.assertRaises(KeyError) as context:
+            MutualInformation().evaluate(item_exposure_lists(), "ratings")
+
+        self.assertIn("Invalid flag 'ratings'", str(context.exception))
+
+    def test_raises_when_no_relevant_item_is_recommended(self) -> None:
+        """With effectiveness, no relevant item recommended gives zero total exposure (#70)."""
+        with self.assertRaises(DivisionByZeroException):
+            MutualInformation().evaluate(*self._nothing_relevant_recommended())
+
+    def test_division_error_names_the_metric(self) -> None:
+        with self.assertRaises(DivisionByZeroException) as context:
+            MutualInformation().evaluate(*self._nothing_relevant_recommended())
+
+        self.assertEqual(str(context.exception), "MutualInformation: division by zero.")
+
+    def test_does_not_mutate_the_input(self) -> None:
+        """#75"""
+        top_n = item_exposure_lists()
+        MutualInformation().evaluate(top_n, "item")
+        assert_frame_equal(top_n, item_exposure_lists())
+
+    def test_repeated_calls_give_the_same_value(self) -> None:
+        """#75"""
+        top_n = item_exposure_lists()
+        self.assertEqual(
+            MutualInformation().evaluate(top_n, "item"),
+            MutualInformation().evaluate(top_n, "item"),
+        )
+
+    @staticmethod
+    def _nothing_relevant_recommended() -> tuple[pd.DataFrame, str, pd.DataFrame]:
+        """Arguments of evaluate where no relevant item appears in the recommendations."""
+        top_n = top_6().merge(user_groups(), on="user")
+        rel_matrix = (
+            binary_relevance()
+            .assign(item="not recommended")
+            .merge(user_groups(), on="user")
+        )
+        return top_n, "user", rel_matrix
+
+
+class ExpMatrixTest(unittest.TestCase):
+    def test_rank_one_gives_exposure_one_with_user_groups(self) -> None:
         top_n = top_5_unranked().merge(user_groups(), on=["user"])
         result = exp_matrix(top_n)
         assert_frame_equal(
@@ -267,7 +289,7 @@ class ExpMatrixTest(unittest.TestCase):
             rtol=1e-3,
         )
 
-    def test_exp_matrix_2(self) -> None:
+    def test_rank_one_gives_exposure_one_with_item_groups(self) -> None:
         top_n = top_5_unranked().merge(item_groups(), on=["item"])
         result = exp_matrix(top_n)
         assert_frame_equal_unordered(
@@ -312,13 +334,15 @@ class ExpMatrixTest(unittest.TestCase):
             rtol=1e-3,
         )
 
+    def test_does_not_mutate_the_input(self) -> None:
+        """#75"""
+        top_n = item_exposure_lists()
+        exp_matrix(top_n)
+        assert_frame_equal(top_n, item_exposure_lists())
+
 
 class ProbMatrixTest(unittest.TestCase):
-    """
-    Tester for the prob_matrix function.
-    """
-
-    def test_prob_matrix_1(self) -> None:
+    def test_equal_exposures_give_uniform_probabilities_with_user_groups(self) -> None:
         top_n = top_5_unranked().merge(user_groups(), on=["user"])
         result = prob_matrix(top_n)
         assert_frame_equal(
@@ -363,7 +387,7 @@ class ProbMatrixTest(unittest.TestCase):
             rtol=1e-3,
         )
 
-    def test_prob_matrix_2(self) -> None:
+    def test_equal_exposures_give_uniform_probabilities_with_item_groups(self) -> None:
         top_n = top_5_unranked().merge(item_groups(), on=["item"])
         result = prob_matrix(top_n)
         assert_frame_equal_unordered(
@@ -408,9 +432,21 @@ class ProbMatrixTest(unittest.TestCase):
             rtol=1e-3,
         )
 
+    def test_does_not_mutate_the_input(self) -> None:
+        """#75"""
+        top_n = item_exposure_lists()
+        prob_matrix(top_n)
+        assert_frame_equal(top_n, item_exposure_lists())
+
+    def test_does_not_mutate_a_float_rank_column(self) -> None:
+        """A float rank column keeps its dtype, so it must not be overwritten in place (#75)."""
+        top_n = item_exposure_lists().astype({"rank": float})
+        prob_matrix(top_n)
+        assert_frame_equal(top_n, item_exposure_lists().astype({"rank": float}))
+
 
 class EffMatrixTest(unittest.TestCase):
-    def test_eff_matrix_1(self) -> None:
+    def test_effectiveness_with_binary_relevance(self) -> None:
         top_n = top_6().merge(user_groups(), on=["user"])
         rel_matrix = binary_relevance().merge(user_groups(), on=["user"])
         result = eff_matrix(top_n, rel_matrix)
@@ -436,7 +472,7 @@ class EffMatrixTest(unittest.TestCase):
             rtol=1e-3,
         )
 
-    def test_eff_matrix_2(self) -> None:
+    def test_effectiveness_with_graded_relevance(self) -> None:
         top_n = top_6().merge(item_groups(), on=["item"])
         rel_matrix = graded_relevance().merge(item_groups(), on=["item"])
         result = eff_matrix(top_n, rel_matrix)

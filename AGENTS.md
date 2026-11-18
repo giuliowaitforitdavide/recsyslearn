@@ -134,6 +134,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
   - input not mutated;
   - same input, and same `seed` where the function takes one, gives the same output;
   - result type and shape: `per_user` and `aggregate`, or `per_user` is `None` for population-level metrics **(planned, #71)**.
+- **One behaviour per test.** Each test checks a single behaviour and its name says which, e.g. `test_raises_for_user_without_relevant_items` instead of `test_ndcg_2`, so that a failing test tells what is broken without reading its code. A raised exception and its message are two behaviours, two tests. The same behaviour on several inputs uses `subTest`. Test classes are named after the unit under test (`NDCGTest`, `SafeDivideTest`).
 - **Every bug fix** comes with a regression test that fails before the fix.
 - Tests are deterministic (fixed seeds, no dependence on row or group order), fast, and use no network or filesystem.
 
