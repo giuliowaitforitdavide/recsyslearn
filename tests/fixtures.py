@@ -228,6 +228,16 @@ def user_interactions() -> pd.DataFrame:
     return make_top_n({"1": items * 4, "2": ["1", "1"], "3": ["1"]}, rank=1)
 
 
+def graded_activity() -> pd.DataFrame:
+    """Users 1 to 8: user k interacts 9 - k times with item 1, so each user is one interaction apart."""
+    return make_top_n({str(user): ["1"] * (9 - user) for user in range(1, 9)}, rank=1)
+
+
+def tied_activity() -> pd.DataFrame:
+    """Users 2 and 1 interact once each with item 1, with the rows of user 2 first."""
+    return make_top_n({"2": ["1"], "1": ["1"]}, rank=1)
+
+
 def popularity_interactions() -> pd.DataFrame:
     """Ten interactions: item 1 six times, item 2 three times, item 3 once."""
     return pd.DataFrame(

@@ -21,9 +21,11 @@ from recsyslearn.errors.segmentation import (
 from tests import strategies
 from tests.case import TestCase
 from tests.fixtures import (
+    graded_activity,
     item_genres,
     item_interactions,
     popularity_interactions,
+    tied_activity,
     user_ages,
     user_genders,
     user_interactions,
@@ -119,6 +121,19 @@ class ActivitySegmentationTest(TestCase):
             with self.subTest(user=user):
                 self.assertEqual(groups_of(segmented, "user", user), {"2"})
 
+    def test_users_are_ranked_by_their_actual_number_of_interactions(self) -> None:
+        """Regression test for #62: random noise of 0-9 swapped users one interaction apart."""
+        segmented = ActivitySegmentation().segment(graded_activity(), [0.5, 0.5])
+        for user, group in [("1", "1"), ("4", "1"), ("5", "2"), ("8", "2")]:
+            with self.subTest(user=user):
+                self.assertEqual(groups_of(segmented, "user", user), {group})
+
+    def test_ties_are_broken_by_user_id(self) -> None:
+        segmented = ActivitySegmentation().segment(tied_activity(), [0.5, 0.5])
+        for user, group in [("1", "1"), ("2", "2")]:
+            with self.subTest(user=user):
+                self.assertEqual(groups_of(segmented, "user", user), {group})
+
     def test_a_single_group_returns_the_dataset_unchanged(self) -> None:
         assert_frame_equal(
             ActivitySegmentation().segment(user_interactions(), [1]),
@@ -137,6 +152,53 @@ class ActivitySegmentationTest(TestCase):
             WrongProportionsException, "Proportions doesn't cover all the items/users."
         ):
             ActivitySegmentation().segment(user_interactions(), [0.7, 0.4])
+
+    @given(strategies.interactions(), VALID_PROPORTIONS)
+    def test_same_input_gives_the_same_groups(self, data, proportions) -> None:
+        assert_frame_equal(
+            ActivitySegmentation().segment(data, proportions),
+            ActivitySegmentation().segment(data, proportions),
+        )
+
+    @given(strategies.interactions(), VALID_PROPORTIONS, st.randoms())
+    def test_row_order_does_not_change_the_groups(
+        self, data, proportions, random
+    ) -> None:
+        shuffled = data.sample(frac=1, random_state=random.randint(0, 2**32 - 1))
+        assert_frame_equal(
+            ActivitySegmentation().segment(shuffled, proportions),
+            ActivitySegmentation().segment(data, proportions),
+        )
+
+    @given(strategies.interactions(), VALID_PROPORTIONS)
+    def test_assigns_exactly_one_group_to_every_user(self, data, proportions) -> None:
+        segmented = ActivitySegmentation().segment(data, proportions)
+        self.assertEqual(sorted(segmented["user"]), sorted(data["user"].unique()))
+
+    @given(strategies.interactions(), VALID_PROPORTIONS)
+    def test_uses_one_group_per_proportion_at_most(self, data, proportions) -> None:
+        segmented = ActivitySegmentation().segment(data, proportions)
+        allowed = {str(group) for group in range(1, len(proportions) + 1)}
+        self.assertTrue(set(segmented["group"]) <= allowed)
+
+    @given(strategies.interactions(), VALID_PROPORTIONS)
+    def test_more_active_users_are_never_in_a_later_group(
+        self, data, proportions
+    ) -> None:
+        segmented = ActivitySegmentation().segment(data, proportions)
+        counts = data["user"].value_counts()
+        group = dict(zip(segmented["user"], segmented["group"].astype(int)))
+        for first in group:
+            for second in group:
+                if counts[first] > counts[second]:
+                    with self.subTest(first=first, second=second):
+                        self.assertLessEqual(group[first], group[second])
+
+    @given(strategies.interactions(), VALID_PROPORTIONS)
+    def test_does_not_mutate_the_input(self, data, proportions) -> None:
+        original = data.copy()
+        ActivitySegmentation().segment(data, proportions)
+        assert_frame_equal(data, original)
 
 
 class PopularityPercentageTest(TestCase):
