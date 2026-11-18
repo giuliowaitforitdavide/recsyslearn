@@ -6,23 +6,13 @@ from pandas.testing import assert_frame_equal
 
 from recsyslearn.accuracy.metrics import NDCG
 from recsyslearn.errors.metrics import DivisionByZeroException, RecListTooShortException
-from tests.utils import pos_items, top_n_1
+from tests.case import TestCase
+from tests.fixtures import pos_items, top_5
 
 
-class NDCGTest(unittest.TestCase):
-    def test_ndcg_user_without_relevant_items(self) -> None:
-        """The ideal DCG of a user without relevant items is zero: NDCG is undefined (#70)."""
-        no_relevant_items = pd.DataFrame(
-            {"user": ["1"], "pos_items": [np.array([], dtype=object)]}
-        )
-        with self.assertRaises(DivisionByZeroException) as context:
-            NDCG().evaluate(
-                top_n_1[top_n_1["user"] == "1"], no_relevant_items, ats=(2,)
-            )
-        self.assertEqual(str(context.exception), "NDCG: division by zero for user 1.")
-
-    def test_ndcg(self) -> None:
-        ndcg_df = NDCG().evaluate(top_n_1, pos_items, ats=(2,))
+class NDCGTest(TestCase):
+    def test_matches_the_formula_at_cutoff_2(self) -> None:
+        ndcg_df = NDCG().evaluate(top_5(), pos_items(), ats=(2,))
         ndcg_vals = pd.DataFrame(
             [
                 [
@@ -60,21 +50,50 @@ class NDCGTest(unittest.TestCase):
         )
         assert_frame_equal(ndcg_df, ndcg_vals)
 
-    def test_ndcg_partially_computable_ats(self) -> None:
-        """NDCG skips the cut-offs longer than the shortest list and warns about them (#69)."""
-        with self.assertWarnsRegex(UserWarning, r"\[10, 20\]"):
-            ndcg_df = NDCG().evaluate(top_n_1, pos_items, ats=(2, 10, 20))
+    def test_warns_about_cutoffs_longer_than_the_shortest_list(self) -> None:
+        """The warning lists the skipped cut-offs (#69)."""
+        with self.assertWarnsMessage(
+            UserWarning,
+            "NDCG@k won't be calculated for k in [10, 20]: "
+            "the shortest recommendation list has 5 items.",
+        ):
+            NDCG().evaluate(top_5(), pos_items(), ats=(2, 10, 20))
 
-        assert_frame_equal(ndcg_df, NDCG().evaluate(top_n_1, pos_items, ats=(2,)))
+    def test_computes_only_the_cutoffs_within_the_shortest_list(self) -> None:
+        """Cut-offs longer than the shortest list are skipped, the others are computed (#69)."""
+        with self.assertWarnsMessage(
+            UserWarning,
+            "NDCG@k won't be calculated for k in [10, 20]: "
+            "the shortest recommendation list has 5 items.",
+        ):
+            ndcg_df = NDCG().evaluate(top_5(), pos_items(), ats=(2, 10, 20))
 
-    def test_ndcg_error(self) -> None:
-        with self.assertRaises(RecListTooShortException) as context:
-            NDCG().evaluate(top_n_1.iloc[[0, 1]], pos_items, ats=(3,))
+        assert_frame_equal(ndcg_df, NDCG().evaluate(top_5(), pos_items(), ats=(2,)))
 
-        self.assertTrue(
-            "Values for the recommendation list length is not compatbile with the dataset. ats=(3,)"
-            in str(context.exception)
-        )
+    def test_raises_when_no_cutoff_is_computable(self) -> None:
+        with self.assertRaisesMessage(
+            RecListTooShortException,
+            "Values for the recommendation list length is not compatbile with the "
+            "dataset. ats=(3,)",
+        ):
+            NDCG().evaluate(top_5().iloc[[0, 1]], pos_items(), ats=(3,))
+
+    def test_raises_for_user_without_relevant_items(self) -> None:
+        """The ideal DCG of a user without relevant items is zero: NDCG is undefined (#70)."""
+        with self.assertRaisesMessage(
+            DivisionByZeroException, "NDCG: division by zero for user 1."
+        ):
+            NDCG().evaluate(self._user_1_lists(), self._no_relevant_items(), ats=(2,))
+
+    @staticmethod
+    def _user_1_lists() -> pd.DataFrame:
+        """The top-5 list of user 1 only."""
+        return top_5().query("user == '1'")
+
+    @staticmethod
+    def _no_relevant_items() -> pd.DataFrame:
+        """User 1 with an empty list of relevant items."""
+        return pd.DataFrame({"user": ["1"], "pos_items": [np.array([], dtype=object)]})
 
 
 if __name__ == "__main__":

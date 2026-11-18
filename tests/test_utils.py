@@ -1,341 +1,106 @@
+"""Tests of the shared helpers in recsyslearn/utils.py."""
+
 import unittest
 
 import numpy as np
 import pandas as pd
-from pandas.testing import assert_frame_equal, assert_series_equal
+from hypothesis import given
+from hypothesis import strategies as st
+from pandas.testing import assert_series_equal
 
 from recsyslearn.errors.metrics import DivisionByZeroException
 from recsyslearn.errors.validation import ColumnsNotExistException
-from recsyslearn.fairness.utils import eff_matrix, exp_matrix, prob_matrix
 from recsyslearn.utils import check_columns_exist, safe_divide
-from tests.utils import (
-    first_example,
-    item_groups,
-    rel_matrix_1,
-    rel_matrix_3,
-    second_example,
-    user_groups,
+from tests.case import TestCase
+
+
+COLUMN_NAMES = ["user", "item", "rank", "group", "pos_items", "target_representation"]
+NONZERO_FLOATS = st.floats(min_value=0.1, max_value=100, allow_nan=False).flatmap(
+    lambda value: st.sampled_from([value, -value])
 )
 
 
-def assert_frame_equal_unordered(
-    left: pd.DataFrame, right: pd.DataFrame, **kwargs
-) -> None:
-    """
-    Compare DataFrames regardless of row order, since merge row order changed in pandas 2.2.
-    """
-
-    def sort(df: pd.DataFrame) -> pd.DataFrame:
-        return df.sort_values(["user", "item"]).reset_index(drop=True)
-
-    assert_frame_equal(sort(left), sort(right), **kwargs)
-
-
-class ExpMatrixTest(unittest.TestCase):
-    """
-    Tester for the exp_matrix function.
-    """
-
-    def test_exp_matrix_1(self) -> None:
-        top_n = first_example.merge(user_groups, on=["user"])
-        result = exp_matrix(top_n)
-        assert_frame_equal(
-            result,
-            pd.DataFrame(
-                [
-                    ["1", "3", 1.0, "1"],
-                    ["1", "4", 1.0, "1"],
-                    ["1", "6", 1.0, "1"],
-                    ["1", "7", 1.0, "1"],
-                    ["1", "8", 1.0, "1"],
-                    ["2", "1", 1.0, "1"],
-                    ["2", "2", 1.0, "1"],
-                    ["2", "5", 1.0, "1"],
-                    ["2", "6", 1.0, "1"],
-                    ["2", "7", 1.0, "1"],
-                    ["3", "2", 1.0, "2"],
-                    ["3", "3", 1.0, "2"],
-                    ["3", "6", 1.0, "2"],
-                    ["3", "9", 1.0, "2"],
-                    ["3", "10", 1.0, "2"],
-                    ["4", "1", 1.0, "2"],
-                    ["4", "3", 1.0, "2"],
-                    ["4", "6", 1.0, "2"],
-                    ["4", "7", 1.0, "2"],
-                    ["4", "9", 1.0, "2"],
-                    ["5", "1", 1.0, "2"],
-                    ["5", "3", 1.0, "2"],
-                    ["5", "5", 1.0, "2"],
-                    ["5", "7", 1.0, "2"],
-                    ["5", "9", 1.0, "2"],
-                    ["6", "2", 1.0, "2"],
-                    ["6", "3", 1.0, "2"],
-                    ["6", "5", 1.0, "2"],
-                    ["6", "9", 1.0, "2"],
-                    ["6", "10", 1.0, "2"],
-                ],
-                columns=["user", "item", "rank", "group"],
-            ),
-            check_like=True,
-            check_exact=False,
-            rtol=1e-3,
-        )
-
-    def test_exp_matrix_2(self) -> None:
-        top_n = first_example.merge(item_groups, on=["item"])
-        result = exp_matrix(top_n)
-        assert_frame_equal_unordered(
-            result,
-            pd.DataFrame(
-                [
-                    ["1", "3", 1.0, "2"],
-                    ["3", "3", 1.0, "2"],
-                    ["4", "3", 1.0, "2"],
-                    ["5", "3", 1.0, "2"],
-                    ["6", "3", 1.0, "2"],
-                    ["1", "4", 1.0, "2"],
-                    ["1", "6", 1.0, "3"],
-                    ["2", "6", 1.0, "3"],
-                    ["3", "6", 1.0, "3"],
-                    ["4", "6", 1.0, "3"],
-                    ["1", "7", 1.0, "3"],
-                    ["2", "7", 1.0, "3"],
-                    ["4", "7", 1.0, "3"],
-                    ["5", "7", 1.0, "3"],
-                    ["1", "8", 1.0, "3"],
-                    ["2", "1", 1.0, "1"],
-                    ["4", "1", 1.0, "1"],
-                    ["5", "1", 1.0, "1"],
-                    ["2", "2", 1.0, "1"],
-                    ["3", "2", 1.0, "1"],
-                    ["6", "2", 1.0, "1"],
-                    ["2", "5", 1.0, "2"],
-                    ["5", "5", 1.0, "2"],
-                    ["6", "5", 1.0, "2"],
-                    ["3", "9", 1.0, "3"],
-                    ["4", "9", 1.0, "3"],
-                    ["5", "9", 1.0, "3"],
-                    ["6", "9", 1.0, "3"],
-                    ["3", "10", 1.0, "3"],
-                    ["6", "10", 1.0, "3"],
-                ],
-                columns=["user", "item", "rank", "group"],
-            ),
-            check_like=True,
-            check_exact=False,
-            rtol=1e-3,
-        )
-
-
-class ProbMatrixTest(unittest.TestCase):
-    """
-    Tester for the prob_matrix function.
-    """
-
-    def test_prob_matrix_1(self) -> None:
-        top_n = first_example.merge(user_groups, on=["user"])
-        result = prob_matrix(top_n)
-        assert_frame_equal(
-            result,
-            pd.DataFrame(
-                [
-                    ["1", "3", 0.03333333333333333, "1"],
-                    ["1", "4", 0.03333333333333333, "1"],
-                    ["1", "6", 0.03333333333333333, "1"],
-                    ["1", "7", 0.03333333333333333, "1"],
-                    ["1", "8", 0.03333333333333333, "1"],
-                    ["2", "1", 0.03333333333333333, "1"],
-                    ["2", "2", 0.03333333333333333, "1"],
-                    ["2", "5", 0.03333333333333333, "1"],
-                    ["2", "6", 0.03333333333333333, "1"],
-                    ["2", "7", 0.03333333333333333, "1"],
-                    ["3", "2", 0.03333333333333333, "2"],
-                    ["3", "3", 0.03333333333333333, "2"],
-                    ["3", "6", 0.03333333333333333, "2"],
-                    ["3", "9", 0.03333333333333333, "2"],
-                    ["3", "10", 0.03333333333333333, "2"],
-                    ["4", "1", 0.03333333333333333, "2"],
-                    ["4", "3", 0.03333333333333333, "2"],
-                    ["4", "6", 0.03333333333333333, "2"],
-                    ["4", "7", 0.03333333333333333, "2"],
-                    ["4", "9", 0.03333333333333333, "2"],
-                    ["5", "1", 0.03333333333333333, "2"],
-                    ["5", "3", 0.03333333333333333, "2"],
-                    ["5", "5", 0.03333333333333333, "2"],
-                    ["5", "7", 0.03333333333333333, "2"],
-                    ["5", "9", 0.03333333333333333, "2"],
-                    ["6", "2", 0.03333333333333333, "2"],
-                    ["6", "3", 0.03333333333333333, "2"],
-                    ["6", "5", 0.03333333333333333, "2"],
-                    ["6", "9", 0.03333333333333333, "2"],
-                    ["6", "10", 0.03333333333333333, "2"],
-                ],
-                columns=["user", "item", "rank", "group"],
-            ),
-            check_like=True,
-            check_exact=False,
-            rtol=1e-3,
-        )
-
-    def test_prob_matrix_2(self) -> None:
-        top_n = first_example.merge(item_groups, on=["item"])
-        result = prob_matrix(top_n)
-        assert_frame_equal_unordered(
-            result,
-            pd.DataFrame(
-                [
-                    ["1", "3", 0.03333333333333333, "2"],
-                    ["3", "3", 0.03333333333333333, "2"],
-                    ["4", "3", 0.03333333333333333, "2"],
-                    ["5", "3", 0.03333333333333333, "2"],
-                    ["6", "3", 0.03333333333333333, "2"],
-                    ["1", "4", 0.03333333333333333, "2"],
-                    ["1", "6", 0.03333333333333333, "3"],
-                    ["2", "6", 0.03333333333333333, "3"],
-                    ["3", "6", 0.03333333333333333, "3"],
-                    ["4", "6", 0.03333333333333333, "3"],
-                    ["1", "7", 0.03333333333333333, "3"],
-                    ["2", "7", 0.03333333333333333, "3"],
-                    ["4", "7", 0.03333333333333333, "3"],
-                    ["5", "7", 0.03333333333333333, "3"],
-                    ["1", "8", 0.03333333333333333, "3"],
-                    ["2", "1", 0.03333333333333333, "1"],
-                    ["4", "1", 0.03333333333333333, "1"],
-                    ["5", "1", 0.03333333333333333, "1"],
-                    ["2", "2", 0.03333333333333333, "1"],
-                    ["3", "2", 0.03333333333333333, "1"],
-                    ["6", "2", 0.03333333333333333, "1"],
-                    ["2", "5", 0.03333333333333333, "2"],
-                    ["5", "5", 0.03333333333333333, "2"],
-                    ["6", "5", 0.03333333333333333, "2"],
-                    ["3", "9", 0.03333333333333333, "3"],
-                    ["4", "9", 0.03333333333333333, "3"],
-                    ["5", "9", 0.03333333333333333, "3"],
-                    ["6", "9", 0.03333333333333333, "3"],
-                    ["3", "10", 0.03333333333333333, "3"],
-                    ["6", "10", 0.03333333333333333, "3"],
-                ],
-                columns=["user", "item", "rank", "group"],
-            ),
-            check_like=True,
-            check_exact=False,
-            rtol=1e-3,
-        )
-
-
-class EffMatrixTest(unittest.TestCase):
-    def test_eff_matrix_1(self) -> None:
-        top_n = second_example.merge(user_groups, on=["user"])
-        rel_matrix = rel_matrix_1.merge(user_groups, on=["user"])
-        result = eff_matrix(top_n, rel_matrix)
-        result = result[result["rank"] != 0].reset_index(drop=True)
-        assert_frame_equal(
-            result,
-            pd.DataFrame(
-                [
-                    ["1", "9", 0.6309297536, "1"],
-                    ["2", "6", 0.4306765581, "1"],
-                    ["2", "7", 0.5, "1"],
-                    ["3", "7", 0.4306765581, "2"],
-                    ["3", "9", 0.3562071871, "2"],
-                    ["4", "3", 0.3868528072, "2"],
-                    ["4", "7", 0.5, "2"],
-                    ["6", "2", 0.5, "2"],
-                    ["6", "9", 1, "2"],
-                ],
-                columns=["user", "item", "rank", "group"],
-            ),
-            check_like=True,
-            check_exact=False,
-            rtol=1e-3,
-        )
-
-    def test_eff_matrix_2(self) -> None:
-        top_n = second_example.merge(item_groups, on=["item"])
-        rel_matrix = rel_matrix_3.merge(item_groups, on=["item"])
-        result = eff_matrix(top_n, rel_matrix)
-        result = result[result["rank"] != 0].reset_index(drop=True)
-        assert_frame_equal_unordered(
-            result,
-            pd.DataFrame(
-                [
-                    ["5", "1", 0.05088674102, "1"],
-                    ["3", "3", 0.09013282194, "2"],
-                    ["4", "3", 0.05526468675, "2"],
-                    ["3", "4", 0.07142857143, "2"],
-                    ["5", "5", 0.07142857143, "2"],
-                    ["4", "8", 0.04853305797, "3"],
-                    ["6", "8", 0.04853305797, "3"],
-                    ["1", "9", 0.04853305797, "3"],
-                    ["3", "9", 0.02740055285, "3"],
-                    ["4", "9", 0.07692307692, "3"],
-                    ["5", "9", 0.07692307692, "3"],
-                    ["6", "9", 0.07692307692, "3"],
-                    ["6", "2", 0.07142857143, "1"],
-                    ["2", "6", 0.03312896601, "3"],
-                    ["5", "6", 0.03312896601, "3"],
-                    ["6", "6", 0.02740055285, "3"],
-                    ["2", "7", 0.03846153846, "3"],
-                    ["3", "7", 0.03312896601, "3"],
-                    ["4", "7", 0.03846153846, "3"],
-                ],
-                columns=["user", "item", "rank", "group"],
-            ),
-            check_like=True,
-            check_exact=False,
-            rtol=1e-3,
-        )
-
-
-class SmallUtilsTest(unittest.TestCase):
-    def test_columns_exist_one(self):
+class CheckColumnsExistTest(TestCase):
+    def test_accepts_a_dataframe_with_the_required_columns(self) -> None:
         check_columns_exist(pd.DataFrame(columns=["user", "item"]), ["user"])
 
-    def test_columns_dont_exist(self):
-        with self.assertRaises(ColumnsNotExistException) as context:
+    def test_raises_when_a_column_is_missing(self) -> None:
+        with self.assertRaisesMessage(
+            ColumnsNotExistException,
+            "Dataframe does not contain columns. ['user', 'item']",
+        ):
             check_columns_exist(pd.DataFrame(columns=["user"]), ["user", "item"])
 
-        self.assertTrue(
-            "Dataframe does not contain columns. ['user', 'item']"
-            in str(context.exception)
-        )
+    @given(st.sets(st.sampled_from(COLUMN_NAMES), min_size=1), st.data())
+    def test_accepts_any_subset_of_the_columns(self, present, data) -> None:
+        required = data.draw(st.lists(st.sampled_from(sorted(present)), unique=True))
+        check_columns_exist(pd.DataFrame(columns=sorted(present)), required)
+
+    @given(st.sets(st.sampled_from(COLUMN_NAMES), max_size=5), st.data())
+    def test_raises_when_any_required_column_is_missing(self, present, data) -> None:
+        missing = data.draw(st.sampled_from(sorted(set(COLUMN_NAMES) - present)))
+        required = sorted(present) + [missing]
+        with self.assertRaisesMessage(
+            ColumnsNotExistException, f"Dataframe does not contain columns. {required}"
+        ):
+            check_columns_exist(pd.DataFrame(columns=sorted(present)), required)
 
 
-class SafeDivideTest(unittest.TestCase):
+class SafeDivideTest(TestCase):
     """safe_divide divides like `/` and raises DivisionByZeroException on any zero denominator (#70)."""
 
-    def test_scalar(self) -> None:
+    def test_divides_scalars(self) -> None:
         self.assertEqual(safe_divide(1, 4, metric="M"), 0.25)
 
-    def test_series(self) -> None:
+    def test_divides_series_element_wise(self) -> None:
         numerator = pd.Series([1.0, 2.0, 3.0])
         denominator = pd.Series([2.0, 4.0, 6.0])
         assert_series_equal(
             safe_divide(numerator, denominator, metric="M"), numerator / denominator
         )
 
-    def test_scalar_zero(self) -> None:
-        with self.assertRaises(DivisionByZeroException) as context:
-            safe_divide(1, 0, metric="NDCG", labels="user 5")
-        self.assertEqual(str(context.exception), "NDCG: division by zero for user 5.")
+    def test_raises_on_a_zero_scalar_denominator(self) -> None:
+        with self.assertRaisesMessage(
+            DivisionByZeroException, "NDCG: division by zero."
+        ):
+            safe_divide(1, 0, metric="NDCG")
 
-    def test_series_zero_names_the_labels(self) -> None:
+    def test_raises_on_any_zero_in_an_array_denominator(self) -> None:
+        with self.assertRaisesMessage(DivisionByZeroException, "M: division by zero."):
+            safe_divide(np.ones(3), np.array([1.0, 0.0, 2.0]), metric="M")
+
+    def test_error_names_the_given_label(self) -> None:
+        with self.assertRaisesMessage(
+            DivisionByZeroException, "NDCG: division by zero for user 5."
+        ):
+            safe_divide(1, 0, metric="NDCG", labels="user 5")
+
+    def test_error_names_the_labels_of_the_zero_denominators(self) -> None:
         labels = pd.Series(["a", "b", "c"], name="group")
-        with self.assertRaises(DivisionByZeroException) as context:
+        with self.assertRaisesMessage(
+            DivisionByZeroException,
+            "KullbackLeibler: division by zero for group b, c.",
+        ):
             safe_divide(
                 pd.Series([1.0, 1.0, 1.0]),
                 pd.Series([1.0, 0.0, 0.0]),
                 metric="KullbackLeibler",
                 labels=labels,
             )
-        self.assertEqual(
-            str(context.exception),
-            "KullbackLeibler: division by zero for group b, c.",
+
+    @given(st.lists(st.tuples(NONZERO_FLOATS, NONZERO_FLOATS), min_size=1, max_size=20))
+    def test_equals_true_division_when_no_denominator_is_zero(self, pairs) -> None:
+        numerator, denominator = (np.array(values) for values in zip(*pairs))
+        np.testing.assert_array_equal(
+            safe_divide(numerator, denominator, metric="M"), numerator / denominator
         )
 
-    def test_numpy_zero_is_a_zero_division_error(self) -> None:
-        with self.assertRaises(ZeroDivisionError):
-            safe_divide(np.ones(3), np.array([1.0, 0.0, 2.0]), metric="M")
+    @given(st.lists(NONZERO_FLOATS, min_size=1, max_size=20), st.data())
+    def test_raises_when_any_denominator_is_zero(self, denominator, data) -> None:
+        zero_at = data.draw(st.integers(min_value=0, max_value=len(denominator) - 1))
+        denominator[zero_at] = 0.0
+        with self.assertRaisesMessage(DivisionByZeroException, "M: division by zero."):
+            safe_divide(np.ones(len(denominator)), np.array(denominator), metric="M")
 
 
 if __name__ == "__main__":

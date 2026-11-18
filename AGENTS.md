@@ -19,7 +19,7 @@ recsyslearn/
 ├── dataset/           # segmentations and dataset utilities
 ├── errors/            # custom exceptions
 └── utils.py           # shared helpers (input validation, …)
-tests/                 # unittest suite, one test_<family>.py per package
+tests/                 # unittest suite, one test_<family>.py per package, test_utils.py for utils.py
 docs/                  # Sphinx documentation (reStructuredText)
 examples/              # runnable usage examples
 ```
@@ -122,10 +122,10 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 
 ## 4. Testing
 
-- `unittest`, one `tests/test_<family>.py` per package.
-- **Fixtures** are built by small builder functions in `tests/utils.py` (e.g. `make_top_n({"1": ["3", "4"]})` → rows `user, item, rank`) that return a new DataFrame on every call. No DataFrame shared at module level: a test that mutates its input must not affect other tests. Fixture data stays small and explicit, so that expected values can be computed by hand; no randomly generated data in value-based tests. **(planned, #71)**
+- `unittest`, one `tests/test_<family>.py` per package (`tests/test_utils.py` for `recsyslearn/utils.py`). Fixture builders are named after what they contain (e.g. `top_5`, `binary_relevance`), not numbered.
+- **Fixtures** are built by small builder functions in `tests/fixtures.py` (e.g. `make_top_n({"1": ["3", "4"]})` → rows `user, item, rank`) that return a new DataFrame on every call. No DataFrame shared at module level: a test that mutates its input must not affect other tests. Fixture data stays small and explicit, so that expected values can be computed by hand; no randomly generated data in value-based tests.
 - **Expected values** are computed in the test from the formula taken from the cited paper, with the reference in the test method docstring (e.g. `"""NDCG@2, Järvelin & Kekäläinen 2002, eq. 3."""`). Never copy expected values from the output of the implementation.
-- **Property-based tests** with [Hypothesis](https://hypothesis.readthedocs.io) complement, and never replace, value-based tests. They check mathematical invariants on generated inputs: NDCG in [0, 1] and equal to 1 for a perfect ranking, `Coverage` ≤ 1, KL ≥ 0, result unchanged when rows are shuffled, input not mutated. Hypothesis runs with `derandomize=True` so that CI stays deterministic. **(planned, #71)**
+- **Property-based tests** with [Hypothesis](https://hypothesis.readthedocs.io) complement, and never replace, value-based tests. They check mathematical invariants on generated inputs: NDCG in [0, 1] and equal to 1 for a perfect ranking, `Coverage` ≤ 1, KL ≥ 0, result unchanged when rows are shuffled, input not mutated. Hypothesis runs with `derandomize=True` (profile loaded in `tests/__init__.py`) so that CI stays deterministic, and the strategies that generate valid inputs live in `tests/strategies.py`, separate from the hand-written fixtures so that the two kinds of data are not mixed. **(planned, #71)**
 - **Minimum coverage per metric**, one test for each behavioural rule of section 3:
   - nominal case;
   - edge cases documented in the docstring;
@@ -134,6 +134,8 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
   - input not mutated;
   - same input, and same `seed` where the function takes one, gives the same output;
   - result type and shape: `per_user` and `aggregate`, or `per_user` is `None` for population-level metrics **(planned, #71)**.
+- **One behaviour per test.** Each test checks a single behaviour and its name says which, e.g. `test_raises_for_user_without_relevant_items` instead of `test_ndcg_2`, so that a failing test tells what is broken without reading its code. The same behaviour on several inputs uses `subTest`. Test classes are named after the unit under test (`NDCGTest`, `SafeDivideTest`) and inherit from `tests.case.TestCase`.
+- **Errors and warnings are asserted with their exact message**, using `assertRaisesMessage` and `assertWarnsMessage` from `tests/case.py`: the test fails if the type is different or if the message differs in any character. Unlike Django's methods with the same name, the message must be equal, not just contained. Do not use `assertRaises`, `assertWarns`, `assertRaisesRegex` or `assertWarnsRegex` directly.
 - **Every bug fix** comes with a regression test that fails before the fix.
 - Tests are deterministic (fixed seeds, no dependence on row or group order), fast, and use no network or filesystem.
 
