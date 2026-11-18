@@ -7,9 +7,10 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from tests import strategies
+from tests.case import TestCase
 
 
-class TopNStrategyTest(unittest.TestCase):
+class TopNStrategyTest(TestCase):
     @given(strategies.top_n())
     def test_has_the_user_item_rank_columns(self, top_n) -> None:
         self.assertEqual(list(top_n.columns), ["user", "item", "rank"])
@@ -27,7 +28,7 @@ class TopNStrategyTest(unittest.TestCase):
             self.assertTrue(user_list["item"].is_unique)
 
 
-class PosItemsStrategyTest(unittest.TestCase):
+class PosItemsStrategyTest(TestCase):
     @given(st.data())
     def test_has_the_user_pos_items_columns(self, data) -> None:
         pos_items = self._draw(data)
@@ -57,7 +58,7 @@ class PosItemsStrategyTest(unittest.TestCase):
         return data.draw(strategies.pos_items(["u1", "u2"], items))
 
 
-class GroupsStrategyTest(unittest.TestCase):
+class GroupsStrategyTest(TestCase):
     @given(st.data())
     def test_assigns_a_group_to_every_id(self, data) -> None:
         items = data.draw(strategies.catalogues())
@@ -65,7 +66,7 @@ class GroupsStrategyTest(unittest.TestCase):
         self.assertEqual(item_groups["item"].tolist(), items)
 
 
-class TargetRepresentationStrategyTest(unittest.TestCase):
+class TargetRepresentationStrategyTest(TestCase):
     @given(st.data())
     def test_shares_are_positive(self, data) -> None:
         target = self._draw(data)

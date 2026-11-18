@@ -6,10 +6,16 @@ from pandas.testing import assert_frame_equal
 
 from recsyslearn.accuracy.metrics import NDCG
 from recsyslearn.errors.metrics import DivisionByZeroException, RecListTooShortException
+from tests.case import TestCase
 from tests.fixtures import pos_items, top_5
 
 
-class NDCGTest(unittest.TestCase):
+class NDCGTest(TestCase):
+    SKIPPED_CUTOFFS_WARNING = (
+        "NDCG@k won't be calculated for k in [10, 20]: "
+        "the shortest recommendation list has 5 items."
+    )
+
     def test_matches_the_formula_at_cutoff_2(self) -> None:
         ndcg_df = NDCG().evaluate(top_5(), pos_items(), ats=(2,))
         ndcg_vals = pd.DataFrame(
@@ -51,36 +57,30 @@ class NDCGTest(unittest.TestCase):
 
     def test_warns_about_cutoffs_longer_than_the_shortest_list(self) -> None:
         """The warning lists the skipped cut-offs (#69)."""
-        with self.assertWarnsRegex(UserWarning, r"\[10, 20\]"):
+        with self.assertWarnsMessage(UserWarning, self.SKIPPED_CUTOFFS_WARNING):
             NDCG().evaluate(top_5(), pos_items(), ats=(2, 10, 20))
 
     def test_computes_only_the_cutoffs_within_the_shortest_list(self) -> None:
         """Cut-offs longer than the shortest list are skipped, the others are computed (#69)."""
-        with self.assertWarns(UserWarning):
+        with self.assertWarnsMessage(UserWarning, self.SKIPPED_CUTOFFS_WARNING):
             ndcg_df = NDCG().evaluate(top_5(), pos_items(), ats=(2, 10, 20))
 
         assert_frame_equal(ndcg_df, NDCG().evaluate(top_5(), pos_items(), ats=(2,)))
 
     def test_raises_when_no_cutoff_is_computable(self) -> None:
-        with self.assertRaises(RecListTooShortException):
+        with self.assertRaisesMessage(
+            RecListTooShortException,
+            "Values for the recommendation list length is not compatbile with the "
+            "dataset. ats=(3,)",
+        ):
             NDCG().evaluate(top_5().iloc[[0, 1]], pos_items(), ats=(3,))
-
-    def test_too_short_error_lists_the_requested_cutoffs(self) -> None:
-        with self.assertRaises(RecListTooShortException) as context:
-            NDCG().evaluate(top_5().iloc[[0, 1]], pos_items(), ats=(3,))
-
-        self.assertIn("ats=(3,)", str(context.exception))
 
     def test_raises_for_user_without_relevant_items(self) -> None:
         """The ideal DCG of a user without relevant items is zero: NDCG is undefined (#70)."""
-        with self.assertRaises(DivisionByZeroException):
+        with self.assertRaisesMessage(
+            DivisionByZeroException, "NDCG: division by zero for user 1."
+        ):
             NDCG().evaluate(self._user_1_lists(), self._no_relevant_items(), ats=(2,))
-
-    def test_division_error_names_the_user(self) -> None:
-        with self.assertRaises(DivisionByZeroException) as context:
-            NDCG().evaluate(self._user_1_lists(), self._no_relevant_items(), ats=(2,))
-
-        self.assertEqual(str(context.exception), "NDCG: division by zero for user 1.")
 
     @staticmethod
     def _user_1_lists() -> pd.DataFrame:

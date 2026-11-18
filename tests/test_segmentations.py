@@ -15,6 +15,7 @@ from recsyslearn.errors.segmentation import (
     SegmentationNotSupportedException,
     WrongProportionsException,
 )
+from tests.case import TestCase
 from tests.fixtures import (
     item_genres,
     item_interactions,
@@ -35,7 +36,7 @@ def percentages(popularity: pd.DataFrame, key: str) -> dict:
     return dict(zip(popularity[key], popularity["percentage"]))
 
 
-class InteractionSegmentationTest(unittest.TestCase):
+class InteractionSegmentationTest(TestCase):
     def test_most_interacted_item_goes_to_the_first_group(self) -> None:
         segmented = InteractionSegmentation().segment(item_interactions())
         self.assertEqual(groups_of(segmented, "item", "1"), {"1"})
@@ -55,21 +56,28 @@ class InteractionSegmentationTest(unittest.TestCase):
         )
 
     def test_raises_when_there_are_more_groups_than_items(self) -> None:
-        with self.assertRaises(SegmentationNotSupportedException):
+        with self.assertRaisesMessage(
+            SegmentationNotSupportedException,
+            "Number of supported group is between 1 and 3.",
+        ):
             InteractionSegmentation().segment(item_interactions(), [0.7, 0.1, 0.1, 0.1])
 
     def test_raises_when_proportions_do_not_sum_to_one(self) -> None:
-        with self.assertRaises(WrongProportionsException):
+        with self.assertRaisesMessage(
+            WrongProportionsException, "Proportions doesn't cover all the items/users."
+        ):
             InteractionSegmentation().segment(item_interactions(), [0.7, 0.4])
 
     def test_raises_for_an_invalid_group_name(self) -> None:
-        with self.assertRaises(InvalidGroupException):
+        with self.assertRaisesMessage(
+            InvalidGroupException, "users is not a valid group"
+        ):
             InteractionSegmentation().segment(
                 item_interactions(), [0.7, 0.3], 1, "users"
             )
 
 
-class ActivitySegmentationTest(unittest.TestCase):
+class ActivitySegmentationTest(TestCase):
     def test_most_active_user_goes_to_the_first_group(self) -> None:
         segmented = ActivitySegmentation().segment(user_interactions())
         self.assertEqual(groups_of(segmented, "user", "1"), {"1"})
@@ -87,15 +95,20 @@ class ActivitySegmentationTest(unittest.TestCase):
         )
 
     def test_raises_when_there_are_more_groups_than_users(self) -> None:
-        with self.assertRaises(SegmentationNotSupportedException):
+        with self.assertRaisesMessage(
+            SegmentationNotSupportedException,
+            "Number of supported group is between 1 and 3.",
+        ):
             ActivitySegmentation().segment(user_interactions(), [0.7, 0.1, 0.1, 0.1])
 
     def test_raises_when_proportions_do_not_sum_to_one(self) -> None:
-        with self.assertRaises(WrongProportionsException):
+        with self.assertRaisesMessage(
+            WrongProportionsException, "Proportions doesn't cover all the items/users."
+        ):
             ActivitySegmentation().segment(user_interactions(), [0.7, 0.4])
 
 
-class PopularityPercentageTest(unittest.TestCase):
+class PopularityPercentageTest(TestCase):
     def test_item_percentage_is_its_share_of_interactions(self) -> None:
         popularity = PopularityPercentage().segment(popularity_interactions())
         self.assertEqual(
@@ -121,7 +134,7 @@ class PopularityPercentageTest(unittest.TestCase):
         self.assertAlmostEqual(popularity["percentage"].sum(), 1.0, delta=1e-5)
 
 
-class DiscreteFeatureSegmentationTest(unittest.TestCase):
+class DiscreteFeatureSegmentationTest(TestCase):
     def test_users_with_different_values_get_different_groups(self) -> None:
         segmented = DiscreteFeatureSegmentation().segment(feature=user_genders())
         self.assertNotEqual(
@@ -159,7 +172,10 @@ class DiscreteFeatureSegmentationTest(unittest.TestCase):
                 )
 
     def test_raises_when_the_feature_contains_the_fill_na_value(self) -> None:
-        with self.assertRaises(InvalidValueException):
+        with self.assertRaisesMessage(
+            InvalidValueException,
+            "Feature contains -1 as value. Please select another fill_na value.",
+        ):
             DiscreteFeatureSegmentation().segment(feature=user_ages())
 
 

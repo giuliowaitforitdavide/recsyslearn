@@ -10,11 +10,12 @@ from recsyslearn.errors.segmentation import (
     WrongProportionsException,
 )
 from recsyslearn.errors.validation import ColumnsNotExistException
+from tests.case import TestCase
 
 ERROR_MODULES = (base, metrics, segmentation, validation)
 
 
-class ExceptionHierarchyTest(unittest.TestCase):
+class ExceptionHierarchyTest(TestCase):
     def test_error_modules_export_all_eight_exceptions(self) -> None:
         self.assertEqual(len(self._exported_exceptions()), 8)
 
@@ -36,7 +37,7 @@ class ExceptionHierarchyTest(unittest.TestCase):
         ]
 
 
-class ExceptionMessageTest(unittest.TestCase):
+class ExceptionMessageTest(TestCase):
     def test_division_by_zero_names_the_metric_and_the_location(self) -> None:
         self.assertEqual(
             str(DivisionByZeroException("NDCG", "user 5")),

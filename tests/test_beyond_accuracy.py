@@ -5,10 +5,11 @@ import pandas as pd
 
 from recsyslearn.beyond_accuracy.metrics import Coverage, Novelty
 from recsyslearn.errors.metrics import DivisionByZeroException
+from tests.case import TestCase
 from tests.fixtures import item_groups, item_popularity, top_5_unranked, top_6
 
 
-class CoverageTest(unittest.TestCase):
+class CoverageTest(TestCase):
     def test_seven_of_ten_items_recommended(self) -> None:
         top_n = top_5_unranked()
         top_n = top_n[~top_n["item"].isin(["1", "3", "4"])]
@@ -23,17 +24,13 @@ class CoverageTest(unittest.TestCase):
 
     def test_raises_for_an_empty_catalogue(self) -> None:
         """Coverage is undefined for an empty item catalogue (#70)."""
-        with self.assertRaises(DivisionByZeroException):
+        with self.assertRaisesMessage(
+            DivisionByZeroException, "Coverage: division by zero."
+        ):
             Coverage().evaluate(top_5_unranked(), [])
 
-    def test_division_error_names_the_metric(self) -> None:
-        with self.assertRaises(DivisionByZeroException) as context:
-            Coverage().evaluate(top_5_unranked(), [])
 
-        self.assertEqual(str(context.exception), "Coverage: division by zero.")
-
-
-class NoveltyTest(unittest.TestCase):
+class NoveltyTest(TestCase):
     def test_uses_the_group_column_as_popularity_by_default(self) -> None:
         top_n = top_5_unranked().merge(item_groups(), on="item")
         nov = Novelty().evaluate(top_n)

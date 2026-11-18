@@ -7,6 +7,7 @@ from pandas.testing import assert_frame_equal
 from recsyslearn.errors.metrics import DivisionByZeroException
 from recsyslearn.fairness.metrics import Entropy, KullbackLeibler, MutualInformation
 from recsyslearn.fairness.utils import eff_matrix, exp_matrix, prob_matrix
+from tests.case import TestCase
 from tests.fixtures import (
     binary_relevance,
     graded_relevance,
@@ -58,7 +59,7 @@ def assert_frame_equal_unordered(
     assert_frame_equal(sort(left), sort(right), **kwargs)
 
 
-class EntropyTest(unittest.TestCase):
+class EntropyTest(TestCase):
     def test_entropy_of_user_group_exposure(self) -> None:
         self.assertAlmostEqual(
             Entropy().evaluate(user_exposure_lists()), 0.91830, delta=1e-5
@@ -71,14 +72,10 @@ class EntropyTest(unittest.TestCase):
 
     def test_raises_when_the_total_exposure_is_zero(self) -> None:
         """A distribution over groups is undefined when the total exposure is zero (#70)."""
-        with self.assertRaises(DivisionByZeroException):
+        with self.assertRaisesMessage(
+            DivisionByZeroException, "Entropy: division by zero."
+        ):
             Entropy().evaluate(item_exposure_lists().assign(rank=0))
-
-    def test_division_error_names_the_metric(self) -> None:
-        with self.assertRaises(DivisionByZeroException) as context:
-            Entropy().evaluate(item_exposure_lists().assign(rank=0))
-
-        self.assertEqual(str(context.exception), "Entropy: division by zero.")
 
     def test_does_not_mutate_the_input(self) -> None:
         """#75"""
@@ -92,7 +89,7 @@ class EntropyTest(unittest.TestCase):
         self.assertEqual(Entropy().evaluate(top_n), Entropy().evaluate(top_n))
 
 
-class KullbackLeiblerTest(unittest.TestCase):
+class KullbackLeiblerTest(TestCase):
     def test_divergence_of_user_group_effectiveness(self) -> None:
         top_n = top_6().merge(user_groups(), on="user")
         rel_matrix = binary_relevance().merge(user_groups(), on="user")
@@ -118,24 +115,19 @@ class KullbackLeiblerTest(unittest.TestCase):
 
     def test_raises_for_a_zero_target_on_an_exposed_group(self) -> None:
         """The divergence is infinite when an exposed group has a target of 0 (#70)."""
-        with self.assertRaises(DivisionByZeroException):
+        with self.assertRaisesMessage(
+            DivisionByZeroException, "KullbackLeibler: division by zero for group 3."
+        ):
             KullbackLeibler().evaluate(
                 item_exposure_lists(), item_target((0.5, 0.5, 0))
             )
-
-    def test_division_error_names_the_group(self) -> None:
-        with self.assertRaises(DivisionByZeroException) as context:
-            KullbackLeibler().evaluate(
-                item_exposure_lists(), item_target((0.5, 0.5, 0))
-            )
-
-        self.assertEqual(
-            str(context.exception), "KullbackLeibler: division by zero for group 3."
-        )
 
     def test_raises_for_rank_zero(self) -> None:
         """Exposure 1 / log2(1 + rank) is undefined for rank 0 (ranks start at 1)."""
-        with self.assertRaises(DivisionByZeroException):
+        with self.assertRaisesMessage(
+            DivisionByZeroException,
+            "KullbackLeibler: division by zero for user 1, 2, 3, 4, 5 and 1 more.",
+        ):
             KullbackLeibler().evaluate(
                 item_exposure_lists().assign(rank=0), item_target()
             )
@@ -180,7 +172,7 @@ class KullbackLeiblerTest(unittest.TestCase):
         )
 
 
-class MutualInformationTest(unittest.TestCase):
+class MutualInformationTest(TestCase):
     def test_mutual_information_of_user_group_exposure(self) -> None:
         mi = MutualInformation().evaluate(user_exposure_lists(), "user")
         self.assertAlmostEqual(mi, 0.25582, delta=1e-5)
@@ -197,25 +189,18 @@ class MutualInformationTest(unittest.TestCase):
         self.assertTrue(np.isfinite(mi))
 
     def test_raises_for_an_invalid_flag(self) -> None:
-        with self.assertRaises(KeyError):
+        """str() of a KeyError quotes its message, hence the outer quotes."""
+        with self.assertRaisesMessage(
+            KeyError, "\"Invalid flag 'ratings', expected 'user' or 'item'\""
+        ):
             MutualInformation().evaluate(item_exposure_lists(), "ratings")
-
-    def test_invalid_flag_error_names_the_flag(self) -> None:
-        with self.assertRaises(KeyError) as context:
-            MutualInformation().evaluate(item_exposure_lists(), "ratings")
-
-        self.assertIn("Invalid flag 'ratings'", str(context.exception))
 
     def test_raises_when_no_relevant_item_is_recommended(self) -> None:
         """With effectiveness, no relevant item recommended gives zero total exposure (#70)."""
-        with self.assertRaises(DivisionByZeroException):
+        with self.assertRaisesMessage(
+            DivisionByZeroException, "MutualInformation: division by zero."
+        ):
             MutualInformation().evaluate(*self._nothing_relevant_recommended())
-
-    def test_division_error_names_the_metric(self) -> None:
-        with self.assertRaises(DivisionByZeroException) as context:
-            MutualInformation().evaluate(*self._nothing_relevant_recommended())
-
-        self.assertEqual(str(context.exception), "MutualInformation: division by zero.")
 
     def test_does_not_mutate_the_input(self) -> None:
         """#75"""
@@ -243,7 +228,7 @@ class MutualInformationTest(unittest.TestCase):
         return top_n, "user", rel_matrix
 
 
-class ExpMatrixTest(unittest.TestCase):
+class ExpMatrixTest(TestCase):
     def test_rank_one_gives_exposure_one_with_user_groups(self) -> None:
         top_n = top_5_unranked().merge(user_groups(), on=["user"])
         result = exp_matrix(top_n)
@@ -341,7 +326,7 @@ class ExpMatrixTest(unittest.TestCase):
         assert_frame_equal(top_n, item_exposure_lists())
 
 
-class ProbMatrixTest(unittest.TestCase):
+class ProbMatrixTest(TestCase):
     def test_equal_exposures_give_uniform_probabilities_with_user_groups(self) -> None:
         top_n = top_5_unranked().merge(user_groups(), on=["user"])
         result = prob_matrix(top_n)
@@ -445,7 +430,7 @@ class ProbMatrixTest(unittest.TestCase):
         assert_frame_equal(top_n, item_exposure_lists().astype({"rank": float}))
 
 
-class EffMatrixTest(unittest.TestCase):
+class EffMatrixTest(TestCase):
     def test_effectiveness_with_binary_relevance(self) -> None:
         top_n = top_6().merge(user_groups(), on=["user"])
         rel_matrix = binary_relevance().merge(user_groups(), on=["user"])
