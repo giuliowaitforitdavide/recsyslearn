@@ -7,11 +7,11 @@ import numpy as np
 import pandas as pd
 
 from recsyslearn.errors.segmentation import (
-    InvalidGroupException,
     InvalidValueException,
     SegmentationNotSupportedException,
     WrongProportionsException,
 )
+from recsyslearn.errors.validation import InvalidGroupException
 
 __all__ = [
     "ActivitySegmentation",

@@ -1,13 +1,19 @@
 import unittest
 
-from recsyslearn.errors.metrics import DivisionByZeroException, RecListTooShortException
+from recsyslearn.errors.metrics import (
+    DivisionByZeroException,
+    InvalidCutoffException,
+    RecListTooShortException,
+)
 from recsyslearn.errors.segmentation import (
-    InvalidGroupException,
     InvalidValueException,
     SegmentationNotSupportedException,
     WrongProportionsException,
 )
-from recsyslearn.errors.validation import ColumnsNotExistException
+from recsyslearn.errors.validation import (
+    ColumnsNotExistException,
+    InvalidGroupException,
+)
 from tests.case import TestCase
 
 
@@ -29,8 +35,17 @@ class ExceptionMessageTest(TestCase):
             str(DivisionByZeroException("Coverage")), "Coverage: division by zero."
         )
 
-    def test_rec_list_too_short_names_the_cutoffs(self) -> None:
-        self.assertIn("ats=10", str(RecListTooShortException(10)))
+    def test_rec_list_too_short_names_the_cutoff_and_the_shortest_list(self) -> None:
+        self.assertEqual(
+            str(RecListTooShortException("NDCG", 10, 5)),
+            "NDCG@10 needs recommendation lists of at least 10 items: the shortest has 5.",
+        )
+
+    def test_invalid_cutoff_names_the_metric_and_the_value(self) -> None:
+        self.assertEqual(
+            str(InvalidCutoffException("NDCG", 0)),
+            "NDCG: the cut-off k must be a positive integer, got 0.",
+        )
 
     def test_columns_not_exist_names_the_columns(self) -> None:
         self.assertIn("['A', 'B']", str(ColumnsNotExistException(["A", "B"])))

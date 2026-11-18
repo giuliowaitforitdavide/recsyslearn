@@ -13,11 +13,11 @@ from recsyslearn.dataset.segmentations import (
 )
 from recsyslearn.dataset.utils import find_relevant_items
 from recsyslearn.errors.segmentation import (
-    InvalidGroupException,
     InvalidValueException,
     SegmentationNotSupportedException,
     WrongProportionsException,
 )
+from recsyslearn.errors.validation import InvalidGroupException
 from tests import strategies
 from tests.case import TestCase
 from tests.fixtures import (

@@ -7,8 +7,10 @@ from hypothesis import strategies as st
 from pandas.testing import assert_frame_equal
 
 from recsyslearn.errors.metrics import DivisionByZeroException
+from recsyslearn.errors.validation import InvalidGroupException
 from recsyslearn.fairness.metrics import Entropy, KullbackLeibler, MutualInformation
 from recsyslearn.fairness._utils import eff_matrix, exp_matrix, prob_matrix
+from recsyslearn.result import MetricResult
 from tests import strategies
 from tests.case import TestCase
 from tests.fixtures import (
@@ -68,6 +70,27 @@ def lists_with_relevance(draw: st.DrawFn) -> tuple[pd.DataFrame, pd.DataFrame]:
     return top_n, relevance.merge(item_groups_, on="item")
 
 
+@st.composite
+def lists_with_target(draw: st.DrawFn) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Generated grouped lists and a strictly positive target over their groups."""
+    top_n = draw(grouped_lists())
+    names = sorted(top_n["group"].unique())
+    return top_n, draw(strategies.target_representations(names))
+
+
+def shuffled(df: pd.DataFrame, random) -> pd.DataFrame:
+    """The rows of df in a random order drawn from Hypothesis."""
+    return df.sample(frac=1, random_state=random.randint(0, 2**32 - 1))
+
+
+def assert_population_level(test: TestCase, result: MetricResult, name: str) -> None:
+    """Check that result is the MetricResult of a population-level metric called name."""
+    test.assertIsInstance(result, MetricResult)
+    test.assertEqual(result.name, name)
+    test.assertIsInstance(result.aggregate, float)
+    test.assertIsNone(result.per_user)
+
+
 def assert_frame_equal_unordered(
     left: pd.DataFrame, right: pd.DataFrame, **kwargs
 ) -> None:
@@ -84,12 +107,12 @@ def assert_frame_equal_unordered(
 class EntropyTest(TestCase):
     def test_entropy_of_user_group_exposure(self) -> None:
         self.assertAlmostEqual(
-            Entropy().evaluate(user_exposure_lists()), 0.91830, delta=1e-5
+            Entropy().evaluate(user_exposure_lists()).aggregate, 0.91830, delta=1e-5
         )
 
     def test_entropy_of_item_group_exposure(self) -> None:
         self.assertAlmostEqual(
-            Entropy().evaluate(item_exposure_lists()), 1.48547, delta=1e-5
+            Entropy().evaluate(item_exposure_lists()).aggregate, 1.48547, delta=1e-5
         )
 
     def test_raises_when_the_total_exposure_is_zero(self) -> None:
@@ -97,29 +120,59 @@ class EntropyTest(TestCase):
         with self.assertRaisesMessage(
             DivisionByZeroException, "Entropy: division by zero."
         ):
-            Entropy().evaluate(item_exposure_lists().assign(rank=0))
+            Entropy().evaluate(item_exposure_lists().assign(rank=0)).aggregate
 
     def test_does_not_mutate_the_input(self) -> None:
         """#75"""
         top_n = item_exposure_lists()
-        Entropy().evaluate(top_n)
+        Entropy().evaluate(top_n).aggregate
         assert_frame_equal(top_n, item_exposure_lists())
 
     def test_repeated_calls_give_the_same_value(self) -> None:
         """#75"""
         top_n = item_exposure_lists()
-        self.assertEqual(Entropy().evaluate(top_n), Entropy().evaluate(top_n))
+        self.assertEqual(
+            Entropy().evaluate(top_n).aggregate, Entropy().evaluate(top_n).aggregate
+        )
+
+    def test_is_a_population_level_result(self) -> None:
+        assert_population_level(
+            self, Entropy().evaluate(item_exposure_lists()), "Entropy"
+        )
+
+    @given(grouped_lists())
+    def test_is_between_zero_and_log2_of_the_number_of_groups(self, top_n) -> None:
+        entropy = Entropy().evaluate(top_n).aggregate
+        self.assertGreaterEqual(entropy, -1e-12)
+        self.assertLessEqual(entropy, np.log2(top_n["group"].nunique()) + 1e-12)
+
+    @given(grouped_lists(), st.randoms())
+    def test_row_order_does_not_change_the_result(self, top_n, random) -> None:
+        self.assertAlmostEqual(
+            Entropy().evaluate(shuffled(top_n, random)).aggregate,
+            Entropy().evaluate(top_n).aggregate,
+        )
+
+    @given(grouped_lists())
+    def test_does_not_mutate_generated_input(self, top_n) -> None:
+        original = top_n.copy()
+        Entropy().evaluate(top_n)
+        assert_frame_equal(top_n, original)
 
 
 class KullbackLeiblerTest(TestCase):
     def test_divergence_of_user_group_effectiveness(self) -> None:
         top_n = top_6().merge(user_groups(), on="user")
         rel_matrix = binary_relevance().merge(user_groups(), on="user")
-        divergence = KullbackLeibler().evaluate(top_n, user_target(), rel_matrix)
+        divergence = (
+            KullbackLeibler().evaluate(top_n, user_target(), rel_matrix).aggregate
+        )
         self.assertAlmostEqual(divergence, 0.08530, delta=1e-5)
 
     def test_zero_when_the_item_exposure_matches_the_target(self) -> None:
-        divergence = KullbackLeibler().evaluate(item_exposure_lists(), item_target())
+        divergence = (
+            KullbackLeibler().evaluate(item_exposure_lists(), item_target()).aggregate
+        )
         self.assertAlmostEqual(divergence, 0, delta=1e-5)
 
     def test_groups_with_zero_probability_contribute_zero(self) -> None:
@@ -130,8 +183,10 @@ class KullbackLeiblerTest(TestCase):
         and the 9 items of group 2 are relevant, so p = (0.4, 0.6, 0) and
         KL = 0.4 · log2(0.4 / 0.2) + 0.6 · log2(0.6 / 0.3) + 0 = 1.
         """
-        divergence = KullbackLeibler().evaluate(
-            item_exposure_lists(), item_target(), relevant_except_group_3()
+        divergence = (
+            KullbackLeibler()
+            .evaluate(item_exposure_lists(), item_target(), relevant_except_group_3())
+            .aggregate
         )
         self.assertAlmostEqual(divergence, 1.0)
 
@@ -142,7 +197,7 @@ class KullbackLeiblerTest(TestCase):
         ):
             KullbackLeibler().evaluate(
                 item_exposure_lists(), item_target((0.5, 0.5, 0))
-            )
+            ).aggregate
 
     def test_raises_for_rank_zero(self) -> None:
         """
@@ -155,34 +210,34 @@ class KullbackLeiblerTest(TestCase):
             KullbackLeibler().evaluate(
                 item_exposure_lists().assign(rank=0),
                 item_target(),
-            )
+            ).aggregate
 
     def test_does_not_mutate_the_input(self) -> None:
         """#75"""
         top_n = item_exposure_lists()
-        KullbackLeibler().evaluate(top_n, item_target())
+        KullbackLeibler().evaluate(top_n, item_target()).aggregate
         assert_frame_equal(top_n, item_exposure_lists())
 
     def test_repeated_calls_give_the_same_value(self) -> None:
         """#75"""
         top_n = item_exposure_lists()
         self.assertEqual(
-            KullbackLeibler().evaluate(top_n, item_target()),
-            KullbackLeibler().evaluate(top_n, item_target()),
+            KullbackLeibler().evaluate(top_n, item_target()).aggregate,
+            KullbackLeibler().evaluate(top_n, item_target()).aggregate,
         )
 
     def test_does_not_mutate_the_lists_when_using_relevance(self) -> None:
         """#75"""
         top_n = top_6().merge(user_groups(), on="user")
         rel_matrix = binary_relevance().merge(user_groups(), on="user")
-        KullbackLeibler().evaluate(top_n, user_target(), rel_matrix)
+        KullbackLeibler().evaluate(top_n, user_target(), rel_matrix).aggregate
         assert_frame_equal(top_n, top_6().merge(user_groups(), on="user"))
 
     def test_does_not_mutate_the_relevance_matrix(self) -> None:
         """#75"""
         top_n = top_6().merge(user_groups(), on="user")
         rel_matrix = binary_relevance().merge(user_groups(), on="user")
-        KullbackLeibler().evaluate(top_n, user_target(), rel_matrix)
+        KullbackLeibler().evaluate(top_n, user_target(), rel_matrix).aggregate
         assert_frame_equal(
             rel_matrix, binary_relevance().merge(user_groups(), on="user")
         )
@@ -192,54 +247,107 @@ class KullbackLeiblerTest(TestCase):
         top_n = top_6().merge(user_groups(), on="user")
         rel_matrix = binary_relevance().merge(user_groups(), on="user")
         self.assertEqual(
-            KullbackLeibler().evaluate(top_n, user_target(), rel_matrix),
-            KullbackLeibler().evaluate(top_n, user_target(), rel_matrix),
+            KullbackLeibler().evaluate(top_n, user_target(), rel_matrix).aggregate,
+            KullbackLeibler().evaluate(top_n, user_target(), rel_matrix).aggregate,
         )
+
+    def test_is_a_population_level_result(self) -> None:
+        result = KullbackLeibler().evaluate(item_exposure_lists(), item_target())
+        assert_population_level(self, result, "KullbackLeibler")
+
+    @given(lists_with_target())
+    def test_is_non_negative(self, data) -> None:
+        top_n, target = data
+        self.assertGreaterEqual(
+            KullbackLeibler().evaluate(top_n, target).aggregate, -1e-12
+        )
+
+    @given(lists_with_target(), st.randoms())
+    def test_row_order_does_not_change_the_result(self, data, random) -> None:
+        top_n, target = data
+        self.assertAlmostEqual(
+            KullbackLeibler().evaluate(shuffled(top_n, random), target).aggregate,
+            KullbackLeibler().evaluate(top_n, target).aggregate,
+        )
+
+    @given(lists_with_target())
+    def test_does_not_mutate_generated_input(self, data) -> None:
+        top_n, target = data
+        original_top_n, original_target = top_n.copy(), target.copy()
+        KullbackLeibler().evaluate(top_n, target)
+        assert_frame_equal(top_n, original_top_n)
+        assert_frame_equal(target, original_target)
 
 
 class MutualInformationTest(TestCase):
     def test_mutual_information_of_user_group_exposure(self) -> None:
-        mi = MutualInformation().evaluate(user_exposure_lists(), "user")
+        mi = MutualInformation().evaluate(user_exposure_lists(), "user").aggregate
         self.assertAlmostEqual(mi, 0.25582, delta=1e-5)
 
     def test_mutual_information_of_item_group_exposure(self) -> None:
-        mi = MutualInformation().evaluate(item_exposure_lists(), "item")
+        mi = MutualInformation().evaluate(item_exposure_lists(), "item").aggregate
         self.assertAlmostEqual(mi, 0.10570, delta=1e-5)
 
     def test_pairs_with_zero_probability_contribute_zero(self) -> None:
         """Pairs with zero joint probability are skipped (0 · log 0 = 0), so the result is finite."""
-        mi = MutualInformation().evaluate(
-            item_exposure_lists(), "item", relevant_except_group_3()
+        mi = (
+            MutualInformation()
+            .evaluate(item_exposure_lists(), "item", relevant_except_group_3())
+            .aggregate
         )
         self.assertTrue(np.isfinite(mi))
 
     def test_raises_for_an_invalid_flag(self) -> None:
-        """str() of a KeyError quotes its message, hence the outer quotes."""
         with self.assertRaisesMessage(
-            KeyError, "\"Invalid flag 'ratings', expected 'user' or 'item'\""
+            InvalidGroupException, "ratings is not a valid group"
         ):
-            MutualInformation().evaluate(item_exposure_lists(), "ratings")
+            MutualInformation().evaluate(item_exposure_lists(), "ratings").aggregate
 
     def test_raises_when_no_relevant_item_is_recommended(self) -> None:
         """With effectiveness, no relevant item recommended gives zero total exposure (#70)."""
         with self.assertRaisesMessage(
             DivisionByZeroException, "MutualInformation: division by zero."
         ):
-            MutualInformation().evaluate(*self._nothing_relevant_recommended())
+            MutualInformation().evaluate(
+                *self._nothing_relevant_recommended()
+            ).aggregate
 
     def test_does_not_mutate_the_input(self) -> None:
         """#75"""
         top_n = item_exposure_lists()
-        MutualInformation().evaluate(top_n, "item")
+        MutualInformation().evaluate(top_n, "item").aggregate
         assert_frame_equal(top_n, item_exposure_lists())
 
     def test_repeated_calls_give_the_same_value(self) -> None:
         """#75"""
         top_n = item_exposure_lists()
         self.assertEqual(
-            MutualInformation().evaluate(top_n, "item"),
-            MutualInformation().evaluate(top_n, "item"),
+            MutualInformation().evaluate(top_n, "item").aggregate,
+            MutualInformation().evaluate(top_n, "item").aggregate,
         )
+
+    def test_is_a_population_level_result(self) -> None:
+        result = MutualInformation().evaluate(item_exposure_lists(), "item")
+        assert_population_level(self, result, "MutualInformation")
+
+    @given(grouped_lists())
+    def test_is_non_negative(self, top_n) -> None:
+        self.assertGreaterEqual(
+            MutualInformation().evaluate(top_n, "item").aggregate, -1e-12
+        )
+
+    @given(grouped_lists(), st.randoms())
+    def test_row_order_does_not_change_the_result(self, top_n, random) -> None:
+        self.assertAlmostEqual(
+            MutualInformation().evaluate(shuffled(top_n, random), "item").aggregate,
+            MutualInformation().evaluate(top_n, "item").aggregate,
+        )
+
+    @given(grouped_lists())
+    def test_does_not_mutate_generated_input(self, top_n) -> None:
+        original = top_n.copy()
+        MutualInformation().evaluate(top_n, "item")
+        assert_frame_equal(top_n, original)
 
     @staticmethod
     def _nothing_relevant_recommended() -> tuple[pd.DataFrame, str, pd.DataFrame]:

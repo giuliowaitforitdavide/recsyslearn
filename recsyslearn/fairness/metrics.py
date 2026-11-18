@@ -7,6 +7,8 @@ import pandas as pd
 
 from recsyslearn.fairness._utils import eff_matrix, exp_matrix, prob_matrix
 from recsyslearn._utils import check_columns_exist, safe_divide
+from recsyslearn.errors.validation import InvalidGroupException
+from recsyslearn.result import MetricResult
 
 __all__ = ["Entropy", "FairnessMetric", "KullbackLeibler", "MutualInformation"]
 
@@ -17,7 +19,7 @@ class FairnessMetric(ABC):
     """
 
     @abstractmethod
-    def evaluate(self, *args, **kwargs):
+    def evaluate(self, *args, **kwargs) -> MetricResult:
         """
         Compute the metric on the given recommendation lists.
         """
@@ -26,11 +28,14 @@ class FairnessMetric(ABC):
 class Entropy(FairnessMetric):
     """
     Entropy evaluator for recommender systems.
+
+    Entropy is a population-level metric: it is defined over all the recommendation lists
+    together, so it has no per-user values.
     """
 
     def evaluate(
         self, top_n: pd.DataFrame, rel_matrix: pd.DataFrame | None = None
-    ) -> float:
+    ) -> MetricResult:
         """
         Compute the entropy of a model by using its recommendation list.
 
@@ -40,8 +45,8 @@ class Entropy(FairnessMetric):
         :type rel_matrix: pd.DataFrame, default None
         :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group').
         :raises DivisionByZeroException: If the total exposure is zero, so that the distribution over groups is undefined.
-        :return: The computed entropy.
-        :rtype: float
+        :return: The entropy in aggregate; per_user is None.
+        :rtype: MetricResult
         """
 
         check_columns_exist(top_n, ["user", "item", "rank", "group"])
@@ -54,12 +59,15 @@ class Entropy(FairnessMetric):
         top_n = prob_matrix(top_n, metric="Entropy")
         top_n = top_n[["group", "rank"]].groupby("group", as_index=False).sum()
         top_n["rank"] = top_n["rank"] * np.log2(top_n["rank"])
-        return -top_n["rank"].sum()
+        return MetricResult(name="Entropy", aggregate=float(-top_n["rank"].sum()))
 
 
 class KullbackLeibler(FairnessMetric):
     """
     Kullback-Leibler divergence evaluator for recommender systems.
+
+    The divergence is a population-level metric: it is defined over all the recommendation lists
+    together, so it has no per-user values.
     """
 
     def evaluate(
@@ -67,7 +75,7 @@ class KullbackLeibler(FairnessMetric):
         top_n: pd.DataFrame,
         target_representation: pd.DataFrame,
         rel_matrix: pd.DataFrame | None = None,
-    ) -> float:
+    ) -> MetricResult:
         """
         Compute the Kullback-Leibler divergence of a model, for a given target representation, by using its recommendation list.
 
@@ -81,8 +89,8 @@ class KullbackLeibler(FairnessMetric):
         :type rel_matrix: pd.DataFrame, default None
         :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group') or if target_representation not in the form ('group', 'target_representation').
         :raises DivisionByZeroException: If the total exposure is zero, if a rank is 0, or if a group with non-zero probability has a target representation of 0 (infinite divergence).
-        :return: The computed KL Divergence for the given target representation.
-        :rtype: float
+        :return: The divergence from the given target representation in aggregate; per_user is None.
+        :rtype: MetricResult
         """
 
         check_columns_exist(top_n, ["user", "item", "rank", "group"])
@@ -103,12 +111,16 @@ class KullbackLeibler(FairnessMetric):
             metric="KullbackLeibler",
             labels=support["group"],
         )
-        return (support["rank"] * np.log2(ratio)).sum()
+        divergence = (support["rank"] * np.log2(ratio)).sum()
+        return MetricResult(name="KullbackLeibler", aggregate=float(divergence))
 
 
 class MutualInformation(FairnessMetric):
     """
     Mutual Information evaluator for recommender systems.
+
+    Mutual Information is a population-level metric: it is defined over all the recommendation lists
+    together, so it has no per-user values.
     """
 
     def evaluate(
@@ -116,7 +128,7 @@ class MutualInformation(FairnessMetric):
         top_n: pd.DataFrame,
         flag: str,
         rel_matrix: pd.DataFrame | None = None,
-    ) -> float:
+    ) -> MetricResult:
         """
         Compute the Mutual Information of a model by using its recommendation list.
 
@@ -129,17 +141,17 @@ class MutualInformation(FairnessMetric):
         :param rel_matrix: Relevant items for users. It could be, for example, the items with a rating >= threshold.
         :type rel_matrix: pd.DataFrame, default None
         :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group').
-        :raises KeyError: If flag is neither 'user' nor 'item'.
+        :raises InvalidGroupException: If flag is neither 'user' nor 'item'.
         :raises DivisionByZeroException: If the total exposure is zero or if a rank is 0.
-        :return: The computed Mutual Information.
-        :rtype: float
+        :return: The Mutual Information in aggregate; per_user is None.
+        :rtype: MetricResult
         """
 
         check_columns_exist(top_n, ["user", "item", "rank", "group"])
 
         not_flagged = {"user": "item", "item": "user"}
         if flag not in not_flagged:
-            raise KeyError(f"Invalid flag {flag!r}, expected 'user' or 'item'")
+            raise InvalidGroupException(flag)
 
         top_n = (
             eff_matrix(top_n, rel_matrix, metric="MutualInformation")
@@ -172,4 +184,5 @@ class MutualInformation(FairnessMetric):
             metric="MutualInformation",
             labels=support["group"],
         )
-        return (support["rank_y"] * np.log2(ratio)).sum()
+        information = (support["rank_y"] * np.log2(ratio)).sum()
+        return MetricResult(name="MutualInformation", aggregate=float(information))

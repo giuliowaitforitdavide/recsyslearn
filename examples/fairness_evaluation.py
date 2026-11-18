@@ -25,4 +25,8 @@ target_representation = pd.DataFrame(
 divergence = KullbackLeibler().evaluate(top_k_with_item_groups, target_representation)
 mi = MutualInformation().evaluate(top_k_with_user_groups, "user")
 
-print(json.dumps({"KL@[0.5, 0.5]": divergence, "Users MI": mi}, indent=4))
+print(
+    json.dumps(
+        {"KL@[0.5, 0.5]": divergence.aggregate, "Users MI": mi.aggregate}, indent=4
+    )
+)

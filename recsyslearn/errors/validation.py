@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__all__ = ["ColumnsNotExistException"]
+__all__ = ["ColumnsNotExistException", "InvalidGroupException"]
 
 
 class ColumnsNotExistException(Exception):
@@ -12,3 +12,10 @@ class ColumnsNotExistException(Exception):
         self, columns: list, message: str = "Dataframe does not contain columns."
     ) -> None:
         super().__init__(f"{message} {columns}")
+
+
+class InvalidGroupException(ValueError):
+    """Exception raised when the users or items to group by are neither 'user' nor 'item'."""
+
+    def __init__(self, user_group: str) -> None:
+        super().__init__(f"{user_group} is not a valid group")
