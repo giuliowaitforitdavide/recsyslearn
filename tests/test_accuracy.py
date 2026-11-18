@@ -11,11 +11,6 @@ from tests.fixtures import pos_items, top_5
 
 
 class NDCGTest(TestCase):
-    SKIPPED_CUTOFFS_WARNING = (
-        "NDCG@k won't be calculated for k in [10, 20]: "
-        "the shortest recommendation list has 5 items."
-    )
-
     def test_matches_the_formula_at_cutoff_2(self) -> None:
         ndcg_df = NDCG().evaluate(top_5(), pos_items(), ats=(2,))
         ndcg_vals = pd.DataFrame(
@@ -57,12 +52,20 @@ class NDCGTest(TestCase):
 
     def test_warns_about_cutoffs_longer_than_the_shortest_list(self) -> None:
         """The warning lists the skipped cut-offs (#69)."""
-        with self.assertWarnsMessage(UserWarning, self.SKIPPED_CUTOFFS_WARNING):
+        with self.assertWarnsMessage(
+            UserWarning,
+            "NDCG@k won't be calculated for k in [10, 20]: "
+            "the shortest recommendation list has 5 items.",
+        ):
             NDCG().evaluate(top_5(), pos_items(), ats=(2, 10, 20))
 
     def test_computes_only_the_cutoffs_within_the_shortest_list(self) -> None:
         """Cut-offs longer than the shortest list are skipped, the others are computed (#69)."""
-        with self.assertWarnsMessage(UserWarning, self.SKIPPED_CUTOFFS_WARNING):
+        with self.assertWarnsMessage(
+            UserWarning,
+            "NDCG@k won't be calculated for k in [10, 20]: "
+            "the shortest recommendation list has 5 items.",
+        ):
             ndcg_df = NDCG().evaluate(top_5(), pos_items(), ats=(2, 10, 20))
 
         assert_frame_equal(ndcg_df, NDCG().evaluate(top_5(), pos_items(), ats=(2,)))
