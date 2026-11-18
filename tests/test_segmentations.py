@@ -1,6 +1,8 @@
 import unittest
 
 import pandas as pd
+from hypothesis import given
+from hypothesis import strategies as st
 from pandas.testing import assert_frame_equal
 
 from recsyslearn.dataset.segmentations import (
@@ -9,12 +11,14 @@ from recsyslearn.dataset.segmentations import (
     InteractionSegmentation,
     PopularityPercentage,
 )
+from recsyslearn.dataset.utils import find_relevant_items
 from recsyslearn.errors.segmentation import (
     InvalidGroupException,
     InvalidValueException,
     SegmentationNotSupportedException,
     WrongProportionsException,
 )
+from tests import strategies
 from tests.case import TestCase
 from tests.fixtures import (
     item_genres,
@@ -29,6 +33,9 @@ from tests.fixtures import (
 def groups_of(segmented: pd.DataFrame, key: str, entity: str) -> set:
     """The groups assigned to one user or item in a segmentation result."""
     return set(segmented.loc[segmented[key] == entity, "group"])
+
+
+VALID_PROPORTIONS = st.sampled_from([[0.8, 0.2], [0.5, 0.5], [0.6, 0.3, 0.1]])
 
 
 def percentages(popularity: pd.DataFrame, key: str) -> dict:
@@ -75,6 +82,30 @@ class InteractionSegmentationTest(TestCase):
             InteractionSegmentation().segment(
                 item_interactions(), [0.7, 0.3], 1, "users"
             )
+
+    @given(strategies.interactions(), VALID_PROPORTIONS)
+    def test_assigns_exactly_one_group_to_every_item(self, data, proportions) -> None:
+        segmented = InteractionSegmentation().segment(data, proportions)
+        self.assertEqual(sorted(segmented["item"]), sorted(data["item"].unique()))
+
+    @given(strategies.interactions(), VALID_PROPORTIONS)
+    def test_uses_one_group_per_proportion_at_most(self, data, proportions) -> None:
+        segmented = InteractionSegmentation().segment(data, proportions)
+        allowed = {str(group) for group in range(1, len(proportions) + 1)}
+        self.assertTrue(set(segmented["group"]) <= allowed)
+
+    @given(strategies.interactions(), VALID_PROPORTIONS)
+    def test_more_interacted_items_are_never_in_a_later_group(
+        self, data, proportions
+    ) -> None:
+        segmented = InteractionSegmentation().segment(data, proportions)
+        counts = data["item"].value_counts()
+        group = dict(zip(segmented["item"], segmented["group"].astype(int)))
+        for first in group:
+            for second in group:
+                if counts[first] > counts[second]:
+                    with self.subTest(first=first, second=second):
+                        self.assertLessEqual(group[first], group[second])
 
 
 class ActivitySegmentationTest(TestCase):
@@ -133,6 +164,19 @@ class PopularityPercentageTest(TestCase):
         )
         self.assertAlmostEqual(popularity["percentage"].sum(), 1.0, delta=1e-5)
 
+    @given(strategies.interactions())
+    def test_generated_percentages_sum_to_one(self, data) -> None:
+        popularity = PopularityPercentage().segment(data)
+        self.assertAlmostEqual(popularity["percentage"].sum(), 1.0)
+
+    @given(strategies.interactions())
+    def test_generated_percentage_is_the_share_of_interactions(self, data) -> None:
+        popularity = PopularityPercentage().segment(data)
+        expected = data["item"].value_counts(normalize=True).to_dict()
+        for item, share in percentages(popularity, "item").items():
+            with self.subTest(item=item):
+                self.assertAlmostEqual(share, expected[item])
+
 
 class DiscreteFeatureSegmentationTest(TestCase):
     def test_users_with_different_values_get_different_groups(self) -> None:
@@ -177,6 +221,36 @@ class DiscreteFeatureSegmentationTest(TestCase):
             "Feature contains -1 as value. Please select another fill_na value.",
         ):
             DiscreteFeatureSegmentation().segment(feature=user_ages())
+
+    @given(strategies.discrete_features(key="item"))
+    def test_entities_with_the_same_value_share_a_group(self, feature) -> None:
+        segmented = DiscreteFeatureSegmentation().segment(feature=feature.copy())
+        values = feature["feature"].fillna("missing")
+        for value in values.unique():
+            with self.subTest(value=value):
+                self.assertEqual(segmented.loc[values == value, "group"].nunique(), 1)
+
+    @given(strategies.discrete_features(key="item"))
+    def test_entities_with_different_values_get_different_groups(self, feature) -> None:
+        segmented = DiscreteFeatureSegmentation().segment(feature=feature.copy())
+        values = feature["feature"].fillna("missing")
+        self.assertEqual(segmented["group"].nunique(), values.nunique())
+
+
+class FindRelevantItemsTest(TestCase):
+    @given(strategies.interactions())
+    def test_lists_every_item_each_user_interacted_with(self, data) -> None:
+        relevant = find_relevant_items(data)
+        for user, items in zip(relevant["user"], relevant["pos_items"]):
+            with self.subTest(user=user):
+                self.assertEqual(
+                    set(items), set(data.loc[data["user"] == user, "item"])
+                )
+
+    @given(strategies.interactions())
+    def test_has_one_row_per_user(self, data) -> None:
+        relevant = find_relevant_items(data)
+        self.assertEqual(sorted(relevant["user"]), sorted(data["user"].unique()))
 
 
 if __name__ == "__main__":

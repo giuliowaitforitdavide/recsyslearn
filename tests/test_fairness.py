@@ -2,11 +2,14 @@ import unittest
 
 import numpy as np
 import pandas as pd
+from hypothesis import given
+from hypothesis import strategies as st
 from pandas.testing import assert_frame_equal
 
 from recsyslearn.errors.metrics import DivisionByZeroException
 from recsyslearn.fairness.metrics import Entropy, KullbackLeibler, MutualInformation
 from recsyslearn.fairness.utils import eff_matrix, exp_matrix, prob_matrix
+from tests import strategies
 from tests.case import TestCase
 from tests.fixtures import (
     binary_relevance,
@@ -44,6 +47,25 @@ def relevant_except_group_3() -> pd.DataFrame:
     """Relevance 1 for the recommended items of groups 1 and 2, none for group 3."""
     top_n = item_exposure_lists()
     return top_n[top_n["group"] != "3"].assign(rank=1)
+
+
+@st.composite
+def grouped_lists(draw: st.DrawFn) -> pd.DataFrame:
+    """Generated recommendation lists with the group of each item."""
+    items = draw(strategies.catalogues())
+    top_n = draw(strategies.top_n(items=items))
+    return top_n.merge(draw(strategies.groups(items, key="item")), on="item")
+
+
+@st.composite
+def lists_with_relevance(draw: st.DrawFn) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Generated recommendation lists and binary relevance, both with the group of each item."""
+    items = draw(strategies.catalogues())
+    item_groups_ = draw(strategies.groups(items, key="item"))
+    top_n = draw(strategies.top_n(items=items)).merge(item_groups_, on="item")
+    users = sorted(top_n["user"].unique())
+    relevance = draw(strategies.binary_relevance(users, items))
+    return top_n, relevance.merge(item_groups_, on="item")
 
 
 def assert_frame_equal_unordered(
@@ -331,6 +353,25 @@ class ExpMatrixTest(TestCase):
         exp_matrix(top_n)
         assert_frame_equal(top_n, item_exposure_lists())
 
+    @given(grouped_lists())
+    def test_exposure_is_positive(self, top_n) -> None:
+        self.assertTrue((exp_matrix(top_n)["rank"] > 0).all())
+
+    @given(grouped_lists())
+    def test_exposure_decreases_as_the_rank_grows(self, top_n) -> None:
+        """exp_matrix replaces rank with the exposure, so the original rank orders the rows."""
+        exposure = exp_matrix(top_n).assign(position=top_n["rank"])
+        for _, user_list in exposure.sort_values("position").groupby("user"):
+            self.assertTrue(user_list["rank"].is_monotonic_decreasing)
+            self.assertTrue(user_list["rank"].is_unique)
+
+    @given(grouped_lists())
+    def test_does_not_mutate_generated_input(self, top_n) -> None:
+        """#75"""
+        before = top_n.copy()
+        exp_matrix(top_n)
+        assert_frame_equal(top_n, before)
+
 
 class ProbMatrixTest(TestCase):
     def test_equal_exposures_give_uniform_probabilities_with_user_groups(self) -> None:
@@ -435,6 +476,21 @@ class ProbMatrixTest(TestCase):
         prob_matrix(top_n)
         assert_frame_equal(top_n, item_exposure_lists().astype({"rank": float}))
 
+    @given(grouped_lists())
+    def test_probabilities_are_non_negative(self, top_n) -> None:
+        self.assertTrue((prob_matrix(top_n)["rank"] >= 0).all())
+
+    @given(grouped_lists())
+    def test_probabilities_sum_to_one(self, top_n) -> None:
+        self.assertAlmostEqual(prob_matrix(top_n)["rank"].sum(), 1.0)
+
+    @given(grouped_lists())
+    def test_does_not_mutate_generated_input(self, top_n) -> None:
+        """#75"""
+        before = top_n.copy()
+        prob_matrix(top_n)
+        assert_frame_equal(top_n, before)
+
 
 class EffMatrixTest(TestCase):
     def test_effectiveness_with_binary_relevance(self) -> None:
@@ -498,6 +554,31 @@ class EffMatrixTest(TestCase):
             check_exact=False,
             rtol=1e-3,
         )
+
+    @given(lists_with_relevance())
+    def test_is_zero_unless_the_item_is_recommended_and_relevant(self, data) -> None:
+        top_n, relevance = data
+        result = eff_matrix(top_n, relevance)
+        both = set(zip(top_n["user"], top_n["item"])) & set(
+            zip(relevance["user"], relevance["item"])
+        )
+        others = result[
+            [pair not in both for pair in zip(result["user"], result["item"])]
+        ]
+        self.assertTrue((others["rank"] == 0).all())
+
+    @given(lists_with_relevance())
+    def test_equals_the_exposure_of_relevant_recommended_items(self, data) -> None:
+        top_n, relevance = data
+        result = eff_matrix(top_n, relevance).merge(
+            relevance[["user", "item"]], on=["user", "item"]
+        )
+        recommended = result.merge(
+            exp_matrix(top_n)[["user", "item", "rank"]],
+            on=["user", "item"],
+            suffixes=("", "_exposure"),
+        )
+        np.testing.assert_allclose(recommended["rank"], recommended["rank_exposure"])
 
 
 if __name__ == "__main__":

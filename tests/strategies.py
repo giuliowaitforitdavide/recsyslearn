@@ -1,5 +1,5 @@
 """
-Hypothesis strategies that generate valid inputs for the metrics.
+Hypothesis strategies that generate valid inputs for the metrics, their helpers and the segmentations.
 
 They are the building blocks of the property-based tests (see AGENTS.md, section 4): every generated
 DataFrame follows the data contract of AGENTS.md, section 3, and is small enough to keep tests fast.
@@ -162,3 +162,74 @@ def target_representations(draw: st.DrawFn, group_names: list[str]) -> pd.DataFr
             "target_representation": [weight / total for weight in weights],
         }
     )
+
+
+@st.composite
+def interactions(draw: st.DrawFn, max_rows: int = 40) -> pd.DataFrame:
+    """
+    Generate interactions in the form (user, item, rank), where a pair may appear several times.
+
+    :param draw: Hypothesis draw function.
+    :type draw: st.DrawFn
+    :param max_rows: Maximum number of interactions.
+    :type max_rows: int, default 40
+    :return: A DataFrame with columns user, item, rank (always 1).
+    :rtype: pd.DataFrame
+    """
+
+    users = _ids("u", draw(st.integers(min_value=1, max_value=MAX_USERS)))
+    items = draw(catalogues())
+    count = draw(st.integers(min_value=1, max_value=max_rows))
+    rows = [
+        [draw(st.sampled_from(users)), draw(st.sampled_from(items)), 1]
+        for _ in range(count)
+    ]
+    return pd.DataFrame(rows, columns=["user", "item", "rank"])
+
+
+@st.composite
+def binary_relevance(
+    draw: st.DrawFn, users: list[str], items: list[str]
+) -> pd.DataFrame:
+    """
+    Generate relevant (user, item) pairs with relevance 1, in the form (user, item, rank).
+
+    :param draw: Hypothesis draw function.
+    :type draw: st.DrawFn
+    :param users: The users that may have relevant items.
+    :type users: list[str]
+    :param items: The item catalogue to draw from.
+    :type items: list[str]
+    :return: A DataFrame with columns user, item, rank, with distinct (user, item) pairs.
+    :rtype: pd.DataFrame
+    """
+
+    pairs = draw(
+        st.lists(
+            st.tuples(st.sampled_from(users), st.sampled_from(items)),
+            min_size=1,
+            max_size=len(users) * len(items),
+            unique=True,
+        )
+    )
+    return pd.DataFrame(
+        [[user, item, 1] for user, item in pairs], columns=["user", "item", "rank"]
+    )
+
+
+@st.composite
+def discrete_features(draw: st.DrawFn, key: str) -> pd.DataFrame:
+    """
+    Generate a categorical feature of users or items, with missing values (None and NaN).
+
+    :param draw: Hypothesis draw function.
+    :type draw: st.DrawFn
+    :param key: Name of the id column, "user" or "item".
+    :type key: str
+    :return: A DataFrame with columns key, feature.
+    :rtype: pd.DataFrame
+    """
+
+    ids = _ids(key[0], draw(st.integers(min_value=1, max_value=MAX_ITEMS)))
+    values = [draw(st.sampled_from(["a", "b", "c", None, np.nan])) for _ in ids]
+    return pd.DataFrame({key: ids, "feature": values})

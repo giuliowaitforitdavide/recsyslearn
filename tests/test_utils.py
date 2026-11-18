@@ -4,12 +4,20 @@ import unittest
 
 import numpy as np
 import pandas as pd
+from hypothesis import given
+from hypothesis import strategies as st
 from pandas.testing import assert_series_equal
 
 from recsyslearn.errors.metrics import DivisionByZeroException
 from recsyslearn.errors.validation import ColumnsNotExistException
 from recsyslearn.utils import check_columns_exist, safe_divide
 from tests.case import TestCase
+
+
+COLUMN_NAMES = ["user", "item", "rank", "group", "pos_items", "target_representation"]
+NONZERO_FLOATS = st.floats(min_value=0.1, max_value=100, allow_nan=False).flatmap(
+    lambda value: st.sampled_from([value, -value])
+)
 
 
 class CheckColumnsExistTest(TestCase):
@@ -22,6 +30,20 @@ class CheckColumnsExistTest(TestCase):
             "Dataframe does not contain columns. ['user', 'item']",
         ):
             check_columns_exist(pd.DataFrame(columns=["user"]), ["user", "item"])
+
+    @given(st.sets(st.sampled_from(COLUMN_NAMES), min_size=1), st.data())
+    def test_accepts_any_subset_of_the_columns(self, present, data) -> None:
+        required = data.draw(st.lists(st.sampled_from(sorted(present)), unique=True))
+        check_columns_exist(pd.DataFrame(columns=sorted(present)), required)
+
+    @given(st.sets(st.sampled_from(COLUMN_NAMES), max_size=5), st.data())
+    def test_raises_when_any_required_column_is_missing(self, present, data) -> None:
+        missing = data.draw(st.sampled_from(sorted(set(COLUMN_NAMES) - present)))
+        required = sorted(present) + [missing]
+        with self.assertRaisesMessage(
+            ColumnsNotExistException, f"Dataframe does not contain columns. {required}"
+        ):
+            check_columns_exist(pd.DataFrame(columns=sorted(present)), required)
 
 
 class SafeDivideTest(TestCase):
@@ -65,6 +87,20 @@ class SafeDivideTest(TestCase):
                 metric="KullbackLeibler",
                 labels=labels,
             )
+
+    @given(st.lists(st.tuples(NONZERO_FLOATS, NONZERO_FLOATS), min_size=1, max_size=20))
+    def test_equals_true_division_when_no_denominator_is_zero(self, pairs) -> None:
+        numerator, denominator = (np.array(values) for values in zip(*pairs))
+        np.testing.assert_array_equal(
+            safe_divide(numerator, denominator, metric="M"), numerator / denominator
+        )
+
+    @given(st.lists(NONZERO_FLOATS, min_size=1, max_size=20), st.data())
+    def test_raises_when_any_denominator_is_zero(self, denominator, data) -> None:
+        zero_at = data.draw(st.integers(min_value=0, max_value=len(denominator) - 1))
+        denominator[zero_at] = 0.0
+        with self.assertRaisesMessage(DivisionByZeroException, "M: division by zero."):
+            safe_divide(np.ones(len(denominator)), np.array(denominator), metric="M")
 
 
 if __name__ == "__main__":
