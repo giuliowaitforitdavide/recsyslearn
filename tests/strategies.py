@@ -77,7 +77,9 @@ def top_n(
     longest = min(max_length, len(items))
     rows = []
     for user in users:
-        length = draw(st.integers(min_value=min(min_length, longest), max_value=longest))
+        length = draw(
+            st.integers(min_value=min(min_length, longest), max_value=longest)
+        )
         ranked = draw(st.permutations(items))[:length]
         rows.extend([user, item, rank] for rank, item in enumerate(ranked, start=1))
     return pd.DataFrame(rows, columns=["user", "item", "rank"])

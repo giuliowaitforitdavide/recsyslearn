@@ -8,7 +8,7 @@ from recsyslearn.errors.metrics import DivisionByZeroException
 from recsyslearn.errors.validation import ColumnsNotExistException
 from recsyslearn.fairness.utils import eff_matrix, exp_matrix, prob_matrix
 from recsyslearn.utils import check_columns_exist, safe_divide
-from tests.utils import (
+from tests.fixtures import (
     first_example,
     item_groups,
     rel_matrix_1,

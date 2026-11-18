@@ -15,7 +15,7 @@ from recsyslearn.errors.segmentation import (
     SegmentationNotSupportedException,
     WrongProportionsException,
 )
-from tests.utils import (
+from tests.fixtures import (
     dataset_item_example,
     dataset_popularity,
     dataset_user_example,

@@ -4,7 +4,7 @@ import numpy as np
 
 from recsyslearn.beyond_accuracy.metrics import Coverage, Novelty
 from recsyslearn.errors.metrics import DivisionByZeroException
-from tests.utils import first_example, item_groups, item_pop_perc, second_example
+from tests.fixtures import first_example, item_groups, item_pop_perc, second_example
 
 
 class CoverageTest(unittest.TestCase):

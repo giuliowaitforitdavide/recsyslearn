@@ -6,7 +6,7 @@ from pandas.testing import assert_frame_equal
 
 from recsyslearn.accuracy.metrics import NDCG
 from recsyslearn.errors.metrics import DivisionByZeroException, RecListTooShortException
-from tests.utils import pos_items, top_n_1
+from tests.fixtures import pos_items, top_n_1
 
 
 class NDCGTest(unittest.TestCase):

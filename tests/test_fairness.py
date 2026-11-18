@@ -7,7 +7,7 @@ from pandas.testing import assert_frame_equal
 from recsyslearn.errors.metrics import DivisionByZeroException
 from recsyslearn.fairness.metrics import Entropy, KullbackLeibler, MutualInformation
 from recsyslearn.fairness.utils import exp_matrix, prob_matrix
-from tests.utils import (
+from tests.fixtures import (
     first_example,
     item_groups,
     rel_matrix_1,
