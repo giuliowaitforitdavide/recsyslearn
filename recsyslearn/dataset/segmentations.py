@@ -1,4 +1,6 @@
-from abc import ABC
+"""Segmentations of users and items into groups."""
+
+from abc import ABC, abstractmethod
 from collections import Counter
 
 import numpy as np
@@ -11,14 +13,25 @@ from recsyslearn.errors.segmentation import (
     WrongProportionsException,
 )
 
+__all__ = [
+    "ActivitySegmentation",
+    "DiscreteFeatureSegmentation",
+    "InteractionSegmentation",
+    "PopularityPercentage",
+    "Segmentation",
+]
+
 
 class Segmentation(ABC):
     """
-    Abstract class for different group segmentations.
+    Abstract base class of the segmentations.
     """
 
-    def __init__(self) -> None:
-        super().__init__()
+    @abstractmethod
+    def segment(self, *args, **kwargs):
+        """
+        Assign the users or items of the given data to groups.
+        """
 
 
 class InteractionSegmentation(Segmentation):
@@ -26,13 +39,12 @@ class InteractionSegmentation(Segmentation):
     Segmentation of items based on the number of cumulative interaction they have.
     """
 
-    @classmethod
     def segment(
-        cls,
+        self,
         dataset: pd.DataFrame,
-        proportions=None,
+        proportions: list[float] | None = None,
         min_interaction: int = 0,
-        group="item",
+        group: str = "item",
     ) -> pd.DataFrame:
         """
         Segmentation of items based on their cumulative interactions with different users.
@@ -40,7 +52,7 @@ class InteractionSegmentation(Segmentation):
         :param dataset: The complete dataset.
         :type dataset: pd.DataFrame
         :param proportions: The proportion of interactions wanted for every group.
-        :type proportions: list, default [0.8, 0.2]
+        :type proportions: list[float] or None, default [0.8, 0.2]
         :param min_interaction: The minimum number of interaction allowed for items. Items below this threshold will be removed.
         :type min_interaction: int, default 0
         :param group: The group which has to be segmented based on their number of interaction.
@@ -102,8 +114,7 @@ class PopularityPercentage(Segmentation):
     Calculate item or user popularity based on the percentage of interaction they have.
     """
 
-    @classmethod
-    def segment(cls, dataset: pd.DataFrame, group: str = "item") -> pd.DataFrame:
+    def segment(self, dataset: pd.DataFrame, group: str = "item") -> pd.DataFrame:
         """
         Calculate item or user popularity based on the percentage of interaction they have.
 
@@ -135,9 +146,11 @@ class ActivitySegmentation(Segmentation):
     Segmentation of users based on their number of interaction.
     """
 
-    @classmethod
     def segment(
-        cls, dataset: pd.DataFrame, proportions=None, min_interaction: int = 0
+        self,
+        dataset: pd.DataFrame,
+        proportions: list[float] | None = None,
+        min_interaction: int = 0,
     ) -> pd.DataFrame:
         """
         Segmentation of users based on their interactions with different items.
@@ -150,7 +163,7 @@ class ActivitySegmentation(Segmentation):
         :param dataset: The complete dataset.
         :type dataset: pd.DataFrame
         :param proportions: The share of users wanted for every group, from the most active one.
-        :type proportions: list, default [0.1, 0.9]
+        :type proportions: list[float] or None, default [0.1, 0.9]
         :param min_interaction: The minimum number of interaction allowed per user. Users below this threshold will be removed.
         :type min_interaction: int, default 0
         :raises SegmentationNotSupportedException: If len(proportion) not in (1, 2, 3).
@@ -202,8 +215,7 @@ class DiscreteFeatureSegmentation(Segmentation):
     their features (e.g., gender for users or genre for items)
     """
 
-    @classmethod
-    def segment(cls, feature: pd.DataFrame, fill_na: int = -1) -> pd.DataFrame:
+    def segment(self, feature: pd.DataFrame, fill_na: int = -1) -> pd.DataFrame:
         """
         Segmentation of users/items based on one of their features.
         Before assigning the group, the nans are given a -1 value by default.

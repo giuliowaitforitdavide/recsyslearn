@@ -1,4 +1,6 @@
-from abc import ABC
+"""Fairness metrics: how exposure or effectiveness is distributed over groups of users or items."""
+
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -6,14 +8,19 @@ import pandas as pd
 from recsyslearn.fairness.utils import eff_matrix, exp_matrix, prob_matrix
 from recsyslearn.utils import check_columns_exist, safe_divide
 
+__all__ = ["Entropy", "FairnessMetric", "KullbackLeibler", "MutualInformation"]
+
 
 class FairnessMetric(ABC):
     """
-    Abstract Class for Metrics.
+    Abstract base class of the fairness metrics.
     """
 
-    def __init__(self) -> None:
-        return
+    @abstractmethod
+    def evaluate(self, *args, **kwargs):
+        """
+        Compute the metric on the given recommendation lists.
+        """
 
 
 class Entropy(FairnessMetric):
@@ -21,7 +28,9 @@ class Entropy(FairnessMetric):
     Entropy evaluator for recommender systems.
     """
 
-    def evaluate(self, top_n: pd.DataFrame, rel_matrix: pd.DataFrame = None) -> float:
+    def evaluate(
+        self, top_n: pd.DataFrame, rel_matrix: pd.DataFrame | None = None
+    ) -> float:
         """
         Compute the entropy of a model by using its recommendation list.
 
@@ -57,7 +66,7 @@ class KullbackLeibler(FairnessMetric):
         self,
         top_n: pd.DataFrame,
         target_representation: pd.DataFrame,
-        rel_matrix: pd.DataFrame = None,
+        rel_matrix: pd.DataFrame | None = None,
     ) -> float:
         """
         Compute the Kullback-Leibler divergence of a model, for a given target representation, by using its recommendation list.
@@ -103,7 +112,10 @@ class MutualInformation(FairnessMetric):
     """
 
     def evaluate(
-        self, top_n: pd.DataFrame, flag: str, rel_matrix: pd.DataFrame = None
+        self,
+        top_n: pd.DataFrame,
+        flag: str,
+        rel_matrix: pd.DataFrame | None = None,
     ) -> float:
         """
         Compute the Mutual Information of a model by using its recommendation list.

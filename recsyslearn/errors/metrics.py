@@ -22,7 +22,7 @@ class RecListTooShortException(Exception):
 
     def __init__(
         self,
-        ats: int,
+        ats: int | tuple[int, ...],
         message: str = "Values for the recommendation list length is not compatbile with the dataset.",
     ) -> None:
         super().__init__(f"{message} ats={ats}")

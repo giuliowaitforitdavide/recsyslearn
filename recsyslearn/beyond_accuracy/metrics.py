@@ -1,18 +1,25 @@
-from abc import ABC
+"""Beyond-accuracy metrics: properties of the recommendations other than their accuracy."""
+
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
 
 from recsyslearn.utils import check_columns_exist, safe_divide
 
+__all__ = ["BeyondAccuracyMetric", "Coverage", "Novelty"]
+
 
 class BeyondAccuracyMetric(ABC):
     """
-    Abstract Class for Metrics.
+    Abstract base class of the beyond-accuracy metrics.
     """
 
-    def __init__(self) -> None:
-        return
+    @abstractmethod
+    def evaluate(self, *args, **kwargs):
+        """
+        Compute the metric on the given recommendation lists.
+        """
 
 
 class Coverage(BeyondAccuracyMetric):
@@ -21,8 +28,7 @@ class Coverage(BeyondAccuracyMetric):
     Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2
     """
 
-    @classmethod
-    def evaluate(cls, top_n: pd.DataFrame, items: list) -> float:
+    def evaluate(self, top_n: pd.DataFrame, items: list) -> float:
         """
         Compute the coverage of a model by using its recommendation list.
 
@@ -51,8 +57,9 @@ class Novelty(BeyondAccuracyMetric):
     or in terms of percentage of user-item interactions.
     """
 
-    @classmethod
-    def evaluate(cls, top_n: pd.DataFrame, popularity_definition="group") -> float:
+    def evaluate(
+        self, top_n: pd.DataFrame, popularity_definition: str = "group"
+    ) -> float:
         """
         Compute the novelty of a model by using its recommendation list and the segmented item groups.
 
@@ -61,7 +68,7 @@ class Novelty(BeyondAccuracyMetric):
         :param popularity_definition: Either 'group' or 'percentage', to choose whether popularity is computed in terms of
             segmenting items/users according to the distribution of user-item interactions
             or if it is defined as the percentage of user-item interactions.
-        :type popularity_definition: str
+        :type popularity_definition: str, default 'group'
         :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', popularity_definition).
         :return: The computed novelty.
         :rtype: float

@@ -72,7 +72,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 ### Public API and data contract
 
 - The public API is the names listed in `__all__` of each module (`metrics.py`, `segmentations.py`, `errors/metrics.py`, …), imported through their full path, e.g. `from recsyslearn.accuracy.metrics import NDCG`. Everything else is internal and may change without notice.
-- `__init__.py` files contain only the package docstring: no imports, no re-exports, no `__all__`. **(planned, #71)**
+- `__init__.py` files contain only the package docstring: no imports, no re-exports, no `__all__`. The top-level `recsyslearn/__init__.py` also holds the package metadata (`__version__`, `__author__`, `__email__`).
 - Inputs are pandas DataFrames with standard column names:
 
   | Column | Type | Meaning |
@@ -88,7 +88,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 
 ### Metrics
 
-- Each metric family has an abstract base class (`AccuracyMetric`, `BeyondAccuracyMetric`, `FairnessMetric`) declaring `evaluate` as `@abstractmethod`, with one consistent style (classmethod or instance method) across families. **(planned, #71)**
+- Each metric family has an abstract base class (`AccuracyMetric`, `BeyondAccuracyMetric`, `FairnessMetric`) declaring `evaluate` as `@abstractmethod`; segmentations subclass `Segmentation`, which declares `segment` in the same way. `evaluate` and `segment` are instance methods in every family, so configuration can go in the constructor: `NDCG().evaluate(...)`, `InteractionSegmentation().segment(...)`.
 - **Every metric cites its source**: paper, equation number and formula (`.. math::`) in the docstring. When the literature has variants (e.g. NDCG gain `2^rel − 1` vs `rel`), the docstring states which one is implemented. Metrics without a verifiable reference are not accepted.
 - **Output.** Every metric returns both the value for each user and the mean over all users (macro-average: each user weighs equally). All metrics return the same result type, e.g. a `MetricResult` dataclass with `per_user` (DataFrame with `user` and one column per cut-off, such as `NDCG@5`) and `aggregate` (Series with the mean per cut-off), so calling code does not need to tell metrics apart. **(planned, #71)**
   - **Exception:** metrics that cannot be computed per user, because they are defined only over the whole user population, must not return per-user values: they return only the aggregate value (`per_user` is `None`). This covers the fairness metrics (`Entropy`, `KullbackLeibler`, `MutualInformation`) and `Coverage`. Do not invent per-user variants that are not in the cited paper.
@@ -99,7 +99,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 
 - **Inputs are never mutated.** A function that needs to modify a column works on a copy of that column, not on the caller's DataFrame (see also Performance).
 - **Pure and deterministic.** No global state. Randomness only through an explicit `seed` parameter.
-- **Input validation** uses the custom exceptions in `recsyslearn/errors/`, one module per domain (`validation.py`, `metrics.py`, `segmentation.py`), never `assert` (assertions are stripped with `python -O`) **(planned, #71)**. Each exception stands on its own and inherits from the built-in exception that matches its meaning (e.g. `DivisionByZeroException` from `ZeroDivisionError`), not from a common recsyslearn base class.
+- **Input validation** uses the custom exceptions in `recsyslearn/errors/`, one module per domain (`validation.py`, `metrics.py`, `segmentation.py`), never `assert` (assertions are stripped with `python -O`). Each exception stands on its own and inherits from the built-in exception that matches its meaning (e.g. `DivisionByZeroException` from `ZeroDivisionError`), not from a common recsyslearn base class.
 - **Division by zero** always raises the same custom exception, `DivisionByZeroException`, through a single helper, `safe_divide` in `recsyslearn/utils.py`. No direct division in metrics. The message names the metric and, for per-user metrics, the user or group. Terms of the form 0 · log(0 / q) are excluded before dividing, following the convention 0 · log(0 / q) = 0; they are not division errors.
 
 ### Code style
