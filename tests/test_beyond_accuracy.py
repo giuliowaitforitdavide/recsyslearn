@@ -3,10 +3,17 @@ import unittest
 import numpy as np
 
 from recsyslearn.beyond_accuracy.metrics import Coverage, Novelty
+from recsyslearn.errors.metrics import DivisionByZeroException
 from tests.utils import first_example, item_groups, item_pop_perc, second_example
 
 
 class CoverageTest(unittest.TestCase):
+    def test_coverage_empty_catalogue(self) -> None:
+        """Coverage is undefined for an empty item catalogue (#70)."""
+        with self.assertRaises(DivisionByZeroException) as context:
+            Coverage().evaluate(first_example, [])
+        self.assertEqual(str(context.exception), "Coverage: division by zero.")
+
     def test_coverage_one(self) -> None:
         top_n = first_example[
             (first_example["item"] != "3")

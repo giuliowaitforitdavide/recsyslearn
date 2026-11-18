@@ -5,11 +5,22 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from recsyslearn.accuracy.metrics import NDCG
-from recsyslearn.errors.errors import RecListTooShortException
+from recsyslearn.errors.metrics import DivisionByZeroException, RecListTooShortException
 from tests.utils import pos_items, top_n_1
 
 
 class NDCGTest(unittest.TestCase):
+    def test_ndcg_user_without_relevant_items(self) -> None:
+        """The ideal DCG of a user without relevant items is zero: NDCG is undefined (#70)."""
+        no_relevant_items = pd.DataFrame(
+            {"user": ["1"], "pos_items": [np.array([], dtype=object)]}
+        )
+        with self.assertRaises(DivisionByZeroException) as context:
+            NDCG().evaluate(
+                top_n_1[top_n_1["user"] == "1"], no_relevant_items, ats=(2,)
+            )
+        self.assertEqual(str(context.exception), "NDCG: division by zero for user 1.")
+
     def test_ndcg(self) -> None:
         ndcg_df = NDCG().evaluate(top_n_1, pos_items, ats=(2,))
         ndcg_vals = pd.DataFrame(

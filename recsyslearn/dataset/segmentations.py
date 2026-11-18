@@ -4,7 +4,7 @@ from collections import Counter
 import numpy as np
 import pandas as pd
 
-from recsyslearn.errors.errors import (
+from recsyslearn.errors.segmentation import (
     InvalidGroupException,
     InvalidValueException,
     SegmentationNotSupportedException,

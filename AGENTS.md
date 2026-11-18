@@ -63,7 +63,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
     Agents pass it explicitly with `gh pr create --label <name>`.
 - **Definition of Done:** tests green, `pre-commit` clean, docstrings and `docs/` updated, PR linked to its issue, PR template filled in, labels assigned.
 - **Semantic Versioning.** Breaking changes include: renaming or removing an exported name, changing the expected input columns, changing the return type or shape of a metric, raising where a value was returned before (or the opposite).
-- **Deprecation.** Before removing or renaming a public API, emit a `DeprecationWarning` for at least one minor release. Changes that cannot be deprecated gradually (e.g. a new return type) ship in a new major version with a migration note in the changelog.
+- **Deprecation.** Before removing or renaming a public API, emit a `DeprecationWarning` for at least one minor release. A `DeprecationWarning` is needed only when a release is published before the change is removed: if the rename or removal ships in the next major release, a migration note in the release notes is enough, and no deprecated alias is added. Changes that cannot be deprecated gradually (e.g. a new return type) ship in a new major version with a migration note in the release notes.
 - **Releases** are made by maintainers only: `bump-my-version` updates every version string, one commit per release (`chore(release): X.Y.Z`). Contributors and agents never change the version.
 - **AI-assisted contributions** are allowed. The human opening the PR is responsible for the whole change, has reviewed it, and declares the AI assistance in the PR template.
 
@@ -71,7 +71,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 
 ### Public API and data contract
 
-- The public API is the names listed in `__all__` of each module (`metrics.py`, `segmentations.py`, `errors.py`, …), imported through their full path, e.g. `from recsyslearn.accuracy.metrics import NDCG`. Everything else is internal and may change without notice.
+- The public API is the names listed in `__all__` of each module (`metrics.py`, `segmentations.py`, `errors/metrics.py`, …), imported through their full path, e.g. `from recsyslearn.accuracy.metrics import NDCG`. Everything else is internal and may change without notice.
 - `__init__.py` files contain only the package docstring: no imports, no re-exports, no `__all__`. **(planned, #71)**
 - Inputs are pandas DataFrames with standard column names:
 
@@ -99,8 +99,8 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 
 - **Inputs are never mutated.** A function that needs to modify a column works on a copy of that column, not on the caller's DataFrame (see also Performance).
 - **Pure and deterministic.** No global state. Randomness only through an explicit `seed` parameter.
-- **Input validation** uses the custom exceptions in `recsyslearn/errors/`, never `assert` (assertions are stripped with `python -O`). All custom exceptions inherit from a common `RecsyslearnException`. **(planned, #70)**
-- **Division by zero** always raises the same custom exception, `DivisionByZeroException`, through a single helper, `safe_divide` in `recsyslearn/utils.py`. No direct division in metrics. The message names the metric and, for per-user metrics, the user or group. **(planned, #70)**
+- **Input validation** uses the custom exceptions in `recsyslearn/errors/`, one module per domain (`validation.py`, `metrics.py`, `segmentation.py`; the common base class is in `base.py`), never `assert` (assertions are stripped with `python -O`) **(planned, #71)**. All custom exceptions inherit from a common `RecsyslearnException`.
+- **Division by zero** always raises the same custom exception, `DivisionByZeroException`, through a single helper, `safe_divide` in `recsyslearn/utils.py`. No direct division in metrics. The message names the metric and, for per-user metrics, the user or group. Terms of the form 0 · log(0 / q) are excluded before dividing, following the convention 0 · log(0 / q) = 0; they are not division errors.
 
 ### Code style
 
@@ -130,7 +130,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
   - nominal case;
   - edge cases documented in the docstring;
   - raised exceptions;
-  - a zero denominator raises `DivisionByZeroException` **(planned, #70)**;
+  - a zero denominator raises `DivisionByZeroException`;
   - input not mutated;
   - same input, and same `seed` where the function takes one, gives the same output;
   - result type and shape: `per_user` and `aggregate`, or `per_user` is `None` for population-level metrics **(planned, #71)**.

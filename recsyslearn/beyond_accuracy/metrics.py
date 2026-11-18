@@ -3,7 +3,7 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 
-from recsyslearn.utils import check_columns_exist
+from recsyslearn.utils import check_columns_exist, safe_divide
 
 
 class BeyondAccuracyMetric(ABC):
@@ -31,12 +31,15 @@ class Coverage(BeyondAccuracyMetric):
         :param items: List of items in the dataset.
         :type items: list or array-like
         :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', 'group').
+        :raises DivisionByZeroException: If items is empty, so that coverage is undefined.
         :return: The computed coverage.
         :rtype: float
         """
 
         check_columns_exist(top_n, ["user", "item", "rank"])
-        return len(top_n.item.unique().tolist()) / len(items)
+        return safe_divide(
+            len(top_n.item.unique().tolist()), len(items), metric="Coverage"
+        )
 
 
 class Novelty(BeyondAccuracyMetric):

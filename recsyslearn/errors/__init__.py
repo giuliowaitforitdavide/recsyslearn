@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from .errors import (
-    ColumnsNotExistException,
+from recsyslearn.errors.metrics import RecListTooShortException
+from recsyslearn.errors.segmentation import (
     InvalidGroupException,
     InvalidValueException,
-    RecListTooShortException,
     SegmentationNotSupportedException,
     WrongProportionsException,
 )
+from recsyslearn.errors.validation import ColumnsNotExistException
 
 __all__ = [
     "ColumnsNotExistException",

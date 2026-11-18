@@ -1,31 +1,25 @@
-class ColumnsNotExistException(Exception):
-    """Exception raised when columns are not found in the DataFrame."""
+"""Exceptions raised when users or items cannot be segmented into groups."""
 
-    def __init__(
-        self, columns: list, message: str = "Dataframe does not contain columns."
-    ) -> None:
-        super().__init__(f"{message} {columns}")
+from __future__ import annotations
 
+from recsyslearn.errors.base import RecsyslearnException
 
-class RecListTooShortException(Exception):
-    """Exception raised when the values for the recommendation list length is not compatbile with the dataset."""
-
-    def __init__(
-        self,
-        ats: int,
-        message: str = "Values for the recommendation list length is not compatbile with the dataset.",
-    ) -> None:
-        super().__init__(f"{message} ats={ats}")
+__all__ = [
+    "InvalidGroupException",
+    "InvalidValueException",
+    "SegmentationNotSupportedException",
+    "WrongProportionsException",
+]
 
 
-class SegmentationNotSupportedException(Exception):
+class SegmentationNotSupportedException(RecsyslearnException):
     """Exception raised when there are too many group to be segmented."""
 
     def __init__(self, message: str) -> None:
         super().__init__(message)
 
 
-class WrongProportionsException(Exception):
+class WrongProportionsException(RecsyslearnException):
     """Exception raised when proportions of the segmentation does not cover all the items or users."""
 
     def __init__(
@@ -34,7 +28,7 @@ class WrongProportionsException(Exception):
         super().__init__(message)
 
 
-class InvalidValueException(Exception):
+class InvalidValueException(RecsyslearnException):
     """Exception raised when the value of fill_na of the segmentation value is invalid."""
 
     def __init__(self, fill_na) -> None:
@@ -44,7 +38,7 @@ class InvalidValueException(Exception):
         super().__init__(message)
 
 
-class InvalidGroupException(Exception):
+class InvalidGroupException(RecsyslearnException):
     """Exception raised when user wants to segment a non valid group"""
 
     def __init__(self, user_group) -> None:

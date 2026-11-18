@@ -9,7 +9,7 @@ from recsyslearn.dataset.segmentations import (
     InteractionSegmentation,
     PopularityPercentage,
 )
-from recsyslearn.errors.errors import (
+from recsyslearn.errors.segmentation import (
     InvalidGroupException,
     InvalidValueException,
     SegmentationNotSupportedException,

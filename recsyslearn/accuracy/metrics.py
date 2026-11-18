@@ -4,8 +4,8 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 
-from recsyslearn.errors.errors import RecListTooShortException
-from recsyslearn.utils import check_columns_exist
+from recsyslearn.errors.metrics import RecListTooShortException
+from recsyslearn.utils import check_columns_exist, safe_divide
 
 
 class AccuracyMetric(ABC):
@@ -21,9 +21,10 @@ class NDCG(AccuracyMetric):
     @classmethod
     def __dcg(cls, scores: pd.DataFrame) -> float:
         return np.sum(
-            np.divide(
+            safe_divide(
                 np.power(2, scores) - 1,
                 np.log(np.arange(scores.shape[0], dtype=np.float32) + 2),
+                metric="NDCG",
             ),
             dtype=np.float32,
         )
@@ -33,6 +34,7 @@ class NDCG(AccuracyMetric):
         cls,
         ranked_list: pd.DataFrame,
         pos_items: pd.DataFrame,
+        user: str,
         relevance: pd.DataFrame = None,
         at: int = None,
     ) -> float:
@@ -48,12 +50,9 @@ class NDCG(AccuracyMetric):
         ideal_dcg = cls.__dcg(np.sort(relevance)[::-1][:at])
         rank_dcg = cls.__dcg(rank_scores)
 
-        if rank_dcg == 0:
-            return 0
-
-        ndcg_ = rank_dcg / ideal_dcg
-
-        return ndcg_
+        return float(
+            safe_divide(rank_dcg, ideal_dcg, metric="NDCG", labels=f"user {user}")
+        )
 
     @classmethod
     def evaluate(
@@ -70,6 +69,7 @@ class NDCG(AccuracyMetric):
         :type ats: tuple, default (5, 10)
         :raises ColumnsNotExistException: If top_n does not contain columns ('user', 'item', 'rank') or pos_items does not contain columns ('user', 'pos_items').
         :raises RecListTooShortException: If the top_n list does not contain enough items.
+        :raises DivisionByZeroException: If a user has no relevant items, so that the ideal DCG is zero and NDCG is undefined. Filter such users out of pos_items before calling evaluate.
         :return: The NDCG@n averaged over users, in the form ('NDCG@k_0', ..., 'NDCG@k_n')
         :rtype: pd.Series
         """
@@ -101,7 +101,8 @@ class NDCG(AccuracyMetric):
 
         for k in calculable_ats:
             full_df.loc[:, f"NDCG@{k}"] = full_df.apply(
-                lambda x: cls.__ndcg(x["item"][:k], x["pos_items"], at=k), axis=1
+                lambda x: cls.__ndcg(x["item"][:k], x["pos_items"], x["user"], at=k),
+                axis=1,
             )
 
         cols_to_be_returned = [

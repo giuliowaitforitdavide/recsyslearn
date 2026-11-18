@@ -1,8 +1,10 @@
 import unittest
 
+import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
+from recsyslearn.errors.metrics import DivisionByZeroException
 from recsyslearn.fairness.metrics import Entropy, KullbackLeibler, MutualInformation
 from recsyslearn.fairness.utils import exp_matrix, prob_matrix
 from tests.utils import (
@@ -65,6 +67,72 @@ class MutualInformationTest(unittest.TestCase):
             MutualInformation().evaluate(top_n, "ratings")
 
         self.assertIn("Invalid flag 'ratings'", str(context.exception))
+
+
+class DivisionByZeroTest(unittest.TestCase):
+    """Undefined divisions in fairness metrics raise DivisionByZeroException (#70)."""
+
+    def test_entropy_zero_total_exposure(self) -> None:
+        top_n = first_example.merge(item_groups, on="item").assign(rank=0)
+        with self.assertRaises(DivisionByZeroException) as context:
+            Entropy().evaluate(top_n)
+        self.assertEqual(str(context.exception), "Entropy: division by zero.")
+
+    def test_kullback_leibler_zero_target(self) -> None:
+        top_n = first_example.merge(item_groups, on="item")
+        target_representation = pd.DataFrame(
+            [["1", 0.5], ["2", 0.5], ["3", 0.0]],
+            columns=["group", "target_representation"],
+        )
+        with self.assertRaises(DivisionByZeroException) as context:
+            KullbackLeibler().evaluate(top_n, target_representation)
+        self.assertEqual(
+            str(context.exception), "KullbackLeibler: division by zero for group 3."
+        )
+
+    def test_kullback_leibler_zero_rank(self) -> None:
+        """Exposure 1 / log2(1 + rank) is undefined for rank 0 (ranks start at 1)."""
+        top_n = first_example.merge(item_groups, on="item").assign(rank=0)
+        target_representation = pd.DataFrame(
+            [["1", 0.2], ["2", 0.3], ["3", 0.5]],
+            columns=["group", "target_representation"],
+        )
+        with self.assertRaises(DivisionByZeroException) as context:
+            KullbackLeibler().evaluate(top_n, target_representation)
+        self.assertTrue(
+            str(context.exception).startswith("KullbackLeibler: division by zero")
+        )
+
+    def test_mutual_information_no_relevant_item_recommended(self) -> None:
+        """With effectiveness, no relevant item recommended gives zero total exposure."""
+        top_n = second_example.merge(user_groups, on="user")
+        rel_matrix = rel_matrix_1.assign(item="not recommended").merge(
+            user_groups, on="user"
+        )
+        with self.assertRaises(DivisionByZeroException) as context:
+            MutualInformation().evaluate(top_n, "user", rel_matrix)
+        self.assertEqual(str(context.exception), "MutualInformation: division by zero.")
+
+    def test_zero_probability_terms_are_skipped(self) -> None:
+        """
+        A group with zero probability contributes 0 (convention 0 · log(0 / q) = 0), it does not raise.
+
+        All ranks are 1, so every recommended item has exposure 1. Only the 6 items of group 1
+        and the 9 items of group 2 are relevant, so p = (0.4, 0.6, 0) and
+        KL = 0.4 · log2(0.4 / 0.2) + 0.6 · log2(0.6 / 0.3) + 0 = 1.
+        """
+        top_n = first_example.merge(item_groups, on="item")
+        rel_matrix = top_n[top_n["group"] != "3"].assign(rank=1)
+        target_representation = pd.DataFrame(
+            [["1", 0.2], ["2", 0.3], ["3", 0.5]],
+            columns=["group", "target_representation"],
+        )
+        divergence = KullbackLeibler().evaluate(
+            top_n, target_representation, rel_matrix
+        )
+        self.assertAlmostEqual(divergence, 1.0)
+        mi = MutualInformation().evaluate(top_n, "item", rel_matrix)
+        self.assertTrue(np.isfinite(mi))
 
 
 class InputNotMutatedTest(unittest.TestCase):

@@ -139,3 +139,32 @@ To evaluate the fairness (e.g. Kullback-Leibler Divergence) of your recommendati
 
     # Print the results
     print(json.dumps({"KL@[0.5, 0.5]": divergence}, indent=4))
+
+
+Undefined values
+----------------
+
+When a metric is undefined for the given input, because it would divide by
+zero, recsyslearn raises ``DivisionByZeroException`` instead of returning
+``NaN`` or ``inf``. The message names the metric and, where possible, the
+user or group that caused it. Common cases:
+
+* ``NDCG``: a user has no relevant items, so the ideal DCG is zero. Remove
+  such users from ``pos_items`` before calling ``evaluate``.
+* ``Coverage``: the list of items is empty.
+* Fairness metrics: the total exposure is zero (e.g. with ``rel_matrix``,
+  no relevant item is recommended), or a rank is 0 (ranks start at 1).
+* ``KullbackLeibler``: a group that receives exposure has a target
+  representation of 0, so the divergence is infinite.
+
+``DivisionByZeroException`` is also a ``ZeroDivisionError``, and every
+exception raised by recsyslearn inherits from ``RecsyslearnException``:
+
+.. code-block:: python
+
+    from recsyslearn.errors.metrics import DivisionByZeroException
+
+    try:
+        ndcg = NDCG().evaluate(top_k, relevant_items, ats=(5, 10))
+    except DivisionByZeroException as error:
+        print(error)  # e.g. "NDCG: division by zero for user 42."
