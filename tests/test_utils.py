@@ -1,4 +1,4 @@
-"""Tests of the shared helpers in recsyslearn/utils.py."""
+"""Tests of the shared helpers in recsyslearn/_utils.py."""
 
 import unittest
 
@@ -10,7 +10,7 @@ from pandas.testing import assert_series_equal
 
 from recsyslearn.errors.metrics import DivisionByZeroException
 from recsyslearn.errors.validation import ColumnsNotExistException
-from recsyslearn.utils import check_columns_exist, safe_divide
+from recsyslearn._utils import check_columns_exist, safe_divide
 from tests.case import TestCase
 
 
@@ -86,6 +86,42 @@ class SafeDivideTest(TestCase):
                 pd.Series([1.0, 0.0, 0.0]),
                 metric="KullbackLeibler",
                 labels=labels,
+            )
+
+    def test_error_lists_the_labels_in_sorted_order(self) -> None:
+        """#84: the message must not depend on the order of the input rows."""
+        with self.assertRaisesMessage(
+            DivisionByZeroException, "M: division by zero for user 1, 2, 3."
+        ):
+            safe_divide(
+                np.ones(3),
+                np.zeros(3),
+                metric="M",
+                labels=pd.Series(["3", "1", "2"], name="user"),
+            )
+
+    def test_error_sorts_labels_of_mixed_types_by_their_text(self) -> None:
+        with self.assertRaisesMessage(
+            DivisionByZeroException, "M: division by zero for group 1, a."
+        ):
+            safe_divide(
+                np.ones(2),
+                np.zeros(2),
+                metric="M",
+                labels=pd.Series(["a", 1], name="group", dtype=object),
+            )
+
+    @given(st.permutations([f"u{index}" for index in range(1, 8)]))
+    def test_error_message_does_not_depend_on_the_label_order(self, users) -> None:
+        with self.assertRaisesMessage(
+            DivisionByZeroException,
+            "M: division by zero for user u1, u2, u3, u4, u5 and 2 more.",
+        ):
+            safe_divide(
+                np.ones(len(users)),
+                np.zeros(len(users)),
+                metric="M",
+                labels=pd.Series(users, name="user"),
             )
 
     @given(st.lists(st.tuples(NONZERO_FLOATS, NONZERO_FLOATS), min_size=1, max_size=20))

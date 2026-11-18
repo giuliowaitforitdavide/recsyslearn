@@ -1,1 +1,1 @@
-from __future__ import annotations
+"""Fairness metrics, in recsyslearn.fairness.metrics, and their exposure helpers."""

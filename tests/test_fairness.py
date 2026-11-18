@@ -8,7 +8,7 @@ from pandas.testing import assert_frame_equal
 
 from recsyslearn.errors.metrics import DivisionByZeroException
 from recsyslearn.fairness.metrics import Entropy, KullbackLeibler, MutualInformation
-from recsyslearn.fairness.utils import eff_matrix, exp_matrix, prob_matrix
+from recsyslearn.fairness._utils import eff_matrix, exp_matrix, prob_matrix
 from tests import strategies
 from tests.case import TestCase
 from tests.fixtures import (
@@ -147,16 +147,13 @@ class KullbackLeiblerTest(TestCase):
     def test_raises_for_rank_zero(self) -> None:
         """
         Exposure 1 / log2(1 + rank) is undefined for rank 0 (ranks start at 1).
-
-        The message lists the users in input order, and merge row order differs between
-        pandas versions, so the input is sorted by user first.
         """
         with self.assertRaisesMessage(
             DivisionByZeroException,
             "KullbackLeibler: division by zero for user 1, 2, 3, 4, 5 and 1 more.",
         ):
             KullbackLeibler().evaluate(
-                item_exposure_lists().sort_values("user").assign(rank=0),
+                item_exposure_lists().assign(rank=0),
                 item_target(),
             )
 

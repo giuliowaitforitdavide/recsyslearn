@@ -48,6 +48,8 @@ def _describe_zero_labels(
     """
     Describe which entries have a zero denominator, for the message of DivisionByZeroException.
 
+    The labels are sorted, so the message does not depend on the order of the input rows.
+
     :param labels: The labels passed to safe_divide.
     :type labels: str, pd.Series or None
     :param is_zero: Boolean mask of the zero denominators.
@@ -60,21 +62,37 @@ def _describe_zero_labels(
         return labels
     if is_zero.ndim == 0:
         return labels.name
-    zero_labels = pd.unique(np.asarray(labels)[is_zero.ravel()])
+    zero_labels = _sorted(pd.unique(np.asarray(labels)[is_zero.ravel()]))
     shown = ", ".join(str(label) for label in zero_labels[:_MAX_LABELS_IN_MESSAGE])
     if len(zero_labels) > _MAX_LABELS_IN_MESSAGE:
         shown += f" and {len(zero_labels) - _MAX_LABELS_IN_MESSAGE} more"
     return f"{labels.name} {shown}" if labels.name else shown
 
 
-def check_columns_exist(df: pd.DataFrame, columns: list) -> pd.DataFrame:
+def _sorted(labels: np.ndarray) -> list:
+    """
+    Sort labels by value, or by their text when they cannot be compared (e.g. mixed types).
+
+    :param labels: The labels to sort.
+    :type labels: np.ndarray
+    :return: The sorted labels.
+    :rtype: list
+    """
+
+    try:
+        return sorted(labels)
+    except TypeError:
+        return sorted(labels, key=str)
+
+
+def check_columns_exist(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     """
     Raise ColumnsNotExistException if pd.Dataframe does not contain the expected columns.
 
     :param df: Input that should be tested.
     :type df: pd.DataFrame
     :param columns: pd.DataFrame columns that should be contained.
-    :type columns: list
+    :type columns: list[str]
     :raises ColumnsNotExistException: If input does not contained expected columns.
     :return: The DataFrame with the expected columns and types.
     :rtype: pd.DataFrame

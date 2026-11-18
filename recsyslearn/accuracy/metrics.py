@@ -1,16 +1,27 @@
+"""Accuracy metrics: how well the recommended items match the relevant ones."""
+
 import warnings
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
 
 from recsyslearn.errors.metrics import RecListTooShortException
-from recsyslearn.utils import check_columns_exist, safe_divide
+from recsyslearn._utils import check_columns_exist, safe_divide
+
+__all__ = ["AccuracyMetric", "NDCG"]
 
 
 class AccuracyMetric(ABC):
-    def __init__(self) -> None:
-        return
+    """
+    Abstract base class of the accuracy metrics.
+    """
+
+    @abstractmethod
+    def evaluate(self, *args, **kwargs):
+        """
+        Compute the metric on the given recommendation lists.
+        """
 
 
 class NDCG(AccuracyMetric):
@@ -18,8 +29,9 @@ class NDCG(AccuracyMetric):
     NDCG evaluator for recommender systems.
     """
 
-    @classmethod
-    def __dcg(cls, scores: pd.DataFrame) -> float:
+    @staticmethod
+    def _dcg(scores: np.ndarray) -> float:
+        """DCG of the given relevance scores, in ranking order, with gain 2^rel - 1."""
         return np.sum(
             safe_divide(
                 np.power(2, scores) - 1,
@@ -29,37 +41,34 @@ class NDCG(AccuracyMetric):
             dtype=np.float32,
         )
 
-    @classmethod
-    def __ndcg(
-        cls,
-        ranked_list: pd.DataFrame,
-        pos_items: pd.DataFrame,
+    def _ndcg(
+        self,
+        ranked_list: np.ndarray,
+        pos_items: np.ndarray,
         user: str,
-        relevance: pd.DataFrame = None,
-        at: int = None,
+        at: int,
     ) -> float:
-        if relevance is None:
-            relevance = np.ones_like(pos_items, dtype=np.int32)
-        assert len(relevance) == pos_items.shape[0]
-
+        """NDCG@at of one user, with binary relevance of the items in pos_items."""
+        relevance = np.ones_like(pos_items, dtype=np.int32)
         it2rel = {it: r for it, r in zip(pos_items, relevance)}
 
         rank_scores = np.asarray(
             [it2rel.get(it, 0.0) for it in ranked_list[:at]], dtype=np.float32
         )
-        ideal_dcg = cls.__dcg(np.sort(relevance)[::-1][:at])
-        rank_dcg = cls.__dcg(rank_scores)
+        ideal_dcg = self._dcg(np.sort(relevance)[::-1][:at])
+        rank_dcg = self._dcg(rank_scores)
 
         return float(
             safe_divide(rank_dcg, ideal_dcg, metric="NDCG", labels=f"user {user}")
         )
 
-    @classmethod
     def evaluate(
-        cls, top_n: pd.DataFrame, pos_items: pd.DataFrame, ats: tuple = (5, 10)
-    ) -> pd.Series:
-        """Compute the NDCG@k of a model by using its recommendation list.
-        Returns the NDCG averaged over users.
+        self,
+        top_n: pd.DataFrame,
+        pos_items: pd.DataFrame,
+        ats: tuple[int, ...] = (5, 10),
+    ) -> pd.DataFrame:
+        """Compute the NDCG@k of each user from their recommendation list.
 
         :param top_n: Top N recommendations' lists for every user. Columns: ['user', 'item', 'rank'].
         :type top_n: pd.DataFrame
@@ -70,8 +79,8 @@ class NDCG(AccuracyMetric):
         :raises ColumnsNotExistException: If top_n does not contain columns ('user', 'item', 'rank') or pos_items does not contain columns ('user', 'pos_items').
         :raises RecListTooShortException: If the top_n list does not contain enough items.
         :raises DivisionByZeroException: If a user has no relevant items, so that the ideal DCG is zero and NDCG is undefined. Filter such users out of pos_items before calling evaluate.
-        :return: The NDCG@n averaged over users, in the form ('NDCG@k_0', ..., 'NDCG@k_n')
-        :rtype: pd.Series
+        :return: The NDCG@k of each user, in the form ('user', 'NDCG@k_0', ..., 'NDCG@k_n'), with one column for each computable cut-off.
+        :rtype: pd.DataFrame
         """
 
         check_columns_exist(top_n, ["user", "item", "rank"])
@@ -101,7 +110,7 @@ class NDCG(AccuracyMetric):
 
         for k in calculable_ats:
             full_df.loc[:, f"NDCG@{k}"] = full_df.apply(
-                lambda x: cls.__ndcg(x["item"][:k], x["pos_items"], x["user"], at=k),
+                lambda x: self._ndcg(x["item"][:k], x["pos_items"], x["user"], at=k),
                 axis=1,
             )
 

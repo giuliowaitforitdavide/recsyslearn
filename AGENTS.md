@@ -15,11 +15,11 @@ Rules marked **(planned, #N)** describe the target state: the code does not comp
 recsyslearn/
 ├── accuracy/          # accuracy metrics (NDCG, …)
 ├── beyond_accuracy/   # beyond-accuracy metrics (Coverage, Novelty, …)
-├── fairness/          # fairness metrics (Entropy, KullbackLeibler, MutualInformation) and exposure helpers
+├── fairness/          # fairness metrics (Entropy, KullbackLeibler, MutualInformation); exposure helpers in _utils.py
 ├── dataset/           # segmentations and dataset utilities
 ├── errors/            # custom exceptions
-└── utils.py           # shared helpers (input validation, …)
-tests/                 # unittest suite, one test_<family>.py per package, test_utils.py for utils.py
+└── _utils.py          # internal shared helpers (input validation, safe division, …)
+tests/                 # unittest suite, one test_<family>.py per package, test_utils.py for _utils.py
 docs/                  # Sphinx documentation (reStructuredText)
 examples/              # runnable usage examples
 ```
@@ -72,7 +72,8 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 ### Public API and data contract
 
 - The public API is the names listed in `__all__` of each module (`metrics.py`, `segmentations.py`, `errors/metrics.py`, …), imported through their full path, e.g. `from recsyslearn.accuracy.metrics import NDCG`. Everything else is internal and may change without notice.
-- `__init__.py` files contain only the package docstring: no imports, no re-exports, no `__all__`. **(planned, #71)**
+- Internal names start with a single underscore, so that the name alone says they are not public: helpers (`_describe_zero_labels`), methods (`NDCG._dcg`) and whole modules that export nothing public (`recsyslearn/_utils.py`, `recsyslearn/fairness/_utils.py`). Neither the underscore nor `__all__` prevents an import; they state the contract.
+- `__init__.py` files contain only the package docstring: no imports, no re-exports, no `__all__`. The top-level `recsyslearn/__init__.py` also holds the package metadata (`__version__`, `__author__`, `__email__`).
 - Inputs are pandas DataFrames with standard column names:
 
   | Column | Type | Meaning |
@@ -84,11 +85,11 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
   | `pos_items` | array of `item` | relevant items of a user |
   | `target_representation` | `float` | desired share of exposure for a group |
 
-  Required columns are checked with `check_columns_exist` from `recsyslearn/utils.py`.
+  Required columns are checked with `check_columns_exist` from `recsyslearn/_utils.py`.
 
 ### Metrics
 
-- Each metric family has an abstract base class (`AccuracyMetric`, `BeyondAccuracyMetric`, `FairnessMetric`) declaring `evaluate` as `@abstractmethod`, with one consistent style (classmethod or instance method) across families. **(planned, #71)**
+- Each metric family has an abstract base class (`AccuracyMetric`, `BeyondAccuracyMetric`, `FairnessMetric`) declaring `evaluate` as `@abstractmethod`; segmentations subclass `Segmentation`, which declares `segment` in the same way. `evaluate` and `segment` are instance methods in every family, so configuration can go in the constructor: `NDCG().evaluate(...)`, `InteractionSegmentation().segment(...)`.
 - **Every metric cites its source**: paper, equation number and formula (`.. math::`) in the docstring. When the literature has variants (e.g. NDCG gain `2^rel − 1` vs `rel`), the docstring states which one is implemented. Metrics without a verifiable reference are not accepted.
 - **Output.** Every metric returns both the value for each user and the mean over all users (macro-average: each user weighs equally). All metrics return the same result type, e.g. a `MetricResult` dataclass with `per_user` (DataFrame with `user` and one column per cut-off, such as `NDCG@5`) and `aggregate` (Series with the mean per cut-off), so calling code does not need to tell metrics apart. **(planned, #71)**
   - **Exception:** metrics that cannot be computed per user, because they are defined only over the whole user population, must not return per-user values: they return only the aggregate value (`per_user` is `None`). This covers the fairness metrics (`Entropy`, `KullbackLeibler`, `MutualInformation`) and `Coverage`. Do not invent per-user variants that are not in the cited paper.
@@ -99,8 +100,8 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 
 - **Inputs are never mutated.** A function that needs to modify a column works on a copy of that column, not on the caller's DataFrame (see also Performance).
 - **Pure and deterministic.** No global state. Randomness only through an explicit `seed` parameter.
-- **Input validation** uses the custom exceptions in `recsyslearn/errors/`, one module per domain (`validation.py`, `metrics.py`, `segmentation.py`), never `assert` (assertions are stripped with `python -O`) **(planned, #71)**. Each exception stands on its own and inherits from the built-in exception that matches its meaning (e.g. `DivisionByZeroException` from `ZeroDivisionError`), not from a common recsyslearn base class.
-- **Division by zero** always raises the same custom exception, `DivisionByZeroException`, through a single helper, `safe_divide` in `recsyslearn/utils.py`. No direct division in metrics. The message names the metric and, for per-user metrics, the user or group. Terms of the form 0 · log(0 / q) are excluded before dividing, following the convention 0 · log(0 / q) = 0; they are not division errors.
+- **Input validation** uses the custom exceptions in `recsyslearn/errors/`, one module per domain (`validation.py`, `metrics.py`, `segmentation.py`), never `assert` (assertions are stripped with `python -O`). Each exception stands on its own and inherits from the built-in exception that matches its meaning (e.g. `DivisionByZeroException` from `ZeroDivisionError`), not from a common recsyslearn base class.
+- **Division by zero** always raises the same custom exception, `DivisionByZeroException`, through a single helper, `safe_divide` in `recsyslearn/_utils.py`. No direct division in metrics. The message names the metric and, for per-user metrics, the user or group. Terms of the form 0 · log(0 / q) are excluded before dividing, following the convention 0 · log(0 / q) = 0; they are not division errors.
 
 ### Code style
 
@@ -122,7 +123,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 
 ## 4. Testing
 
-- `unittest`, one `tests/test_<family>.py` per package (`tests/test_utils.py` for `recsyslearn/utils.py`). Fixture builders are named after what they contain (e.g. `top_5`, `binary_relevance`), not numbered.
+- `unittest`, one `tests/test_<family>.py` per package (`tests/test_utils.py` for `recsyslearn/_utils.py`). Fixture builders are named after what they contain (e.g. `top_5`, `binary_relevance`), not numbered.
 - **Fixtures** are built by small builder functions in `tests/fixtures.py` (e.g. `make_top_n({"1": ["3", "4"]})` → rows `user, item, rank`) that return a new DataFrame on every call. No DataFrame shared at module level: a test that mutates its input must not affect other tests. Fixture data stays small and explicit, so that expected values can be computed by hand; no randomly generated data in value-based tests.
 - **Expected values** are computed in the test from the formula taken from the cited paper, with the reference in the test method docstring (e.g. `"""NDCG@2, Järvelin & Kekäläinen 2002, eq. 3."""`). Never copy expected values from the output of the implementation.
 - **Property-based tests** with [Hypothesis](https://hypothesis.readthedocs.io) complement, and never replace, value-based tests. They check mathematical invariants on generated inputs: NDCG in [0, 1] and equal to 1 for a perfect ranking, `Coverage` ≤ 1, KL ≥ 0, result unchanged when rows are shuffled, input not mutated. Hypothesis runs with `derandomize=True` (profile loaded in `tests/__init__.py`) so that CI stays deterministic, and the strategies that generate valid inputs live in `tests/strategies.py`, separate from the hand-written fixtures so that the two kinds of data are not mixed. **(planned, #71)**

@@ -29,7 +29,7 @@ class WrongProportionsException(Exception):
 class InvalidValueException(Exception):
     """Exception raised when the value of fill_na of the segmentation value is invalid."""
 
-    def __init__(self, fill_na) -> None:
+    def __init__(self, fill_na: object) -> None:
         message = (
             f"Feature contains {fill_na} as value. Please select another fill_na value."
         )
@@ -39,5 +39,5 @@ class InvalidValueException(Exception):
 class InvalidGroupException(Exception):
     """Exception raised when user wants to segment a non valid group"""
 
-    def __init__(self, user_group) -> None:
+    def __init__(self, user_group: str) -> None:
         super().__init__(f"{user_group} is not a valid group")
