@@ -100,7 +100,21 @@ def user_groups() -> pd.DataFrame:
     )
 
 
-def first_example() -> pd.DataFrame:
+def top_5() -> pd.DataFrame:
+    """Top-5 recommendation lists for six users, ranked by position."""
+    return make_top_n(
+        {
+            "1": ["2", "8", "5", "3", "6"],
+            "2": ["1", "2", "6", "7", "9"],
+            "3": ["6", "5", "8", "7", "9"],
+            "4": ["1", "2", "3", "4", "5"],
+            "5": ["5", "4", "3", "2", "1"],
+            "6": ["9", "8", "6", "3", "4"],
+        }
+    )
+
+
+def top_5_unranked() -> pd.DataFrame:
     """Five items per user for six users, all with rank 1, so every item has exposure 1."""
     return make_top_n(
         {
@@ -115,8 +129,8 @@ def first_example() -> pd.DataFrame:
     )
 
 
-def second_example() -> pd.DataFrame:
-    """Six items per user for six users, with ranks from 1 to 6 not in list order."""
+def top_6() -> pd.DataFrame:
+    """Top-6 recommendation lists for six users, with explicit ranks from 1 to 6 not in row order."""
     return make_scores(
         {
             "1": [("1", 1), ("3", 6), ("4", 3), ("5", 4), ("8", 5), ("9", 2)],
@@ -129,22 +143,8 @@ def second_example() -> pd.DataFrame:
     )
 
 
-def top_n_1() -> pd.DataFrame:
-    """Top-5 recommendation lists for six users, ranked by position."""
-    return make_top_n(
-        {
-            "1": ["2", "8", "5", "3", "6"],
-            "2": ["1", "2", "6", "7", "9"],
-            "3": ["6", "5", "8", "7", "9"],
-            "4": ["1", "2", "3", "4", "5"],
-            "5": ["5", "4", "3", "2", "1"],
-            "6": ["9", "8", "6", "3", "4"],
-        }
-    )
-
-
-def rel_matrix_1() -> pd.DataFrame:
-    """Relevant items (relevance 1) of users 1, 2, 3, 4 and 6."""
+def binary_relevance() -> pd.DataFrame:
+    """Relevant items with binary relevance (1) of users 1, 2, 3, 4 and 6; user 5 has none."""
     return make_top_n(
         {
             "1": ["2", "9"],
@@ -157,23 +157,8 @@ def rel_matrix_1() -> pd.DataFrame:
     )
 
 
-def rel_matrix_2() -> pd.DataFrame:
-    """Relevant items (relevance 1) of all six users."""
-    return make_top_n(
-        {
-            "1": ["2", "9"],
-            "2": ["6", "7"],
-            "3": ["1", "3", "4", "5", "7", "9"],
-            "4": ["2", "3", "5", "7", "8", "9"],
-            "5": ["1", "2", "4", "5", "6", "9"],
-            "6": ["1", "2", "6", "8", "9"],
-        },
-        rank=1,
-    )
-
-
-def rel_matrix_3() -> pd.DataFrame:
-    """The relevant items of rel_matrix_2 with graded relevance scores."""
+def graded_relevance() -> pd.DataFrame:
+    """Relevant items of all six users with graded relevance scores (0.143 or 0.077)."""
     return make_scores(
         {
             "1": [("2", 0.143), ("9", 0.077)],
@@ -213,9 +198,9 @@ def rel_matrix_3() -> pd.DataFrame:
     )
 
 
-def rel_matrix_4() -> pd.DataFrame:
-    """Relevant items (relevance 1) of all six users; user 6 has a single relevant item."""
-    return make_top_n(
+def pos_items() -> pd.DataFrame:
+    """Relevant items of all six users in the form (user, pos_items); user 6 has a single relevant item."""
+    relevance = make_top_n(
         {
             "1": ["2", "9"],
             "2": ["6", "7"],
@@ -226,14 +211,10 @@ def rel_matrix_4() -> pd.DataFrame:
         },
         rank=1,
     )
+    return find_relevant_items(relevance)
 
 
-def pos_items() -> pd.DataFrame:
-    """Relevant items of each user of rel_matrix_4, in the form (user, pos_items)."""
-    return find_relevant_items(rel_matrix_4())
-
-
-def dataset_item_example() -> pd.DataFrame:
+def item_interactions() -> pd.DataFrame:
     """Five interactions: item 1 by users 1, 2 and 3, item 2 twice by user 1."""
     return pd.DataFrame(
         [["1", "1", 1], ["2", "1", 1], ["3", "1", 1], ["1", "2", 1], ["1", "2", 1]],
@@ -241,13 +222,13 @@ def dataset_item_example() -> pd.DataFrame:
     )
 
 
-def dataset_user_example() -> pd.DataFrame:
+def user_interactions() -> pd.DataFrame:
     """User 1 interacts four times with items 1 to 9, user 2 twice and user 3 once with item 1."""
     items = [str(item) for item in range(1, 10)]
     return make_top_n({"1": items * 4, "2": ["1", "1"], "3": ["1"]}, rank=1)
 
 
-def dataset_popularity() -> pd.DataFrame:
+def popularity_interactions() -> pd.DataFrame:
     """Ten interactions: item 1 six times, item 2 three times, item 3 once."""
     return pd.DataFrame(
         [
@@ -266,8 +247,8 @@ def dataset_popularity() -> pd.DataFrame:
     )
 
 
-def item_pop_perc() -> pd.DataFrame:
-    """Popularity percentage of ten items."""
+def item_popularity() -> pd.DataFrame:
+    """Popularity percentage of ten items, in the form (item, percentage)."""
     return make_mapping(
         {
             "1": 0.05,
@@ -286,12 +267,7 @@ def item_pop_perc() -> pd.DataFrame:
     )
 
 
-def user_pop_perc() -> pd.DataFrame:
-    """Popularity percentage of three users."""
-    return make_mapping({"1": 0.7, "2": 0.2, "3": 0.1}, key="user", value="percentage")
-
-
-def item_feature() -> pd.DataFrame:
+def item_genres() -> pd.DataFrame:
     """Genre of four items."""
     return make_mapping(
         {"1": "pop", "2": "pop", "3": "electronic", "4": "rock"},
@@ -300,13 +276,13 @@ def item_feature() -> pd.DataFrame:
     )
 
 
-def user_feature() -> pd.DataFrame:
+def user_genders() -> pd.DataFrame:
     """Gender of four users, two of them missing (None and NaN)."""
     return make_mapping(
         {"1": "m", "2": "f", "3": None, "4": np.nan}, key="user", value="gender"
     )
 
 
-def user_error_feature() -> pd.DataFrame:
-    """Age of three users, one of them equal to the default fill_na value -1."""
+def user_ages() -> pd.DataFrame:
+    """Age of three users; user 3 has -1, the default fill_na value of DiscreteFeatureSegmentation."""
     return make_mapping({"1": 19, "2": 30, "3": -1}, key="user", value="age")

@@ -16,12 +16,12 @@ from recsyslearn.errors.segmentation import (
     WrongProportionsException,
 )
 from tests.fixtures import (
-    dataset_item_example,
-    dataset_popularity,
-    dataset_user_example,
-    item_feature,
-    user_error_feature,
-    user_feature,
+    item_genres,
+    item_interactions,
+    popularity_interactions,
+    user_ages,
+    user_genders,
+    user_interactions,
 )
 
 
@@ -31,7 +31,7 @@ class InteractionSegmentationTest(unittest.TestCase):
     """
 
     def test_segmentation_1(self) -> None:
-        segmented_groups = InteractionSegmentation().segment(dataset_item_example())
+        segmented_groups = InteractionSegmentation().segment(item_interactions())
         self.assertTrue(
             segmented_groups.loc[segmented_groups["item"] == "1", "group"].eq("1").all()
         )
@@ -40,7 +40,7 @@ class InteractionSegmentationTest(unittest.TestCase):
         )
 
     def test_segmentation_2(self) -> None:
-        segmented_groups = InteractionSegmentation().segment(dataset_item_example())
+        segmented_groups = InteractionSegmentation().segment(item_interactions())
         self.assertTrue(
             segmented_groups.loc[segmented_groups["item"] == "1", "group"].eq("1").all()
         )
@@ -52,30 +52,28 @@ class InteractionSegmentationTest(unittest.TestCase):
         )
 
     def test_segmentation_mantissa(self) -> None:
-        InteractionSegmentation().segment(dataset_item_example(), [0.6, 0.3, 0.1])
+        InteractionSegmentation().segment(item_interactions(), [0.6, 0.3, 0.1])
 
     def test_segmentation_entire_dataset(self) -> None:
         self.assertIsNone(
             assert_frame_equal(
-                dataset_item_example(),
-                InteractionSegmentation().segment(dataset_item_example(), [1]),
+                item_interactions(),
+                InteractionSegmentation().segment(item_interactions(), [1]),
             )
         )
 
     def test_segmentation_not_supported(self) -> None:
         with self.assertRaises(SegmentationNotSupportedException):
-            InteractionSegmentation().segment(
-                dataset_item_example(), [0.7, 0.1, 0.1, 0.1]
-            )
+            InteractionSegmentation().segment(item_interactions(), [0.7, 0.1, 0.1, 0.1])
 
     def test_segmentation_wrong_proportion(self) -> None:
         with self.assertRaises(WrongProportionsException):
-            InteractionSegmentation().segment(dataset_item_example(), [0.7, 0.4])
+            InteractionSegmentation().segment(item_interactions(), [0.7, 0.4])
 
     def test_segmentation_group_typo(self) -> None:
         with self.assertRaises(InvalidGroupException):
             InteractionSegmentation().segment(
-                dataset_item_example(), [0.7, 0.3], 1, "users"
+                item_interactions(), [0.7, 0.3], 1, "users"
             )
 
 
@@ -85,7 +83,7 @@ class ItemPopularityPercentageTest(unittest.TestCase):
     """
 
     def test_popularity(self) -> None:
-        popularity_dataframe = PopularityPercentage().segment(dataset_popularity())
+        popularity_dataframe = PopularityPercentage().segment(popularity_interactions())
         self.assertTrue((popularity_dataframe["percentage"] < 1.0).all())
         self.assertAlmostEqual(
             1.0, popularity_dataframe["percentage"].sum(), delta=1e-5
@@ -114,7 +112,7 @@ class UserPopularityPercentageTest(unittest.TestCase):
 
     def test_popularity(self) -> None:
         popularity_dataframe = PopularityPercentage().segment(
-            dataset_popularity(), group="user"
+            popularity_interactions(), group="user"
         )
         self.assertTrue((popularity_dataframe["percentage"] < 1.0).all())
         self.assertAlmostEqual(
@@ -143,7 +141,7 @@ class ActivitySegmentationTest(unittest.TestCase):
     """
 
     def test_segmentation(self) -> None:
-        segmented_groups = ActivitySegmentation().segment(dataset_user_example())
+        segmented_groups = ActivitySegmentation().segment(user_interactions())
         self.assertTrue(
             segmented_groups.loc[segmented_groups["user"] == "1", "group"].eq("1").all()
         )
@@ -157,20 +155,18 @@ class ActivitySegmentationTest(unittest.TestCase):
     def test_segmentation_entire_dataset(self) -> None:
         self.assertIsNone(
             assert_frame_equal(
-                dataset_user_example(),
-                ActivitySegmentation().segment(dataset_user_example(), [1]),
+                user_interactions(),
+                ActivitySegmentation().segment(user_interactions(), [1]),
             )
         )
 
     def test_segmentation_not_supported(self) -> None:
         with self.assertRaises(SegmentationNotSupportedException):
-            InteractionSegmentation().segment(
-                dataset_item_example(), [0.7, 0.1, 0.1, 0.1]
-            )
+            InteractionSegmentation().segment(item_interactions(), [0.7, 0.1, 0.1, 0.1])
 
     def test_segmentation_wrong_proportion(self) -> None:
         with self.assertRaises(WrongProportionsException):
-            ActivitySegmentation().segment(dataset_user_example(), [0.7, 0.4])
+            ActivitySegmentation().segment(user_interactions(), [0.7, 0.4])
 
 
 class UserDiscreteFeatureSegmentationTest(unittest.TestCase):
@@ -179,7 +175,7 @@ class UserDiscreteFeatureSegmentationTest(unittest.TestCase):
     """
 
     def test_segmentation(self) -> None:
-        segmented_groups = DiscreteFeatureSegmentation().segment(feature=user_feature())
+        segmented_groups = DiscreteFeatureSegmentation().segment(feature=user_genders())
         self.assertTrue(
             len(
                 np.intersect1d(
@@ -219,7 +215,7 @@ class UserDiscreteFeatureSegmentationTest(unittest.TestCase):
 
     def test_segmentation_invalid_value(self) -> None:
         with self.assertRaises(InvalidValueException):
-            DiscreteFeatureSegmentation().segment(feature=user_error_feature())
+            DiscreteFeatureSegmentation().segment(feature=user_ages())
 
 
 class ItemDiscreteFeatureSegmentationTest(unittest.TestCase):
@@ -228,7 +224,7 @@ class ItemDiscreteFeatureSegmentationTest(unittest.TestCase):
     """
 
     def test_segmentation(self) -> None:
-        segmented_groups = DiscreteFeatureSegmentation().segment(feature=item_feature())
+        segmented_groups = DiscreteFeatureSegmentation().segment(feature=item_genres())
         self.assertTrue(
             len(
                 np.intersect1d(

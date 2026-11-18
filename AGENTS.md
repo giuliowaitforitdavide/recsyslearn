@@ -19,7 +19,7 @@ recsyslearn/
 ├── dataset/           # segmentations and dataset utilities
 ├── errors/            # custom exceptions
 └── utils.py           # shared helpers (input validation, …)
-tests/                 # unittest suite, one test_<family>.py per package
+tests/                 # unittest suite: one test_<family>.py per package, test_helpers.py for utils.py
 docs/                  # Sphinx documentation (reStructuredText)
 examples/              # runnable usage examples
 ```
@@ -122,7 +122,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 
 ## 4. Testing
 
-- `unittest`, one `tests/test_<family>.py` per package.
+- `unittest`, one `tests/test_<family>.py` per package (`tests/test_helpers.py` for `recsyslearn/utils.py`). Fixture builders are named after what they contain (e.g. `top_5`, `binary_relevance`), not numbered.
 - **Fixtures** are built by small builder functions in `tests/fixtures.py` (e.g. `make_top_n({"1": ["3", "4"]})` → rows `user, item, rank`) that return a new DataFrame on every call. No DataFrame shared at module level: a test that mutates its input must not affect other tests. Fixture data stays small and explicit, so that expected values can be computed by hand; no randomly generated data in value-based tests.
 - **Expected values** are computed in the test from the formula taken from the cited paper, with the reference in the test method docstring (e.g. `"""NDCG@2, Järvelin & Kekäläinen 2002, eq. 3."""`). Never copy expected values from the output of the implementation.
 - **Property-based tests** with [Hypothesis](https://hypothesis.readthedocs.io) complement, and never replace, value-based tests. They check mathematical invariants on generated inputs: NDCG in [0, 1] and equal to 1 for a perfect ranking, `Coverage` ≤ 1, KL ≥ 0, result unchanged when rows are shuffled, input not mutated. Hypothesis runs with `derandomize=True` (profile loaded in `tests/__init__.py`) so that CI stays deterministic, and the strategies that generate valid inputs live in `tests/strategies.py`, separate from the hand-written fixtures so that the two kinds of data are not mixed. **(planned, #71)**
