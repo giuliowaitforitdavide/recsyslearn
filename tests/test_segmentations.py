@@ -109,6 +109,14 @@ class InteractionSegmentationTest(TestCase):
                     with self.subTest(first=first, second=second):
                         self.assertLessEqual(group[first], group[second])
 
+    @given(
+        strategies.interactions(), VALID_PROPORTIONS, st.sampled_from(["item", "user"])
+    )
+    def test_does_not_mutate_the_input(self, data, proportions, group) -> None:
+        original = data.copy()
+        InteractionSegmentation().segment(data, proportions, group=group)
+        assert_frame_equal(data, original)
+
 
 class ActivitySegmentationTest(TestCase):
     def test_most_active_user_goes_to_the_first_group(self) -> None:
@@ -239,6 +247,12 @@ class PopularityPercentageTest(TestCase):
             with self.subTest(item=item):
                 self.assertAlmostEqual(share, expected[item])
 
+    @given(strategies.interactions(), st.sampled_from(["item", "user"]))
+    def test_does_not_mutate_the_input(self, data, group) -> None:
+        original = data.copy()
+        PopularityPercentage().segment(data, group=group)
+        assert_frame_equal(data, original)
+
 
 class DiscreteFeatureSegmentationTest(TestCase):
     def test_users_with_different_values_get_different_groups(self) -> None:
@@ -284,9 +298,15 @@ class DiscreteFeatureSegmentationTest(TestCase):
         ):
             DiscreteFeatureSegmentation().segment(feature=user_ages())
 
+    def test_does_not_mutate_the_input(self) -> None:
+        """Regression test for #89: with pandas 3 the str feature column became object."""
+        feature = user_genders()
+        DiscreteFeatureSegmentation().segment(feature=feature)
+        assert_frame_equal(feature, user_genders())
+
     @given(strategies.discrete_features(key="item"))
     def test_entities_with_the_same_value_share_a_group(self, feature) -> None:
-        segmented = DiscreteFeatureSegmentation().segment(feature=feature.copy())
+        segmented = DiscreteFeatureSegmentation().segment(feature=feature)
         values = feature["feature"].fillna("missing")
         for value in values.unique():
             with self.subTest(value=value):
@@ -294,9 +314,15 @@ class DiscreteFeatureSegmentationTest(TestCase):
 
     @given(strategies.discrete_features(key="item"))
     def test_entities_with_different_values_get_different_groups(self, feature) -> None:
-        segmented = DiscreteFeatureSegmentation().segment(feature=feature.copy())
+        segmented = DiscreteFeatureSegmentation().segment(feature=feature)
         values = feature["feature"].fillna("missing")
         self.assertEqual(segmented["group"].nunique(), values.nunique())
+
+    @given(strategies.discrete_features(key="item"))
+    def test_does_not_mutate_generated_input(self, feature) -> None:
+        original = feature.copy()
+        DiscreteFeatureSegmentation().segment(feature=feature)
+        assert_frame_equal(feature, original)
 
 
 class FindRelevantItemsTest(TestCase):
