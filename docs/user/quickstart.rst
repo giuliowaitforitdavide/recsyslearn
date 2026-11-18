@@ -157,8 +157,8 @@ user or group that caused it. Common cases:
 * ``KullbackLeibler``: a group that receives exposure has a target
   representation of 0, so the divergence is infinite.
 
-``DivisionByZeroException`` is also a ``ZeroDivisionError``, and every
-exception raised by recsyslearn inherits from ``RecsyslearnException``:
+``DivisionByZeroException`` is also a ``ZeroDivisionError``, so it can be
+caught with either:
 
 .. code-block:: python
 
