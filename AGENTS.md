@@ -99,7 +99,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 
 - **Inputs are never mutated.** A function that needs to modify a column works on a copy of that column, not on the caller's DataFrame (see also Performance).
 - **Pure and deterministic.** No global state. Randomness only through an explicit `seed` parameter.
-- **Input validation** uses the custom exceptions in `recsyslearn/errors/`, one module per domain (`validation.py`, `metrics.py`, `segmentation.py`; the common base class is in `base.py`), never `assert` (assertions are stripped with `python -O`) **(planned, #71)**. All custom exceptions inherit from a common `RecsyslearnException`.
+- **Input validation** uses the custom exceptions in `recsyslearn/errors/`, one module per domain (`validation.py`, `metrics.py`, `segmentation.py`), never `assert` (assertions are stripped with `python -O`) **(planned, #71)**. Each exception stands on its own and inherits from the built-in exception that matches its meaning (e.g. `DivisionByZeroException` from `ZeroDivisionError`), not from a common recsyslearn base class.
 - **Division by zero** always raises the same custom exception, `DivisionByZeroException`, through a single helper, `safe_divide` in `recsyslearn/utils.py`. No direct division in metrics. The message names the metric and, for per-user metrics, the user or group. Terms of the form 0 · log(0 / q) are excluded before dividing, following the convention 0 · log(0 / q) = 0; they are not division errors.
 
 ### Code style

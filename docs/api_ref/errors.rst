@@ -1,11 +1,6 @@
 Exceptions
 ==========
 
-Every exception raised by recsyslearn inherits from ``RecsyslearnException``.
-
-.. automodule:: recsyslearn.errors.base
-    :members:
-
 Input validation
 ----------------
 

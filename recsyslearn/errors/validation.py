@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from recsyslearn.errors.base import RecsyslearnException
-
 __all__ = ["ColumnsNotExistException"]
 
 
-class ColumnsNotExistException(RecsyslearnException):
+class ColumnsNotExistException(Exception):
     """Exception raised when columns are not found in the DataFrame."""
 
     def __init__(

@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from recsyslearn.errors.base import RecsyslearnException
-
 __all__ = ["DivisionByZeroException", "RecListTooShortException"]
 
 
-class DivisionByZeroException(RecsyslearnException, ZeroDivisionError):
+class DivisionByZeroException(ZeroDivisionError):
     """
     Exception raised when a metric divides by zero, i.e. when its value is undefined for the given input.
 
@@ -19,7 +17,7 @@ class DivisionByZeroException(RecsyslearnException, ZeroDivisionError):
         super().__init__(f"{metric}: division by zero{location}.")
 
 
-class RecListTooShortException(RecsyslearnException):
+class RecListTooShortException(Exception):
     """Exception raised when the values for the recommendation list length is not compatbile with the dataset."""
 
     def __init__(

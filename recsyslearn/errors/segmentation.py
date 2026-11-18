@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from recsyslearn.errors.base import RecsyslearnException
-
 __all__ = [
     "InvalidGroupException",
     "InvalidValueException",
@@ -12,14 +10,14 @@ __all__ = [
 ]
 
 
-class SegmentationNotSupportedException(RecsyslearnException):
+class SegmentationNotSupportedException(Exception):
     """Exception raised when there are too many group to be segmented."""
 
     def __init__(self, message: str) -> None:
         super().__init__(message)
 
 
-class WrongProportionsException(RecsyslearnException):
+class WrongProportionsException(Exception):
     """Exception raised when proportions of the segmentation does not cover all the items or users."""
 
     def __init__(
@@ -28,7 +26,7 @@ class WrongProportionsException(RecsyslearnException):
         super().__init__(message)
 
 
-class InvalidValueException(RecsyslearnException):
+class InvalidValueException(Exception):
     """Exception raised when the value of fill_na of the segmentation value is invalid."""
 
     def __init__(self, fill_na) -> None:
@@ -38,7 +36,7 @@ class InvalidValueException(RecsyslearnException):
         super().__init__(message)
 
 
-class InvalidGroupException(RecsyslearnException):
+class InvalidGroupException(Exception):
     """Exception raised when user wants to segment a non valid group"""
 
     def __init__(self, user_group) -> None:
