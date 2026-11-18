@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from recsyslearn.utils import check_columns_exist
+from recsyslearn._utils import check_columns_exist
 
 __all__ = ["find_relevant_items"]
 

@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 
-from recsyslearn.fairness.utils import eff_matrix, exp_matrix, prob_matrix
-from recsyslearn.utils import check_columns_exist, safe_divide
+from recsyslearn.fairness._utils import eff_matrix, exp_matrix, prob_matrix
+from recsyslearn._utils import check_columns_exist, safe_divide
 
 __all__ = ["Entropy", "FairnessMetric", "KullbackLeibler", "MutualInformation"]
 

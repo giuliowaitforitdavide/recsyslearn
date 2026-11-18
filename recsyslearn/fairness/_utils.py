@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from recsyslearn.utils import check_columns_exist, safe_divide
+from recsyslearn._utils import check_columns_exist, safe_divide
 
 
 def exp_matrix(top_n: pd.DataFrame, metric: str = "exp_matrix") -> pd.DataFrame:

@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 
-from recsyslearn.utils import check_columns_exist, safe_divide
+from recsyslearn._utils import check_columns_exist, safe_divide
 
 __all__ = ["BeyondAccuracyMetric", "Coverage", "Novelty"]
 

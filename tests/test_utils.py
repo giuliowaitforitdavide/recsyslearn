@@ -1,4 +1,4 @@
-"""Tests of the shared helpers in recsyslearn/utils.py."""
+"""Tests of the shared helpers in recsyslearn/_utils.py."""
 
 import unittest
 
@@ -10,7 +10,7 @@ from pandas.testing import assert_series_equal
 
 from recsyslearn.errors.metrics import DivisionByZeroException
 from recsyslearn.errors.validation import ColumnsNotExistException
-from recsyslearn.utils import check_columns_exist, safe_divide
+from recsyslearn._utils import check_columns_exist, safe_divide
 from tests.case import TestCase
 
 
