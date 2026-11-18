@@ -142,10 +142,15 @@ class ActivitySegmentation(Segmentation):
         """
         Segmentation of users based on their interactions with different items.
 
+        Users are ranked by their number of interactions, from the most to the least active, and
+        split into groups by position in that ranking. Users with the same number of interactions
+        are ordered by user id, so the same dataset always gives the same groups, whatever the
+        order of its rows.
+
         :param dataset: The complete dataset.
         :type dataset: pd.DataFrame
-        :param proportions: The proportion of interactions wanted for every group.
-        :type proportions: list, default [0.8, 0.2]
+        :param proportions: The share of users wanted for every group, from the most active one.
+        :type proportions: list, default [0.1, 0.9]
         :param min_interaction: The minimum number of interaction allowed per user. Users below this threshold will be removed.
         :type min_interaction: int, default 0
         :raises SegmentationNotSupportedException: If len(proportion) not in (1, 2, 3).
@@ -171,10 +176,8 @@ class ActivitySegmentation(Segmentation):
         user_groups = dataset.groupby("user").size().reset_index(name="count")
         user_groups = user_groups.loc[user_groups["count"] >= min_interaction, :]
 
-        user_groups.loc[:, "count"] = user_groups.loc[:, "count"].apply(
-            lambda x: x + np.random.choice(list(range(10)))
-        )
-        user_groups = user_groups.sort_values("count", ascending=False)
+        # groupby returns the users sorted by id, so a stable sort breaks ties by user id
+        user_groups = user_groups.sort_values("count", ascending=False, kind="stable")
         user_groups.loc[:, "count"] = np.arange(user_groups.shape[0]) + 1
         first_thr = np.rint(proportions[0] * user_groups.shape[0])
         second_thr = np.rint(proportions[1] * user_groups.shape[0]) + first_thr
