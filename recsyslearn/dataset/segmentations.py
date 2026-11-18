@@ -218,16 +218,18 @@ class DiscreteFeatureSegmentation(Segmentation):
         :rtype: pd.DataFrame
         """
 
-        if fill_na in feature[feature.columns[1]].unique():
+        column = feature.columns[1]
+        values = feature[column]
+
+        if fill_na in values.unique():
             raise InvalidValueException(fill_na)
 
         # The str dtype (default for strings since pandas 3) rejects a non-string fill_na
-        if isinstance(feature[feature.columns[1]].dtype, pd.StringDtype):
-            feature[feature.columns[1]] = feature[feature.columns[1]].astype(object)
-        feature = feature.fillna({str(feature.columns[1]): fill_na})
+        if isinstance(values.dtype, pd.StringDtype):
+            values = values.astype(object)
+        groups = values.fillna(fill_na).astype("category").cat.codes
 
-        feature[feature.columns[1]] = (
-            feature[feature.columns[1]].astype("category").cat.codes
-        )
-        feature = feature.rename({str(feature.columns[1]): "group"}, axis="columns")
-        return feature
+        # A shallow copy shares the data; assigning the column replaces it only in the copy
+        segmented = feature.copy(deep=False)
+        segmented[column] = groups
+        return segmented.rename(columns={column: "group"})
