@@ -38,34 +38,33 @@ def safe_divide(
 
     is_zero = np.asarray(denominator) == 0
     if is_zero.any():
-        raise DivisionByZeroException(metric, _describe_zero_labels(labels, is_zero))
+        raise DivisionByZeroException(metric, describe_labels(labels, is_zero))
     return numerator / denominator
 
 
-def _describe_zero_labels(
-    labels: str | pd.Series | None, is_zero: np.ndarray
-) -> str | None:
+def describe_labels(labels: str | pd.Series | None, mask: np.ndarray) -> str | None:
     """
-    Describe which entries have a zero denominator, for the message of DivisionByZeroException.
+    Describe the entries selected by a mask (e.g. the zero denominators), for an error message.
 
     The labels are sorted, so the message does not depend on the order of the input rows.
 
-    :param labels: The labels passed to safe_divide.
+    :param labels: What the entries refer to: a string, or a Series aligned with the mask whose
+        name and values identify the entries.
     :type labels: str, pd.Series or None
-    :param is_zero: Boolean mask of the zero denominators.
-    :type is_zero: np.ndarray
+    :param mask: Boolean mask of the entries to describe.
+    :type mask: np.ndarray
     :return: A description such as "group b, c", or None when no labels are given.
     :rtype: str or None
     """
 
     if labels is None or isinstance(labels, str):
         return labels
-    if is_zero.ndim == 0:
+    if mask.ndim == 0:
         return labels.name
-    zero_labels = _sorted(pd.unique(np.asarray(labels)[is_zero.ravel()]))
-    shown = ", ".join(str(label) for label in zero_labels[:_MAX_LABELS_IN_MESSAGE])
-    if len(zero_labels) > _MAX_LABELS_IN_MESSAGE:
-        shown += f" and {len(zero_labels) - _MAX_LABELS_IN_MESSAGE} more"
+    selected = _sorted(pd.unique(np.asarray(labels)[mask.ravel()]))
+    shown = ", ".join(str(label) for label in selected[:_MAX_LABELS_IN_MESSAGE])
+    if len(selected) > _MAX_LABELS_IN_MESSAGE:
+        shown += f" and {len(selected) - _MAX_LABELS_IN_MESSAGE} more"
     return f"{labels.name} {shown}" if labels.name else shown
 
 

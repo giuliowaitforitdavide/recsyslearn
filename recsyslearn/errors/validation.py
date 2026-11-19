@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-__all__ = ["ColumnsNotExistException", "InvalidGroupException"]
+__all__ = [
+    "ColumnsNotExistException",
+    "InvalidGroupException",
+    "InvalidPopularityException",
+]
 
 
 class ColumnsNotExistException(Exception):
@@ -19,3 +23,11 @@ class InvalidGroupException(ValueError):
 
     def __init__(self, user_group: str) -> None:
         super().__init__(f"{user_group} is not a valid group")
+
+
+class InvalidPopularityException(ValueError):
+    """Exception raised when a popularity is not a probability in (0, 1]."""
+
+    def __init__(self, metric: str, where: str | None = None) -> None:
+        location = f" for {where}" if where else ""
+        super().__init__(f"{metric}: popularity must be in (0, 1]{location}.")

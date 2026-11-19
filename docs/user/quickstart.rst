@@ -79,23 +79,20 @@ To evaluate the Beyond Accuracy (e.g. Novelty) of your recommendation system:
 
     import json
     import pandas as pd
-    from recsyslearn.beyond_accuracy.metrics import Coverage, Novelty
-    from recsyslearn.dataset.segmentations import InteractionSegmentation
+    from recsyslearn.beyond_accuracy.metrics import Novelty
+    from recsyslearn.dataset.segmentations import PopularityPercentage
 
     # Read the entire dataset (in the form user, item, rank)
     train_data = pd.read_csv("train_dataset.csv")
 
-    # Segment the dataset in two groups based on the item popularity
-    segmented_items = InteractionSegmentation().segment(train_data, [0.8, 0.2])
+    # Popularity of each item: its share of the interactions, in the column "percentage"
+    popularity = PopularityPercentage().segment(train_data)
 
     # Read the recommendation lists (in the form user, item, rank)
     top_k = pd.read_csv("top_k.csv")
 
-    # Merge the recommendation lists with the item groups
-    top_k_with_item_groups = top_k.merge(segmented_items, on="item")
-
-    # Evaluate the Novelty
-    novelty = Novelty().evaluate(top_k_with_item_groups)
+    # Evaluate the Novelty: -log2(popularity), averaged over each list and then over users
+    novelty = Novelty().evaluate(top_k.merge(popularity, on="item"))
 
     # Print the results
     print(json.dumps({"novelty": novelty.aggregate}, indent=4))

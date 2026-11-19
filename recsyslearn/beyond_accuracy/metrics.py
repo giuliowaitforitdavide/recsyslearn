@@ -5,7 +5,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 
-from recsyslearn._utils import check_columns_exist, safe_divide
+from recsyslearn._utils import describe_labels, check_columns_exist, safe_divide
+from recsyslearn.errors.validation import InvalidPopularityException
 from recsyslearn.result import MetricResult
 
 __all__ = ["BeyondAccuracyMetric", "Coverage", "Novelty"]
@@ -55,31 +56,36 @@ class Novelty(BeyondAccuracyMetric):
     """
     Novelty evaluator for recommender systems.
     Used formula can be found here https://doi.org/10.1007/s13735-018-0154-2
-    where popularity is defined in terms of the segmentation of the item groups
-    (e.g. short head -> 3, mid tail   -> 2, long tail  -> 1)
-    or in terms of percentage of user-item interactions.
+
+    The novelty of an item is -log2(p(i)), where the popularity p(i) is the probability that an
+    interaction involves item i, i.e. its share of interactions, as computed by
+    PopularityPercentage. Less popular items are more novel.
 
     Novelty is a per-user metric: evaluate returns the novelty of each user's list and their mean.
     """
 
     def evaluate(
-        self, top_n: pd.DataFrame, popularity_definition: str = "group"
+        self, top_n: pd.DataFrame, popularity_column: str = "percentage"
     ) -> MetricResult:
         """
-        Compute the novelty of a model by using its recommendation list and the segmented item groups.
+        Compute the novelty of each user's recommendation list, and the mean over users.
 
-        :param top_n: Top-N recommendations' lists for every user with items or users already segmented.
+        :param top_n: Top-N recommendations' lists for every user, with the popularity of each item.
         :type top_n: pd.DataFrame
-        :param popularity_definition: Either 'group' or 'percentage', to choose whether popularity is computed in terms of
-            segmenting items/users according to the distribution of user-item interactions
-            or if it is defined as the percentage of user-item interactions.
-        :type popularity_definition: str, default 'group'
-        :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', popularity_definition).
+        :param popularity_column: The column of top_n with the popularity of each item, a probability in (0, 1] such as the share of interactions from PopularityPercentage.
+        :type popularity_column: str, default 'percentage'
+        :raises ColumnsNotExistException: If top_n not in the form ('user', 'item', 'rank', popularity_column).
+        :raises InvalidPopularityException: If a popularity is not in (0, 1], or is missing.
         :return: The mean of -log2(popularity) over the list of each user in per_user, and the mean over users in aggregate.
         :rtype: MetricResult
         """
 
-        check_columns_exist(top_n, ["user", "item", "rank", popularity_definition])
-        popularity = pd.to_numeric(top_n[popularity_definition]).astype(np.float64)
+        check_columns_exist(top_n, ["user", "item", "rank", popularity_column])
+        popularity = pd.to_numeric(top_n[popularity_column]).astype(np.float64)
+        invalid = ~((popularity > 0) & (popularity <= 1))
+        if invalid.any():
+            raise InvalidPopularityException(
+                "Novelty", describe_labels(top_n["item"], invalid.to_numpy())
+            )
         per_user = (-np.log2(popularity)).groupby(top_n["user"]).mean()
         return MetricResult.from_per_user("Novelty", per_user)

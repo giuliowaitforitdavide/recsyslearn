@@ -7,11 +7,19 @@ from hypothesis import strategies as st
 from pandas.testing import assert_frame_equal, assert_series_equal
 
 from recsyslearn.beyond_accuracy.metrics import Coverage, Novelty
+from recsyslearn.dataset.segmentations import PopularityPercentage
 from recsyslearn.errors.metrics import DivisionByZeroException
+from recsyslearn.errors.validation import InvalidPopularityException
 from recsyslearn.result import MetricResult
 from tests import strategies
 from tests.case import TestCase
-from tests.fixtures import item_groups, item_popularity, top_5_unranked, top_6
+from tests.fixtures import (
+    item_groups,
+    item_popularity,
+    make_top_n,
+    top_5_unranked,
+    top_6,
+)
 
 
 @st.composite
@@ -88,73 +96,104 @@ class CoverageTest(TestCase):
 
 
 class NoveltyTest(TestCase):
-    def test_uses_the_group_column_as_popularity_by_default(self) -> None:
-        top_n = top_5_unranked().merge(item_groups(), on="item")
+    def test_uses_the_percentage_column_as_popularity_by_default(self) -> None:
+        top_n = top_5_unranked().merge(item_popularity(), on="item")
         nov = Novelty().evaluate(top_n)
-        self.assertAlmostEqual(
-            nov.aggregate, self._expected(top_n["group"]), delta=1e-5
-        )
+        self.assertAlmostEqual(nov.aggregate, self._expected(top_n["percentage"]))
 
     def test_does_not_depend_on_the_rank(self) -> None:
         """top_6 has different ranks per item; the expected value ignores them."""
-        top_n = top_6().merge(item_groups(), on="item")
+        top_n = top_6().merge(item_popularity(), on="item")
         nov = Novelty().evaluate(top_n)
-        self.assertAlmostEqual(
-            nov.aggregate, self._expected(top_n["group"]), delta=1e-5
-        )
+        self.assertAlmostEqual(nov.aggregate, self._expected(top_n["percentage"]))
 
     def test_uses_the_given_popularity_column(self) -> None:
-        top_n = top_5_unranked().merge(item_popularity(), on="item")
-        nov = Novelty().evaluate(top_n, popularity_definition="percentage")
-        self.assertAlmostEqual(
-            nov.aggregate, self._expected(top_n["percentage"]), delta=1e-5
+        top_n = (
+            top_5_unranked()
+            .merge(item_popularity(), on="item")
+            .rename(columns={"percentage": "share"})
         )
+        nov = Novelty().evaluate(top_n, popularity_column="share")
+        self.assertAlmostEqual(nov.aggregate, self._expected(top_n["share"]))
 
     def test_per_user_value_is_the_mean_over_the_list(self) -> None:
         """Novelty of a user = mean of -log2(popularity) over their list."""
         top_n = top_5_unranked().merge(item_popularity(), on="item")
-        per_user = Novelty().evaluate(top_n, "percentage").per_user
+        per_user = Novelty().evaluate(top_n).per_user
         for user, user_list in top_n.groupby("user"):
             with self.subTest(user=user):
                 self.assertAlmostEqual(
                     per_user[user], self._expected(user_list["percentage"])
                 )
 
+    def test_matches_the_formula_with_popularity_percentage(self) -> None:
+        """
+        Regression test for #94: group ids used as popularity gave -0.5 here.
+
+        Item 1 has 4 of 10 interactions and item 4 has 1, so u1 gets -log2(0.4), u2 -log2(0.1).
+        """
+        counts = {"1": 4, "2": 3, "3": 2, "4": 1}
+        interactions = make_top_n(
+            {"u1": [item for item, n in counts.items() for _ in range(n)]}, rank=1
+        )
+        popularity = PopularityPercentage().segment(interactions)
+        top_n = make_top_n({"u1": ["1"], "u2": ["4"]}).merge(popularity, on="item")
+        nov = Novelty().evaluate(top_n)
+        self.assertAlmostEqual(nov.aggregate, (-np.log2(0.4) - np.log2(0.1)) / 2)
+
+    def test_raises_for_a_popularity_outside_zero_one(self) -> None:
+        """Group ids (e.g. 2) or missing popularity are not probabilities (#94)."""
+        top_n = top_5_unranked().merge(item_popularity(), on="item")
+        for name, popularity in [
+            ("above one", top_n["percentage"].mask(top_n["item"] == "3", 2.0)),
+            ("zero", top_n["percentage"].mask(top_n["item"] == "3", 0.0)),
+            ("missing", top_n["percentage"].mask(top_n["item"] == "3")),
+        ]:
+            with self.subTest(name):
+                with self.assertRaisesMessage(
+                    InvalidPopularityException,
+                    "Novelty: popularity must be in (0, 1] for item 3.",
+                ):
+                    Novelty().evaluate(top_n.assign(percentage=popularity))
+
     def test_returns_a_per_user_metric_result(self) -> None:
-        result = Novelty().evaluate(top_5_unranked().merge(item_groups(), on="item"))
+        result = Novelty().evaluate(
+            top_5_unranked().merge(item_popularity(), on="item")
+        )
         self.assertIsInstance(result, MetricResult)
         self.assertEqual(result.name, "Novelty")
         self.assertEqual(list(result.per_user.index), ["1", "2", "3", "4", "5", "6"])
         self.assertEqual(result.per_user.name, "Novelty")
 
     def test_aggregate_is_the_mean_over_users(self) -> None:
-        result = Novelty().evaluate(top_5_unranked().merge(item_groups(), on="item"))
+        result = Novelty().evaluate(
+            top_5_unranked().merge(item_popularity(), on="item")
+        )
         self.assertAlmostEqual(result.aggregate, result.per_user.mean())
 
     def test_does_not_mutate_the_input(self) -> None:
-        """Regression test: the popularity column of the input was converted in place."""
-        top_n = top_5_unranked().merge(item_groups(), on="item")
+        top_n = top_5_unranked().merge(item_popularity(), on="item")
         Novelty().evaluate(top_n)
-        assert_frame_equal(top_n, top_5_unranked().merge(item_groups(), on="item"))
+        assert_frame_equal(top_n, top_5_unranked().merge(item_popularity(), on="item"))
 
     @given(lists_with_popularity())
     def test_is_non_negative(self, top_n) -> None:
         """Popularity is at most 1, so -log2(popularity) >= 0."""
-        per_user = Novelty().evaluate(top_n, "percentage").per_user
+        per_user = Novelty().evaluate(top_n).per_user
         self.assertTrue((per_user >= 0).all())
 
     @given(lists_with_popularity(), st.randoms())
     def test_row_order_does_not_change_the_result(self, top_n, random) -> None:
         shuffled = top_n.sample(frac=1, random_state=random.randint(0, 2**32 - 1))
         assert_series_equal(
-            Novelty().evaluate(shuffled, "percentage").per_user,
-            Novelty().evaluate(top_n, "percentage").per_user,
+            Novelty().evaluate(shuffled).per_user,
+            Novelty().evaluate(top_n).per_user,
         )
 
     @given(lists_with_popularity())
     def test_does_not_mutate_generated_input(self, top_n) -> None:
         original = top_n.copy()
-        Novelty().evaluate(top_n, "percentage")
+        Novelty().evaluate(top_n)
         assert_frame_equal(top_n, original)
 
     @staticmethod
