@@ -214,6 +214,14 @@ def pos_items() -> pd.DataFrame:
     return find_relevant_items(relevance)
 
 
+def dominant_item_interactions() -> pd.DataFrame:
+    """Ten interactions: item 1 eight times, items 2 and 3 once each, so item 1 alone has 80%."""
+    counts = {"1": 8, "2": 1, "3": 1}
+    return make_top_n(
+        {"1": [item for item, n in counts.items() for _ in range(n)]}, rank=1
+    )
+
+
 def item_interactions() -> pd.DataFrame:
     """Five interactions: item 1 by users 1, 2 and 3, item 2 twice by user 1."""
     return pd.DataFrame(
