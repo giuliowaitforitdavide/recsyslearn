@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-__all__ = ["DivisionByZeroException", "RecListTooShortException"]
+__all__ = [
+    "DivisionByZeroException",
+    "InvalidCutoffException",
+    "RecListTooShortException",
+]
 
 
 class DivisionByZeroException(ZeroDivisionError):
@@ -17,12 +21,20 @@ class DivisionByZeroException(ZeroDivisionError):
         super().__init__(f"{metric}: division by zero{location}.")
 
 
-class RecListTooShortException(Exception):
-    """Exception raised when the values for the recommendation list length is not compatbile with the dataset."""
+class RecListTooShortException(ValueError):
+    """Exception raised when a cut-off is longer than the shortest recommendation list."""
 
-    def __init__(
-        self,
-        ats: int | tuple[int, ...],
-        message: str = "Values for the recommendation list length is not compatbile with the dataset.",
-    ) -> None:
-        super().__init__(f"{message} ats={ats}")
+    def __init__(self, metric: str, k: int, shortest: int) -> None:
+        super().__init__(
+            f"{metric}@{k} needs recommendation lists of at least {k} items: "
+            f"the shortest has {shortest}."
+        )
+
+
+class InvalidCutoffException(ValueError):
+    """Exception raised when the cut-off of a metric is not a positive integer."""
+
+    def __init__(self, metric: str, k: object) -> None:
+        super().__init__(
+            f"{metric}: the cut-off k must be a positive integer, got {k!r}."
+        )

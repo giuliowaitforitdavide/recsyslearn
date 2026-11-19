@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 __all__ = [
-    "InvalidGroupException",
     "InvalidValueException",
     "SegmentationNotSupportedException",
     "WrongProportionsException",
@@ -34,10 +33,3 @@ class InvalidValueException(Exception):
             f"Feature contains {fill_na} as value. Please select another fill_na value."
         )
         super().__init__(message)
-
-
-class InvalidGroupException(Exception):
-    """Exception raised when user wants to segment a non valid group"""
-
-    def __init__(self, user_group: str) -> None:
-        super().__init__(f"{user_group} is not a valid group")

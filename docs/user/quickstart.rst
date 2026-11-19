@@ -60,12 +60,14 @@ To evaluate the accuracy of your recommendation system:
     # Find the relevant items for each user in the test dataset
     pos_items = find_relevant_items(dataset)
 
-    # Evaluate the accuracy with NDCG@5 and NDCG@10
-    ats = (5, 10)
-    ndcg_df = NDCG().evaluate(top_k, pos_items, ats)
+    # Evaluate the accuracy with NDCG@5 and NDCG@10: one instance per cut-off
+    results = [NDCG(k=k).evaluate(top_k, pos_items) for k in (5, 10)]
 
-    # Print the results
-    print(json.dumps({f"NDCG@{at}": ndcg_df[f"NDCG@{at}"].mean() for at in ats}, indent=4))
+    # Print the mean over users of each cut-off
+    print(json.dumps({result.name: result.aggregate for result in results}, indent=4))
+
+    # The NDCG@10 of each user, as a Series indexed by user
+    print(results[1].per_user.head())
 
 
 Evaluate the Beyond Accuracy
@@ -96,7 +98,7 @@ To evaluate the Beyond Accuracy (e.g. Novelty) of your recommendation system:
     novelty = Novelty().evaluate(top_k_with_item_groups)
 
     # Print the results
-    print(json.dumps({"novelty": novelty}, indent=4))
+    print(json.dumps({"novelty": novelty.aggregate}, indent=4))
 
 Evaluate the Fairness
 ---------------------
@@ -138,7 +140,7 @@ To evaluate the fairness (e.g. Kullback-Leibler Divergence) of your recommendati
     divergence = KullbackLeibler().evaluate(top_k_with_item_groups, target_representation)
 
     # Print the results
-    print(json.dumps({"KL@[0.5, 0.5]": divergence}, indent=4))
+    print(json.dumps({"KL@[0.5, 0.5]": divergence.aggregate}, indent=4))
 
 
 Undefined values
@@ -165,6 +167,6 @@ caught with either:
     from recsyslearn.errors.metrics import DivisionByZeroException
 
     try:
-        ndcg = NDCG().evaluate(top_k, relevant_items, ats=(5, 10))
+        ndcg = NDCG(k=10).evaluate(top_k, relevant_items)
     except DivisionByZeroException as error:
         print(error)  # e.g. "NDCG: division by zero for user 42."

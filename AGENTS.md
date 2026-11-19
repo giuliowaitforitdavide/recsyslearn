@@ -18,6 +18,7 @@ recsyslearn/
 ├── fairness/          # fairness metrics (Entropy, KullbackLeibler, MutualInformation); exposure helpers in _utils.py
 ├── dataset/           # segmentations and dataset utilities
 ├── errors/            # custom exceptions
+├── result.py          # MetricResult, the result type of every metric
 └── _utils.py          # internal shared helpers (input validation, safe division, …)
 tests/                 # unittest suite, one test_<family>.py per package, test_utils.py for _utils.py
 docs/                  # Sphinx documentation (reStructuredText)
@@ -89,9 +90,10 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 
 ### Metrics
 
-- Each metric family has an abstract base class (`AccuracyMetric`, `BeyondAccuracyMetric`, `FairnessMetric`) declaring `evaluate` as `@abstractmethod`; segmentations subclass `Segmentation`, which declares `segment` in the same way. `evaluate` and `segment` are instance methods in every family, so configuration can go in the constructor: `NDCG().evaluate(...)`, `InteractionSegmentation().segment(...)`.
+- Each metric family has an abstract base class (`AccuracyMetric`, `BeyondAccuracyMetric`, `FairnessMetric`) declaring `evaluate` as `@abstractmethod`; segmentations subclass `Segmentation`, which declares `segment` in the same way. `evaluate` and `segment` are instance methods in every family, so configuration goes in the constructor: `NDCG(k=10).evaluate(...)`, `InteractionSegmentation().segment(...)`.
+- **Cut-offs are constructor parameters**, and required: one instance computes one value (`NDCG(k=10)`); several cut-offs mean several instances.
 - **Every metric cites its source**: paper, equation number and formula (`.. math::`) in the docstring. When the literature has variants (e.g. NDCG gain `2^rel − 1` vs `rel`), the docstring states which one is implemented. Metrics without a verifiable reference are not accepted.
-- **Output.** Every metric returns both the value for each user and the mean over all users (macro-average: each user weighs equally). All metrics return the same result type, e.g. a `MetricResult` dataclass with `per_user` (DataFrame with `user` and one column per cut-off, such as `NDCG@5`) and `aggregate` (Series with the mean per cut-off), so calling code does not need to tell metrics apart. **(planned, #71)**
+- **Output.** Every metric returns a `MetricResult` (`recsyslearn/result.py`), so calling code does not need to tell metrics apart: `name` (e.g. `NDCG@10`), `aggregate` (a `float`, the mean over users: macro-average, each user weighs equally) and `per_user` (a `pd.Series` indexed by `user` and named after the metric). Per-user metrics build it with `MetricResult.from_per_user`.
   - **Exception:** metrics that cannot be computed per user, because they are defined only over the whole user population, must not return per-user values: they return only the aggregate value (`per_user` is `None`). This covers the fairness metrics (`Entropy`, `KullbackLeibler`, `MutualInformation`) and `Coverage`. Do not invent per-user variants that are not in the cited paper.
   - The docstring states explicitly whether the metric is per-user or population-level.
 - **Edge cases** (empty lists, users without relevant items) are documented in the docstring.
@@ -115,7 +117,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 ### Adding a new metric
 
 1. Open an issue with the **New metric** template (paper, formula, variant, per-user or population-level).
-2. Implement the class in the module of its family (`recsyslearn/<family>/metrics.py`), subclassing the family base class, with the docstring required above.
+2. Implement the class in the module of its family (`recsyslearn/<family>/metrics.py`), subclassing the family base class and returning a `MetricResult`, with the docstring required above.
 3. Add it to `__all__` in `recsyslearn/<family>/metrics.py`.
 4. Add tests in `tests/test_<family>.py` (see Testing).
 5. Add it to `docs/api_ref/metrics.rst`.
@@ -126,7 +128,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
 - `unittest`, one `tests/test_<family>.py` per package (`tests/test_utils.py` for `recsyslearn/_utils.py`). Fixture builders are named after what they contain (e.g. `top_5`, `binary_relevance`), not numbered.
 - **Fixtures** are built by small builder functions in `tests/fixtures.py` (e.g. `make_top_n({"1": ["3", "4"]})` → rows `user, item, rank`) that return a new DataFrame on every call. No DataFrame shared at module level: a test that mutates its input must not affect other tests. Fixture data stays small and explicit, so that expected values can be computed by hand; no randomly generated data in value-based tests.
 - **Expected values** are computed in the test from the formula taken from the cited paper, with the reference in the test method docstring (e.g. `"""NDCG@2, Järvelin & Kekäläinen 2002, eq. 3."""`). Never copy expected values from the output of the implementation.
-- **Property-based tests** with [Hypothesis](https://hypothesis.readthedocs.io) complement, and never replace, value-based tests. They check mathematical invariants on generated inputs: NDCG in [0, 1] and equal to 1 for a perfect ranking, `Coverage` ≤ 1, KL ≥ 0, result unchanged when rows are shuffled, input not mutated. Hypothesis runs with `derandomize=True` (profile loaded in `tests/__init__.py`) so that CI stays deterministic, and the strategies that generate valid inputs live in `tests/strategies.py`, separate from the hand-written fixtures so that the two kinds of data are not mixed. **(planned, #71)**
+- **Property-based tests** with [Hypothesis](https://hypothesis.readthedocs.io) complement, and never replace, value-based tests. They check mathematical invariants on generated inputs: NDCG in [0, 1] and equal to 1 for a perfect ranking, `Coverage` ≤ 1, KL ≥ 0, result unchanged when rows are shuffled, input not mutated. Hypothesis runs with `derandomize=True` (profile loaded in `tests/__init__.py`) so that CI stays deterministic, and the strategies that generate valid inputs live in `tests/strategies.py`, separate from the hand-written fixtures so that the two kinds of data are not mixed.
 - **Minimum coverage per metric**, one test for each behavioural rule of section 3:
   - nominal case;
   - edge cases documented in the docstring;
@@ -134,7 +136,7 @@ Supported Python versions, dependencies and Ruff rules live in `pyproject.toml`;
   - a zero denominator raises `DivisionByZeroException`;
   - input not mutated;
   - same input, and same `seed` where the function takes one, gives the same output;
-  - result type and shape: `per_user` and `aggregate`, or `per_user` is `None` for population-level metrics **(planned, #71)**.
+  - result type and shape: a `MetricResult` with `per_user` and `aggregate`, or `per_user` is `None` for population-level metrics.
 - **One behaviour per test.** Each test checks a single behaviour and its name says which, e.g. `test_raises_for_user_without_relevant_items` instead of `test_ndcg_2`, so that a failing test tells what is broken without reading its code. The same behaviour on several inputs uses `subTest`. Test classes are named after the unit under test (`NDCGTest`, `SafeDivideTest`) and inherit from `tests.case.TestCase`.
 - **Errors and warnings are asserted with their exact message**, using `assertRaisesMessage` and `assertWarnsMessage` from `tests/case.py`: the test fails if the type is different or if the message differs in any character. Unlike Django's methods with the same name, the message must be equal, not just contained. Do not use `assertRaises`, `assertWarns`, `assertRaisesRegex` or `assertWarnsRegex` directly.
 - **Every bug fix** comes with a regression test that fails before the fix.
@@ -159,7 +161,7 @@ The library is expected to run on very large DataFrames (millions of rows).
 - Avoid merges that multiply rows: filter and select columns before merging.
 - To keep inputs unmodified without doubling memory, copy only the columns that change, never the whole DataFrame.
 - The docstring of every metric states its time and memory complexity.
-- Numeric precision (`float32` vs `float64`) is chosen explicitly and documented. `NDCG` currently uses `float32`.
+- Numeric precision (`float32` vs `float64`) is chosen explicitly and documented. `NDCG` uses `float64`.
 - **Benchmarks** use [asv](https://asv.readthedocs.io), as pandas and numpy do. They live in `benchmarks/` and measure time and peak memory on synthetic data generated with a fixed seed. PRs that touch a metric or a shared utility run `asv continuous main HEAD` locally and report the result in the PR. Benchmarks do not run in CI, since shared runners are too noisy. **(planned, #77)**
 
 ## 7. Review

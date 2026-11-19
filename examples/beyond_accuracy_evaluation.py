@@ -16,4 +16,6 @@ coverage = Coverage().evaluate(
 )
 novelty = Novelty().evaluate(top_k_with_item_groups)
 
-print(json.dumps({"coverage": coverage, "Novelty": novelty}, indent=4))
+print(
+    json.dumps({"coverage": coverage.aggregate, "Novelty": novelty.aggregate}, indent=4)
+)
