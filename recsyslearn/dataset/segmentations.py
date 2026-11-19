@@ -49,11 +49,20 @@ class InteractionSegmentation(Segmentation):
         """
         Segmentation of items based on their cumulative interactions with different users.
 
+        Items are ranked from the most to the least interacted, ties broken by id. An item joins
+        group g when the items ranked before it account for at least the proportions of the groups
+        before g, and for less than the proportions up to g. So each group is the smallest set of
+        the most interacted remaining items that covers its proportion, including the item that
+        crosses the threshold, and the most interacted item is always in the first group. A group
+        is empty when the earlier groups already cover its proportion (e.g. an item alone above
+        the first two proportions). Items with at most min_interaction interactions go to the
+        last group.
+
         :param dataset: The complete dataset.
         :type dataset: pd.DataFrame
         :param proportions: The proportion of interactions wanted for every group.
         :type proportions: list[float] or None, default [0.8, 0.2]
-        :param min_interaction: The minimum number of interaction allowed for items. Items below this threshold will be removed.
+        :param min_interaction: Items with at most this number of interactions are not counted and go to the last group.
         :type min_interaction: int, default 0
         :param group: The group which has to be segmented based on their number of interaction.
         :type group: str, default 'item'
@@ -81,31 +90,21 @@ class InteractionSegmentation(Segmentation):
         if group not in ["user", "item"]:
             raise InvalidGroupException(group)
 
+        # groupby returns the ids sorted, so a stable sort breaks ties by id
         item_groups = (
             dataset.groupby(group)
             .size()
             .reset_index(name="count")
-            .sort_values("count", ascending=False)
+            .sort_values("count", ascending=False, kind="stable")
         )
 
-        tmp = item_groups[item_groups["count"] > min_interaction]
-        n_int = tmp["count"].sum()
-
-        short_thr = np.rint(proportions[0] * n_int)
-        mid_thr = np.rint(proportions[1] * n_int) + short_thr
-        tmp.loc[:, "cumulative_sum"] = tmp["count"].cumsum()
-
-        short_head = tmp.loc[tmp["cumulative_sum"].lt(short_thr), group]
-        mid_tail = tmp.loc[
-            tmp["cumulative_sum"].lt(mid_thr) & ~tmp[group].isin(short_head), group
-        ]
-        conditions = [
-            item_groups[group].isin(short_head),
-            item_groups[group].isin(mid_tail),
-        ]
-        choices = (1, 2)
-        default = len(proportions)
-        item_groups.loc[:, "group"] = np.select(conditions, choices, default=default)
+        counted = item_groups["count"].where(item_groups["count"] > min_interaction, 0)
+        n_int = counted.sum()
+        before = counted.cumsum() - counted
+        # Small tolerance, so that 0.6 + 0.3 (= 0.8999…) still reaches 90% of the interactions
+        thresholds = np.cumsum(proportions[:-1]) * n_int - 1e-9 * max(n_int, 1)
+        groups = np.searchsorted(thresholds, before.to_numpy(), side="right") + 1
+        item_groups["group"] = np.where(counted > 0, groups, len(proportions))
         return item_groups[[group, "group"]].astype({f"{group}": str, "group": str})
 
 

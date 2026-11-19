@@ -1,5 +1,6 @@
 import unittest
 
+import numpy as np
 import pandas as pd
 from hypothesis import given
 from hypothesis import strategies as st
@@ -21,6 +22,7 @@ from recsyslearn.errors.validation import InvalidGroupException
 from tests import strategies
 from tests.case import TestCase
 from tests.fixtures import (
+    dominant_item_interactions,
     graded_activity,
     item_genres,
     item_interactions,
@@ -51,8 +53,34 @@ class InteractionSegmentationTest(TestCase):
         self.assertEqual(groups_of(segmented, "item", "1"), {"1"})
 
     def test_least_interacted_item_goes_to_the_last_group(self) -> None:
-        segmented = InteractionSegmentation().segment(item_interactions())
+        """Item 1 has 3 of 5 interactions, more than half: item 2 starts after 60% > 50%."""
+        segmented = InteractionSegmentation().segment(item_interactions(), [0.5, 0.5])
         self.assertEqual(groups_of(segmented, "item", "2"), {"2"})
+
+    def test_includes_the_item_that_crosses_the_threshold(self) -> None:
+        """
+        Item 2 starts after 60% of the interactions, below 80%: it completes the short head.
+        """
+        segmented = InteractionSegmentation().segment(item_interactions(), [0.8, 0.2])
+        self.assertEqual(groups_of(segmented, "item", "2"), {"1"})
+
+    def test_an_item_above_the_threshold_alone_stays_in_the_first_group(self) -> None:
+        """
+        Regression test for #95: item 1 alone has 80% of the interactions, and every item was
+        put in the last group.
+        """
+        for proportions, expected in [
+            ([0.5, 0.5], {"1": "1", "2": "2", "3": "2"}),
+            ([0.8, 0.2], {"1": "1", "2": "2", "3": "2"}),
+            ([0.5, 0.3, 0.2], {"1": "1", "2": "3", "3": "3"}),
+        ]:
+            with self.subTest(proportions=proportions):
+                segmented = InteractionSegmentation().segment(
+                    dominant_item_interactions(), proportions
+                )
+                self.assertEqual(
+                    dict(zip(segmented["item"], segmented["group"])), expected
+                )
 
     def test_accepts_proportions_with_floating_point_rounding(self) -> None:
         """0.6 + 0.3 + 0.1 is not exactly 1 in floating point, but must be accepted."""
@@ -108,6 +136,37 @@ class InteractionSegmentationTest(TestCase):
                 if counts[first] > counts[second]:
                     with self.subTest(first=first, second=second):
                         self.assertLessEqual(group[first], group[second])
+
+    @given(strategies.interactions(), VALID_PROPORTIONS)
+    def test_the_most_interacted_item_is_in_the_first_group(
+        self, data, proportions
+    ) -> None:
+        segmented = InteractionSegmentation().segment(data, proportions)
+        counts = data["item"].value_counts()
+        most_interacted = sorted(counts[counts == counts.max()].index)[0]
+        self.assertEqual(groups_of(segmented, "item", most_interacted), {"1"})
+
+    @given(strategies.interactions(), VALID_PROPORTIONS)
+    def test_each_item_starts_within_the_share_of_its_group(
+        self, data, proportions
+    ) -> None:
+        """
+        Items ranked from the most interacted (ties by id): an item is in group g when the items
+        before it account for at least the proportions of the groups before g, and for less than
+        those up to g.
+        """
+        segmented = InteractionSegmentation().segment(data, proportions)
+        counts = data["item"].value_counts()
+        ranked = sorted(counts.index, key=lambda item: (-counts[item], item))
+        bounds = np.concatenate([[0.0], np.cumsum(proportions)])
+        group = dict(zip(segmented["item"], segmented["group"].astype(int)))
+        before = 0
+        for item in ranked:
+            share = before / len(data)
+            with self.subTest(item=item):
+                self.assertGreaterEqual(share, bounds[group[item] - 1] - 1e-9)
+                self.assertLess(share, bounds[group[item]] - 1e-9)
+            before += counts[item]
 
     @given(
         strategies.interactions(), VALID_PROPORTIONS, st.sampled_from(["item", "user"])
