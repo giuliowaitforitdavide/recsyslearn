@@ -6,7 +6,7 @@ All types of contributions are encouraged and valued. See the [Table of Contents
 
 > And if you like the project, but just don't have time to contribute, that's fine. There are other easy ways to support the project and show your appreciation, which we would also be very happy about:
 > - Star the project
-> - Tweet about it
+> - Share it
 > - Refer this project in your project's readme
 > - Mention the project at local meetups and tell your friends/colleagues
 
@@ -18,18 +18,17 @@ All types of contributions are encouraged and valued. See the [Table of Contents
   - [Reporting Bugs](#reporting-bugs)
   - [Suggesting Enhancements](#suggesting-enhancements)
   - [Your First Code Contribution](#your-first-code-contribution)
+  - [Adding or changing a metric or a segmentation](#adding-or-changing-a-metric-or-a-segmentation)
   - [Improving The Documentation](#improving-the-documentation)
-- [Styleguides](#styleguides)
-  - [Commit Messages](#commit-messages)
-- [Join The Project Team](#join-the-project-team)
+- [Development Guidelines](#development-guidelines)
 
 
 ## Code of Conduct
 
 This project and everyone participating agrees with the
-[recsyslearn Code of Conduct](https://github.com/giuliowaitforitdavide/recsyslearn/blob/master/CODE_OF_CONDUCT.md).
+[recsyslearn Code of Conduct](https://github.com/giuliowaitforitdavide/recsyslearn/blob/main/CODE_OF_CONDUCT.md).
 By participating, you are expected to uphold this code. Please report unacceptable behavior
-to <giulio.davide.97@gmail.com>.
+to <giuliowaitforitdavide@duck.com>.
 
 
 ## I Have a Question
@@ -40,16 +39,16 @@ Before you ask a question, it is best to search for existing [Issues](https://gi
 
 If you then still feel the need to ask a question and need clarification, we recommend the following:
 
-- Open an [Issue](https://github.com/giuliowaitforitdavide/recsyslearn/issues/new/choose).
+- Open an [Issue](https://github.com/giuliowaitforitdavide/recsyslearn/issues/new/choose) with the **Question** template.
 - Provide as much context as you can about what you're running into (e.g., error type, expected output, actual output, ...).
-- Provide project and platform versions (nodejs, npm, etc), depending on what seems relevant.
+- Provide the versions of recsyslearn, Python, pandas and of your operating system.
 
 We will then take care of the issue as soon as possible.
 
 ## I Want To Contribute
 
 > ### Legal Notice 
-> When contributin to this project, you must agree that you have authored 100% of the content, that you have the necessary rights to the content and that the content you contribute may be provided under the project [license](https://github.com/giuliowaitforitdavide/recsyslearn/blob/main/LICENSE).
+> When contributing to this project, you must agree that you have authored 100% of the content, that you have the necessary rights to the content and that the content you contribute may be provided under the project [license](https://github.com/giuliowaitforitdavide/recsyslearn/blob/main/LICENSE).
 
 ### Reporting Bugs
 
@@ -70,22 +69,19 @@ A good bug report shouldn't leave others needing to chase you up for more inform
 
 #### How Do I Submit a Good Bug Report?
 
-> You must never report security related issues, vulnerabilities or bugs including sensitive information to the issue tracker, or elsewhere in public. Instead sensitive bugs must be sent by email to <giulio.davide.97@gmail.com>.
+> You must never report security related issues, vulnerabilities or bugs including sensitive information to the issue tracker, or elsewhere in public. Report them privately as described in [SECURITY.md](./SECURITY.md).
 
 We use GitHub issues to track bugs and errors. If you run into an issue with the project:
 
-- Open an [Issue](https://github.com/giuliowaitforitdavide/recsyslearn/issues/new?assignees=&labels=&projects=&template=bug_report.md&title=). (Since we can't be sure at this point whether it is a bug or not, we ask you not to talk about a bug yet and not to label the issue.)
-- Explain the behavior you would expect and the actual behavior.
-- Please provide as much context as possible and describe the *reproduction steps* that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.
+- Open an [Issue](https://github.com/giuliowaitforitdavide/recsyslearn/issues/new/choose) with the **Bug report** template and fill in every section. Blank issues are disabled.
+- Explain the behavior you would expect and the actual behavior. For a wrong value, say how you obtained the value you expected (the formula worked out by hand, a paper, another library).
+- Provide a *minimal reproducible example*: the smallest script, with its data built inline, that shows the problem.
 - Provide the information you collected in the previous section.
 
 Once it's filed:
 
-- The project team will label the issue accordingly.
-- A team member will try to reproduce the issue with your provided steps. If there are no reproduction steps or no obvious way to reproduce the issue, the team will ask you for those steps and mark the issue as `needs-repro`. Bugs with the `needs-repro` tag will not be addressed until they are reproduced.
-- If the team is able to reproduce the issue, it will be marked `needs-fix`, as well as possibly other tags (such as `critical`), and the issue will be left to be [implemented by someone](#your-first-code-contribution).
-
-For a better definition of the bug report, please refer to the template provided in the [ISSUE_TEMPLATE](./.github/ISSUE_TEMPLATE/bug_report.md).
+- A maintainer will try to reproduce the issue with your example. If it cannot be reproduced, you will be asked for more details.
+- If it is reproduced, the issue is confirmed as a `bug` and left to be [implemented by someone](#your-first-code-contribution), starting from a test that reproduces it.
 
 
 ### Suggesting Enhancements
@@ -101,68 +97,85 @@ This section guides you through submitting an enhancement suggestion for recsysl
 
 #### How Do I Submit a Good Enhancement Suggestion?
 
-Enhancement suggestions are tracked as [GitHub issues](https://github.com/giuliowaitforitdavide/recsyslearn/issues/new?assignees=&labels=&projects=&template=feature_request.md&title=).
+Enhancement suggestions are tracked as [GitHub issues](https://github.com/giuliowaitforitdavide/recsyslearn/issues/new/choose). Choose the template that fits and fill in every section:
+
+- **Metric or segmentation**, for a new metric or segmentation or a change to the definition of an existing one. recsyslearn only implements what can be traced to a published definition, so the template asks for the source, the formula, and a small example worked out by hand.
+- **Feature request**, for everything else: API, performance, packaging, documentation.
+
+In both cases:
 
 - Use a **clear and descriptive title** for the issue to identify the suggestion.
-- Provide a **step-by-step description of the suggested enhancement** in as many details as possible.
-- **Describe the current behavior** and **explain which behavior you expected to see instead** and why. At this point you can also tell which alternatives do not work for you.
-- You may want to **include screenshots and animated GIFs** which help you demonstrate the steps or point out the part which the suggestion is related to.
-- **Explain why this enhancement would be useful** to most recsyslearn users. You may also want to point out the other projects that solved it better and which could serve as inspiration.
-
-For a better definition of the feature request, please refer to the template provided in the [ISSUE_TEMPLATE](./.github/ISSUE_TEMPLATE/feature_request.md).
+- **Describe the current behavior** and **explain which behavior you expected to see instead** and why.
+- **Explain why this enhancement would be useful** to most recsyslearn users.
 
 
 ### Your First Code Contribution
 
-Ready to contribute? Here's how to set up `recsyslearn` for local development.
-1. Fork the `recsyslearn` repo on GitHub.
-2. Clone your fork locally
+recsyslearn is a Python package backed by a Rust core. You need [uv](https://docs.astral.sh/uv/) and [rustup](https://rustup.rs); the Rust toolchain is pinned in [rust-toolchain.toml](./rust-toolchain.toml) and rustup installs it the first time you run `cargo`.
+
+1. Pick or open an issue (with a template), then fork the repository and clone your fork
   ```bash
     $ git clone git@github.com:your_name_here/recsyslearn.git
   ```
 
-3. Install your local copy into a virtual environment. Dependencies are managed with [uv](https://docs.astral.sh/uv/): direct dependencies are declared in [pyproject.toml](./pyproject.toml) and the resolved versions are locked in [uv.lock](./uv.lock). This is how you set up your fork for local development
+2. Create the environment, which compiles the Rust core and installs the package with the `dev` dependency group, and install the git hooks
   ```bash
     $ uv sync
     $ uv run pre-commit install
   ```
-  `uv sync` creates the `.venv` folder with the package installed in editable mode and the `dev` dependency group. To add or update a dependency use `uv add` / `uv lock --upgrade-package <name>` instead of editing `uv.lock` by hand.
 
-4. Create a branch for local development
+3. Create a branch named after the type of change and what it does
   ```bash
-    $ git checkout -b name-of-your-bugfix-or-feature
-  ```
-  Now you can make your changes locally.
-
-5. When you're done making changes, check that your changes pass tests
-  ```bash
-    $ uv run python -m unittest discover -s tests -t .
+    $ git switch -c fix/name-of-your-fix   # or feat/..., docs/..., ci/...
   ```
 
-6. Commit your changes and push your branch to GitHub
+4. Write a failing test first, then the change. After editing Rust code, `uv sync` (or any `uv run`) rebuilds the extension.
+
+5. Check your changes with the commands listed in the [testing guide](./docs/development/testing.md#commands): they are the checks of CI. The quick loop while you work is
   ```bash
-    $ git add .
-    $ git commit -m "Follow the commit message guidelines below"
-    $ git push origin name-of-your-bugfix-or-feature
+    $ cargo test -p recsyslearn-core --locked
+    $ uv run pytest
   ```
+  `uv run` makes the bindings compile against the Python of the project environment (they need Python 3.11 or later, which may not be your system Python).
 
-7. Submit a pull request through the GitHub website.
+6. Run the [self-review](./.agents/skills/review/SKILL.md) on your branch: ask your coding agent to run the review skill or, if you do not use one, go through its checklists yourself. Resolve every Mountain and Boulder finding.
 
-## Improving The Documentation
+7. Commit with a [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) message, push, and open a pull request with the [pull request template](./.github/pull_request_template.md), filling in its checklist. Pull requests are squash-merged, so the title must be a Conventional Commits message too.
 
-Improvements to the documentation are always welcome. If you want to contribute to the documentation, you can do so by editing the files in the [docs](./docs) folder. The documentation is written in [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) and built with [Sphinx](https://www.sphinx-doc.org/en/master/). The documentation is manually (for the moment) built and published on [Read the Docs](https://recsyslearn.readthedocs.io) when changes are made to the `master` branch.
-To locally test the documentation, first install the `docs` dependency group and then use the following commands:
+The details of each step are in the [development guidelines](#development-guidelines).
 
-```bash
-  $ uv sync --group docs
-  $ cd docs
-  $ uv run make html
-```
-The documentation will be built in the `docs/_build` folder. You can open the `html/index.html` file in your browser to view the documentation.
+### Adding or changing a metric or a segmentation
 
-## Styleguides
-### Commit Messages
-Our commit messages follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. This leads to more readable messages that are easy to follow when looking through the project history.
+recsyslearn only contains metrics that can be traced back to a published definition, and it is developed test-first. Please follow these steps, in this order:
+
+1. **Find the source.** Take the formula (or the procedure) from the paper that introduced it, or from the one that states it most precisely, and read it in the paper itself rather than in another library. Note the equation number. If several variants exist, pick one deliberately and say why.
+2. **Write down what the source does not say.** Ties, rounding, empty lists, divisions by zero, the base of logarithms: decide, and prefer the choice that makes the result deterministic and independent of the order of the rows. When in doubt, raise an error instead of guessing.
+3. **Write the tests from the formula**, before the implementation:
+    - small examples whose expected value is worked out by hand, with the arithmetic visible in the test;
+    - the edge cases of step 2;
+    - a naive, loop-based transcription of the formula in `tests/reference.py`, compared with the library on the random data of `tests/conftest.py`. It must not share code with the implementation.
+4. **Implement** it in `crates/recsyslearn-core` (with Rust unit tests on integer codes), expose it in `crates/recsyslearn-py`, and wrap it in `python/recsyslearn`.
+5. **Reproduce a published result, if one exists.** When a paper publishes the data behind a number it prints (recommendation lists, splits, a deterministic baseline), add a test to `tests/integration` that starts from those files and checks the printed number. Download the files from a pinned commit with `paper_data.fetch`, do not commit them, and never adjust anything to make the numbers agree: if the result cannot be reproduced, say so and why in `docs/methodology.rst`.
+6. **Document** it: the docstring states the formula, the meaning of the result, the choices of step 2 and the references (with DOI or URL); add the same to `docs/methodology.rst`, and the function to the type stubs in `python/recsyslearn/_core.pyi` if you added a binding.
+
+### Improving The Documentation
+
+Improvements to the documentation are always welcome. The user documentation lives in the [docs](./docs) folder and in the docstrings of [python/recsyslearn](./python/recsyslearn); it is written in [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html), built with [Sphinx](https://www.sphinx-doc.org/en/master/) and published on [Read the Docs](https://recsyslearn.readthedocs.io).
+To build it locally, run the last command of the [testing guide](./docs/development/testing.md#commands).
+Then open `docs/_build/html/index.html` in your browser. The code of the quickstart is executed by the test-suite, so keep it runnable.
+
+## Development Guidelines
+
+The rules of the project are written once, for people and for coding agents alike:
+
+| Guide | Content |
+| --- | --- |
+| [Workflow](./docs/development/workflow.md) | Issues and their templates, mandatory labels, branches, Conventional Commits, pull requests and their template, releases. |
+| [Architecture](./docs/development/architecture.md) | The Rust core, the PyO3 bindings and the Python API; the data contract; the invariants of each layer; documentation in the code; performance. |
+| [Testing](./docs/development/testing.md) | Test-driven development, where expected values come from, the layers of tests, the commands. |
+| [Security](./docs/development/security.md) | Secure coding rules, dependencies, CI and secrets. |
+
+[AGENTS.md](./AGENTS.md) is the entry point for coding agents (Claude Code, GitHub Copilot and others) and summarises the rules that are never optional. It also defines how reviews are done (severity scale, one action item per finding) and points to the [self-review skill](./.agents/skills/review/SKILL.md), which any contributor can run with their own agent before opening a pull request.
 
 ## Attribution
 This guide is based on the **contributing-gen**. [Make your own](https://github.com/bttger/contributing-gen)!

@@ -1,15 +1,17 @@
-import json
+"""Ranking accuracy of a recommender: nDCG@k."""
 
 import pandas as pd
 
-from recsyslearn.accuracy.metrics import NDCG
-from recsyslearn.dataset.utils import find_relevant_items
+from recsyslearn.accuracy import ndcg
 
+# Recommendation lists: user, item, rank (1 = best).
 top_k = pd.read_csv("./examples/__assets__/top_k.csv")
+# Held-out interactions: user, item, rank (the feedback value).
 test_data = pd.read_csv("./examples/__assets__/test_dataset.csv")
-pos_items = find_relevant_items(test_data)
-ats = (5, 10)
-ndcg_df = NDCG().evaluate(top_k, pos_items, ats)
 
+for k in (5, 10):
+    print(f"nDCG@{k}: {ndcg(top_k, test_data, k=k):.4f}")
 
-print(json.dumps({f"NDCG@{at}": ndcg_df[f"NDCG@{at}"].mean() for at in ats}, indent=4))
+# One score per user, e.g. to run a significance test or to compare user groups.
+per_user = ndcg(top_k, test_data, k=10, per_user=True)
+print(per_user.describe())

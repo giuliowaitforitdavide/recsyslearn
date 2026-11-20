@@ -1,72 +1,139 @@
 [build-system]
-requires = ["setuptools>=77"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.9,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "recsyslearn"
-version = "3.0.1"
-description = "A library to compute fairness of recommender systems."
+dynamic = ["version"]
+description = "Evaluation of recommender systems: accuracy, beyond-accuracy and fairness metrics, and dataset segmentations, powered by Rust."
 readme = "README.rst"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{ name = "Giulio Davide Carparelli", email = "giulio.davide.97@gmail.com" }]
-keywords = ["recsyslearn"]
-requires-python = ">=3.10"
+authors = [{ name = "Giulio Davide Carparelli", email = "giuliowaitforitdavide@duck.com" }]
+keywords = ["recommender systems", "evaluation", "fairness", "ndcg", "novelty", "coverage"]
+requires-python = ">=3.11"
 classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
 ]
 dependencies = ["numpy>=1.26", "pandas>=2.1"]
 
 [project.urls]
 Homepage = "https://github.com/giuliowaitforitdavide/recsyslearn"
 Documentation = "https://recsyslearn.readthedocs.io"
+Issues = "https://github.com/giuliowaitforitdavide/recsyslearn/issues"
 
 [dependency-groups]
 dev = [
     "bump-my-version",
+    "maturin>=1.9,<2.0",
     "pre-commit",
+    "pytest>=8",
     # Keep in sync with the ruff-pre-commit rev in .pre-commit-config.yaml
-    "ruff==0.1.6",
+    "ruff==0.17.6",
 ]
-docs = ["sphinx", "sphinx-rtd-theme"]
+docs = ["sphinx", "pydata-sphinx-theme"]
+
+[tool.maturin]
+manifest-path = "crates/recsyslearn-py/Cargo.toml"
+python-source = "python"
+module-name = "recsyslearn._core"
+# The pinned toolchain is a development convenience: do not force it on people who
+# build the sdist.
+exclude = ["rust-toolchain.toml"]
 
 [tool.uv]
 default-groups = ["dev"]
+# Rebuild the extension when the Rust sources change.
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "Cargo.toml" },
+    { file = "Cargo.lock" },
+    { file = "crates/**/Cargo.toml" },
+    { file = "crates/**/*.rs" },
+]
 
-[tool.setuptools.packages.find]
-include = ["recsyslearn", "recsyslearn.*"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--strict-markers", "--strict-config", "-ra", "-m", "not integration"]
+markers = [
+    "integration: reproduces a published result from public data downloaded on first use (run with -m integration)",
+]
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W", "I", "UP", "B", "SIM", "C4", "PT", "RUF", "NPY", "PD",
+    "D1",  # missing docstrings: Python is documented with docstrings, not comments
+    "ERA", # commented-out code
+    "PGH", # blanket `noqa` / `type: ignore`: directives name the rule
+]
+ignore = [
+    "PD011", # `.values` is also the name of a helper and of dict methods
+]
+
+[tool.ruff.lint.per-file-ignores]
+# A test is documented by its name and by the docstring of its module or class.
+"tests/**" = ["D101", "D102", "D103", "D107"]
+# Rows of tables copied from papers are kept on one line each.
+"tests/integration/test_amigo2023_fairness.py" = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["recsyslearn"]
 
 [tool.bumpversion]
-current_version = "3.0.1"
+current_version = "4.0.0"
 commit = true
-tag = true
+# The tag is created on `main` by the GitHub release, after the release pull request
+# is squash-merged: a tag made here would stay on a commit of the release branch.
+tag = false
+message = "chore(release): {new_version}"
+
+# The package version is defined in Cargo.toml only (maturin reads it from there);
+# current_version above is the bookkeeping of bump-my-version, which updates it itself.
+[[tool.bumpversion.files]]
+filename = "Cargo.toml"
+search = '''
+[workspace.package]
+version = "{current_version}"'''
+replace = '''
+[workspace.package]
+version = "{new_version}"'''
 
 [[tool.bumpversion.files]]
-filename = "pyproject.toml"
-search = 'version = "{current_version}"'
-replace = 'version = "{new_version}"'
+filename = "Cargo.toml"
+search = 'recsyslearn-core = {{ path = "crates/recsyslearn-core", version = "{current_version}" }}'
+replace = 'recsyslearn-core = {{ path = "crates/recsyslearn-core", version = "{new_version}" }}'
 
 [[tool.bumpversion.files]]
-filename = "recsyslearn/__init__.py"
-search = '__version__ = "{current_version}"'
-replace = '__version__ = "{new_version}"'
+filename = "Cargo.lock"
+search = '''
+name = "recsyslearn-core"
+version = "{current_version}"'''
+replace = '''
+name = "recsyslearn-core"
+version = "{new_version}"'''
 
 [[tool.bumpversion.files]]
-filename = "docs/conf.py"
-search = 'version = "{current_version}"'
-replace = 'version = "{new_version}"'
-
-[[tool.bumpversion.files]]
-filename = "uv.lock"
-search = """
-name = "recsyslearn"
-version = "{current_version}"
-"""
-replace = """
-name = "recsyslearn"
-version = "{new_version}"
-"""
+filename = "Cargo.lock"
+search = '''
+name = "recsyslearn-py"
+version = "{current_version}"'''
+replace = '''
+name = "recsyslearn-py"
+version = "{new_version}"'''

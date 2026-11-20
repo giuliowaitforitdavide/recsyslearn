@@ -1,82 +1,45 @@
 Installation
-===================
-
-.. contents:: Table of Contents
-
-Install Python
---------------
-recsyslearn is officially tested on Python from version 3.10. If you do not have at least this python
-version installed, go to the official `Python download page <https://www.python.org/downloads/>`_.
-
-Install recsyslearn
--------------------
-There are 2 different ways in which you could install recsyslearn, depending on the branch release
-you would like to use.
+============
 
 Stable release
 --------------
 
-To install recsyslearn, run this command in your terminal:
+recsyslearn is published on PyPI as pre-built wheels for Linux (glibc and musl, x86-64
+and ARM64), macOS (Intel and Apple Silicon) and Windows (x86-64). It supports Python
+|min_python| and later:
 
 .. code-block:: console
 
     $ pip install recsyslearn
 
-This is the preferred method to install recsyslearn, as it will always install the most recent stable release.
-
-If you don't have `pip`_ installed, this `Python installation guide`_ can guide
-you through the process.
-
-.. _pip: https://pip.pypa.io
-.. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
-
-From sources
-------------
-
-The sources for recsyslearn can be downloaded from the `Github repo`_.
-
-You can either clone the public repository:
+or, with `uv <https://docs.astral.sh/uv/>`_:
 
 .. code-block:: console
 
-    $ git clone git://github.com/giuliowaitforitdavide/recsyslearn
+    $ uv add recsyslearn
 
-Or download the `tarball`_:
+No Rust toolchain is needed: the wheels contain the compiled core.
+
+.. |min_python| replace:: 3.11
+
+From source
+-----------
+
+On other platforms pip builds the package from the source distribution, which requires
+a `Rust toolchain <https://rustup.rs>`_ (1.85 or later). The same applies to installing
+the development version:
 
 .. code-block:: console
 
-    $ curl -OJL https://github.com/giuliowaitforitdavide/recsyslearn/tarball/master
+    $ pip install git+https://github.com/giuliowaitforitdavide/recsyslearn
 
-Once you have a copy of the source, you can install it with:
+Verifying the installation
+--------------------------
 
 .. code-block:: console
 
-    $ pip install .
+    $ python -c "import recsyslearn; print(recsyslearn.__version__)"
 
+should print |version|.
 
-.. _Github repo: https://github.com/giuliowaitforitdavide/recsyslearn
-.. _tarball: https://github.com/giuliowaitforitdavide/recsyslearn/tarball/master
-
-
-Verifying Installation
-----------------------
-After installing recsyslearn, you can verify that it has been successfully installed
-by running the following command on your favourite terminal/command prompt:
-
-.. code-block:: bash
-
-    python3 -c "import recsyslearn; print(recsyslearn.__version__)"
-
-You should see the following output:
-
-.. parsed-literal::
-    |version|
-
-Congratulations! Your machine has recsyslearn and you're now ready to
-create your first experiment!
-
-
-
-What's next?
-------------
-Start creating your first experiment by following the :doc:`quickstart` guide.
+Next, read about :doc:`the input tables <data>` or jump to the :doc:`quickstart`.

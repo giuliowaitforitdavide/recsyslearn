@@ -1,13 +1,15 @@
 API Reference
 =============
 
-Welcome to the API Reference. This section contains the documentation of the
-functions and classes of the ``recsyslearn`` package.
+Every function takes pandas DataFrames with the columns described in
+:doc:`../user/data`, and states the formula it computes together with the papers the
+formula comes from.
 
 .. toctree::
    :maxdepth: 2
-   :caption: API Reference
-   
-   metrics
+
+   accuracy
+   beyond_accuracy
+   fairness
+   segmentation
    errors
-   dataset

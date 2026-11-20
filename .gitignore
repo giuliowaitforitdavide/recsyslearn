@@ -307,3 +307,9 @@ pip-selfcheck.json
 
 ### macOS ###
 .DS_Store
+
+### recsyslearn ###
+# Public datasets downloaded by the integration tests
+.integration-data/
+# Local preview configuration of Claude Code
+.claude/launch.json

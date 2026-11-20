@@ -1,7 +1,21 @@
 repos:
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.1.6
+      # Keep in sync with the ruff version of the dev group in pyproject.toml
+      rev: v0.17.6
       hooks:
-        - id: ruff
+        - id: ruff-check
           args: [ --fix ]
         - id: ruff-format
+    - repo: local
+      hooks:
+        - id: cargo-fmt
+          name: cargo fmt
+          entry: cargo fmt --all --
+          language: system
+          types: [rust]
+        - id: cargo-clippy
+          name: cargo clippy
+          entry: uv run cargo clippy --workspace --all-targets --locked -- -D warnings
+          language: system
+          types: [rust]
+          pass_filenames: false

@@ -1,32 +1,43 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: A wrong result, an unexpected error or a crash
 title: ''
-labels: ''
+labels: bug
 assignees: ''
 
 ---
 
-**Describe the bug**
-<!-- A clear and concise description of what the bug is. -->
+<!-- Fill in every section; write "Not applicable" instead of deleting one.
+     Security problems are reported privately: see SECURITY.md. -->
 
-**To Reproduce**
-<!-- Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error -->
+## What happened
 
-**Expected behavior**
-<!-- A clear and concise description of what you expected to happen. -->
+<!-- What did you observe? Paste the full traceback if there is one. -->
 
-**Screenshots**
-<!-- If applicable, add screenshots to help explain your problem. -->
+## What you expected
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser: [e.g. chrome, safari]
- - Version: [e.g. 22]
+<!-- For a wrong value: the value you expected and how you obtained it (the formula
+     worked out by hand, a paper with its equation number, another library). -->
 
-**Additional context**
-<!-- Add any other context about the problem here. -->
+## Minimal reproducible example
+
+<!-- The smallest script that shows the problem, with the data built inline. -->
+
+```python
+import pandas as pd
+import recsyslearn
+
+recommendations = pd.DataFrame({"user": [...], "item": [...], "rank": [...]})
+```
+
+## Environment
+
+- recsyslearn version: <!-- python -c "import recsyslearn; print(recsyslearn.__version__)" -->
+- Python version:
+- pandas and numpy versions:
+- Operating system and architecture: <!-- e.g. Ubuntu 24.04 x86-64, macOS 15 arm64 -->
+- Installed from: <!-- PyPI wheel / source distribution / git -->
+
+## Additional context
+
+<!-- Does it also happen with an older version? Anything else that helps. -->

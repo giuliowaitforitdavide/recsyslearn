@@ -1,5 +1,6 @@
 Exceptions
 ==========
 
-.. automodule:: recsyslearn.errors.errors
+.. automodule:: recsyslearn.errors
     :members:
+    :show-inheritance:

@@ -1,19 +1,15 @@
-import json
+"""Beyond-accuracy qualities of a recommender: catalog coverage and novelty."""
 
 import pandas as pd
 
-from recsyslearn.beyond_accuracy.metrics import Coverage, Novelty
-from recsyslearn.dataset.segmentations import InteractionSegmentation
+from recsyslearn.beyond_accuracy import coverage, novelty
 
 train_data = pd.read_csv("./examples/__assets__/train_dataset.csv")
-segmented_items = InteractionSegmentation().segment(train_data, [0.8, 0.2])
-
 top_k = pd.read_csv("./examples/__assets__/top_k.csv")
-top_k = top_k.astype({"item": str, "user": str, "rank": int})
-top_k_with_item_groups = top_k.merge(segmented_items, on="item")
-coverage = Coverage().evaluate(
-    top_k_with_item_groups, segmented_items["item"].to_list()
-)
-novelty = Novelty().evaluate(top_k_with_item_groups)
 
-print(json.dumps({"coverage": coverage, "Novelty": novelty}, indent=4))
+# Share of the items of the training set that are recommended to at least one user.
+print(f"coverage@10: {coverage(top_k, train_data, k=10):.4f}")
+
+# Mean self-information (in bits) of the recommended items: the popularity of an item
+# is the fraction of training users who interacted with it.
+print(f"novelty@10:  {novelty(top_k, train_data, k=10):.4f}")
