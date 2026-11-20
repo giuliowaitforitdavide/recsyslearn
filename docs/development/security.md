@@ -44,8 +44,13 @@ see [SECURITY.md](../../SECURITY.md); this guide is about how to write code.
 - Workflows never use `pull_request_target`, and never interpolate untrusted text (titles,
   branch names, comments) into a shell command.
 - Checkouts do not persist credentials (`persist-credentials: false`).
-- Secrets exist only as GitHub Actions secrets, are referenced only by the job that needs
-  them (the PyPI token, in the `publish` job of `release.yml`), and are never printed.
+- No workflow needs a stored secret. Releases reach PyPI by
+  [trusted publishing](https://docs.pypi.org/trusted-publishers/): the `publish` job of
+  `release.yml` runs in the `pypi` environment with `id-token: write`, the only
+  permission beyond `contents: read` in the repository, and PyPI accepts the upload only
+  from that workflow in that environment. Never add an API token for it.
+- Should a workflow ever need a secret, it exists only as a GitHub Actions secret, is
+  referenced only by the job that needs it, and is never printed.
 - Releases are built by CI from a tagged commit, never uploaded from a laptop.
 
 ## Secrets and personal data
