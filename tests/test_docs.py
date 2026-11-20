@@ -47,3 +47,9 @@ def test_examples_run(example, monkeypatch, capsys):
     monkeypatch.chdir(ROOT)
     exec(compile(example.read_text(), str(example), "exec"), {"__name__": "__main__"})
     assert capsys.readouterr().out
+
+
+def test_every_example_is_shown_in_the_documentation():
+    page = (ROOT / "docs" / "user" / "examples.rst").read_text()
+    included = re.findall(r"^\.\. literalinclude:: \.\./\.\./examples/(\S+)$", page, re.MULTILINE)
+    assert included == sorted(path.name for path in (ROOT / "examples").glob("*.py"))

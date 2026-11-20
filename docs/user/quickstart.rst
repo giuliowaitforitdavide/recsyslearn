@@ -9,9 +9,12 @@ of a model. The files are in the ``examples/__assets__`` folder of the repositor
 
     import pandas as pd
 
-    train = pd.read_csv("examples/__assets__/train_dataset.csv")  # user, item, rating
-    test = pd.read_csv("examples/__assets__/test_dataset.csv")    # user, item, rating
+    train = pd.read_csv("examples/__assets__/train_dataset.csv")  # user, item
+    test = pd.read_csv("examples/__assets__/test_dataset.csv")    # user, item
     top_k = pd.read_csv("examples/__assets__/top_k.csv")          # user, item, rank
+
+The interactions are implicit feedback. With explicit feedback, a ``rating`` column in
+the ground truth is the graded relevance of each pair.
 
 Accuracy
 --------
@@ -22,6 +25,18 @@ Accuracy
 
     ndcg(top_k, test, k=10)                    # mean over the test users
     ndcg(top_k, test, k=10, per_user=True)     # one score per user
+
+Scores instead of ranks
+-----------------------
+
+Lists can be ordered by a ``score`` column (the highest is the best) instead of a
+``rank``. Scores can be tied, and then no order is chosen for the tied items: see
+:doc:`data`.
+
+.. code-block:: python
+
+    scored = top_k.assign(score=1 / top_k["rank"]).drop(columns="rank")
+    ndcg(scored, test, k=10)                   # the same lists, the same value
 
 Beyond accuracy
 ---------------
@@ -91,3 +106,5 @@ count only relevant recommendations.
     fairness.mutual_information(top_k, user_groups=user_groups, item_groups=item_groups)
 
 The :doc:`../methodology` page lists the formula and the source of every function.
+:doc:`examples` has a complete script for each of these topics, and for tied scores, the
+comparison of several recommenders and the errors.

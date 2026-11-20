@@ -7,4 +7,5 @@ User Guide
    install
    data
    quickstart
+   examples
    migration
