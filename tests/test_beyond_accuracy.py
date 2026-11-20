@@ -1,56 +1,248 @@
-import unittest
+"""Catalog coverage (Ge et al. 2010) and novelty as mean self-information
+(Zhou et al. 2010; Schedl et al. 2018, Eq. 12)."""
 
-import numpy as np
+from __future__ import annotations
 
-from recsyslearn.beyond_accuracy.metrics import Coverage, Novelty
-from tests.utils import first_example, item_groups, item_pop_perc, second_example
+import math
+
+import pandas as pd
+import pytest
+from conftest import frame
+from reference import coverage as reference_coverage
+from reference import lists_from_rows
+from reference import novelty as reference_novelty
+
+from recsyslearn.beyond_accuracy import coverage, novelty
+from recsyslearn.errors import InvalidInputError, MissingColumnsError
+
+# Five users, catalog {A, B, C, D}, lists of length two.
+LISTS = {"u1": "AB", "u2": "AB", "u3": "AC", "u4": "BA", "u5": "AB"}
+RECOMMENDATIONS = frame(
+    [(user, item, rank) for user, items in LISTS.items() for rank, item in enumerate(items, 1)],
+    ["user", "item", "rank"],
+)
+# Training interactions with user-degrees k_A = 4, k_B = 2, k_C = 1, k_D = 1.
+INTERACTIONS = frame(
+    [
+        ("u1", "A"),
+        ("u2", "A"),
+        ("u3", "A"),
+        ("u4", "A"),
+        ("u1", "B"),
+        ("u5", "B"),
+        ("u2", "C"),
+        ("u3", "D"),
+    ],
+    ["user", "item"],
+)
 
 
-class CoverageTest(unittest.TestCase):
-    def test_coverage_one(self) -> None:
-        top_n = first_example[
-            (first_example["item"] != "3")
-            & (first_example["item"] != "4")
-            & (first_example["item"] != "1")
-        ]
-        cov = Coverage().evaluate(top_n, item_groups.item.tolist())
-        self.assertAlmostEqual(cov, 0.7)
+class TestCoverage:
+    def test_share_of_the_catalog_that_is_recommended(self):
+        assert coverage(RECOMMENDATIONS, list("ABCD")) == 0.75
 
-    def test_coverage_two(self) -> None:
-        top_n = first_example[
-            (first_example["item"] != "1")
-            & (first_example["item"] != "2")
-            & (first_example["item"] != "4")
-            & (first_example["item"] != "7")
-            & (first_example["item"] != "9")
-            & (first_example["item"] != "10")
-        ]
-        cov = Coverage().evaluate(top_n, item_groups.item.tolist())
-        self.assertAlmostEqual(cov, 0.4)
+    def test_cutoff(self):
+        assert coverage(RECOMMENDATIONS, list("ABCD"), k=1) == 0.5
 
+    @pytest.mark.parametrize(
+        "catalog",
+        [
+            pd.Series(list("ABCD")),
+            INTERACTIONS,
+            frame(list("ABCD"), ["item"]),
+            {"A", "B", "C", "D"},
+            list("ABCDDDA"),
+        ],
+        ids=["series", "interactions", "frame", "set", "with-duplicates"],
+    )
+    def test_catalog_can_be_any_collection_of_items(self, catalog):
+        assert coverage(RECOMMENDATIONS, catalog) == 0.75
 
-class NoveltyTest(unittest.TestCase):
-    def setUp(self):
-        novelty = np.vectorize(lambda x: -np.log2(x))
-        self.novelty = lambda list: float(np.mean(novelty(list)))
+    def test_full_coverage(self):
+        assert coverage(RECOMMENDATIONS, list("ABC")) == 1.0
 
-    def test_novelty_one(self) -> None:
-        top_n = first_example.merge(item_groups, on="item")
-        nov = Novelty().evaluate(top_n)
-        self.assertAlmostEqual(nov, self.novelty(top_n["group"].to_numpy()), delta=1e-5)
+    def test_item_outside_the_catalog(self):
+        with pytest.raises(InvalidInputError, match="items that are not in the catalog"):
+            coverage(RECOMMENDATIONS, list("AB"))
 
-    def test_novelty_two(self) -> None:
-        top_n = second_example.merge(item_groups, on="item")
-        nov = Novelty().evaluate(top_n)
-        self.assertAlmostEqual(nov, self.novelty(top_n["group"].to_numpy()), delta=1e-5)
+    def test_empty_catalog(self):
+        with pytest.raises(InvalidInputError, match="the catalog is empty"):
+            coverage(RECOMMENDATIONS.iloc[:0], [])
 
-    def test_novelty_three(self) -> None:
-        top_n = first_example.merge(item_pop_perc, on="item")
-        nov = Novelty().evaluate(top_n, popularity_definition="percentage")
-        self.assertAlmostEqual(
-            nov, self.novelty(top_n["percentage"].to_numpy()), delta=1e-5
+    def test_missing_columns(self):
+        with pytest.raises(MissingColumnsError, match="item"):
+            coverage(RECOMMENDATIONS[["user"]], list("ABCD"))
+        with pytest.raises(MissingColumnsError, match="item"):
+            coverage(RECOMMENDATIONS, frame(list("ABCD"), ["movie"]))
+
+    @pytest.mark.parametrize("k", [1, 2, 7, None])
+    def test_agrees_with_the_reference_implementation(self, random_data, k):
+        recommendations = random_data["recommendations"]
+        catalog = [f"i{item}" for item in range(80)]
+        lists = lists_from_rows(recommendations.itertuples(index=False))
+        assert coverage(recommendations, catalog, k=k) == pytest.approx(
+            reference_coverage(lists, catalog, k)
         )
 
 
-if __name__ == "__main__":
-    unittest.main()
+class TestNovelty:
+    def test_mean_self_information(self):
+        a, b, c = math.log2(5 / 4), math.log2(5 / 2), math.log2(5 / 1)
+        expected = (4 * (a + b) / 2 + (a + c) / 2) / 5
+        assert novelty(RECOMMENDATIONS, INTERACTIONS) == pytest.approx(expected)
+        assert novelty(RECOMMENDATIONS, INTERACTIONS) == pytest.approx(0.921928, abs=1e-6)
+
+    def test_per_user(self):
+        scores = novelty(RECOMMENDATIONS, INTERACTIONS, per_user=True)
+        assert isinstance(scores, pd.Series)
+        assert scores.index.name == "user"
+        assert scores.name == "novelty"
+        # u1 is recommended A and B, u3 A and C; the user-degrees are 4, 2 and 1 out of 5.
+        a, b, c = math.log2(5 / 4), math.log2(5 / 2), math.log2(5 / 1)
+        assert scores["u1"] == pytest.approx((a + b) / 2)
+        assert scores["u3"] == pytest.approx((a + c) / 2)
+        assert scores["u1"] == pytest.approx(0.821928, abs=1e-6)
+        assert scores["u3"] == pytest.approx(1.321928, abs=1e-6)
+        assert scores.mean() == pytest.approx(novelty(RECOMMENDATIONS, INTERACTIONS))
+
+    def test_cutoff(self):
+        scores = novelty(RECOMMENDATIONS, INTERACTIONS, k=1, per_user=True)
+        assert scores["u1"] == pytest.approx(math.log2(5 / 4))
+        assert scores["u4"] == pytest.approx(math.log2(5 / 2))
+
+    def test_popularity_counts_users_not_interactions(self):
+        repeated = pd.concat([INTERACTIONS, INTERACTIONS.iloc[:3]], ignore_index=True)
+        assert novelty(RECOMMENDATIONS, repeated) == pytest.approx(
+            novelty(RECOMMENDATIONS, INTERACTIONS)
+        )
+
+    def test_explicit_feedback_values_are_ignored(self):
+        rated = INTERACTIONS.assign(rating=4.0)
+        assert novelty(RECOMMENDATIONS, rated) == pytest.approx(
+            novelty(RECOMMENDATIONS, INTERACTIONS)
+        )
+
+    def test_item_known_by_everyone_is_not_novel(self):
+        interactions = frame([("u1", "A"), ("u2", "A")], ["user", "item"])
+        recommendations = frame([("u1", "A")], ["user", "item"])
+        assert novelty(recommendations, interactions) == 0.0
+
+    def test_unseen_item_is_as_novel_as_an_item_with_one_user(self):
+        recommendations = frame([("u1", "never-seen")], ["user", "item"])
+        assert novelty(recommendations, INTERACTIONS) == pytest.approx(math.log2(5))
+
+    def test_users_are_those_of_the_interactions(self):
+        # A recommended user who is not in the interactions does not change |U|.
+        recommendations = frame([("stranger", "B")], ["user", "item"])
+        assert novelty(recommendations, INTERACTIONS) == pytest.approx(math.log2(5 / 2))
+
+    def test_errors(self):
+        with pytest.raises(MissingColumnsError, match="user"):
+            novelty(RECOMMENDATIONS, INTERACTIONS[["item"]])
+        with pytest.raises(InvalidInputError, match="k must be a positive integer"):
+            novelty(RECOMMENDATIONS, INTERACTIONS, k=0)
+        with pytest.raises(InvalidInputError, match="no recommendations"):
+            novelty(RECOMMENDATIONS.iloc[:0], INTERACTIONS)
+        with pytest.raises(InvalidInputError, match="no users"):
+            novelty(RECOMMENDATIONS, INTERACTIONS.iloc[:0])
+
+    @pytest.mark.parametrize("k", [1, 5, 12, None])
+    def test_agrees_with_the_reference_implementation(self, random_data, k):
+        recommendations, interactions = random_data["recommendations"], random_data["interactions"]
+        lists = lists_from_rows(recommendations.itertuples(index=False))
+        pairs = list(interactions.itertuples(index=False, name=None))
+        expected = reference_novelty(lists, pairs, k)
+        assert novelty(recommendations, interactions, k=k) == pytest.approx(expected, rel=1e-12)
+
+
+class TestReviewRegressions:
+    """Inputs that used to give a wrong value or an undocumented exception."""
+
+    def test_missing_identifier_in_the_catalog(self):
+        with pytest.raises(InvalidInputError, match=r"catalog.*missing"):
+            coverage(RECOMMENDATIONS, ["A", "B", "C", "D", None])
+
+    def test_catalog_must_be_a_flat_collection(self):
+        import numpy as np
+
+        with pytest.raises(InvalidInputError, match="catalog must be a flat"):
+            coverage(RECOMMENDATIONS, np.array([["A", "B"], ["C", "D"]]))
+        with pytest.raises(TypeError, match="catalog"):
+            coverage(RECOMMENDATIONS, None)
+
+    def test_item_identifiers_of_different_types_are_an_error(self):
+        interactions = frame([(1, 10), (2, 10), (2, 20)], ["user", "item"])
+        recommendations = frame([(1, 20)], ["user", "item"])
+        assert novelty(recommendations, interactions) == pytest.approx(1.0)
+        with pytest.raises(InvalidInputError, match=r"integer.*string|string.*integer"):
+            novelty(recommendations, interactions.astype({"item": str}))
+
+
+class TestEdgeCases:
+    def test_cutoff_beyond_the_lists_adds_nothing(self):
+        catalog = ["A", "B", "C", "D"]
+        # Three of the four items of the catalog are recommended.
+        assert coverage(RECOMMENDATIONS, catalog, k=100) == pytest.approx(3 / 4)
+        assert novelty(RECOMMENDATIONS, INTERACTIONS, k=100) == pytest.approx(
+            novelty(RECOMMENDATIONS, INTERACTIONS)
+        )
+
+
+class TestCatalogAsAList:
+    recommendations = frame([("u", ("a", 1)), ("u", ("b", 2))], ["user", "item"])
+
+    def test_identifiers_can_be_tuples(self):
+        # Two of the three items of the catalog are recommended.
+        catalog = [("a", 1), ("b", 2), ("c", 3)]
+        assert coverage(self.recommendations, catalog) == pytest.approx(2 / 3)
+        assert coverage(self.recommendations, pd.Series(catalog)) == pytest.approx(2 / 3)
+
+    @pytest.mark.parametrize("catalog", [[["A", "B"], ["C"]], [["A", "B"], ["C", "D"]], [{}, {}]])
+    def test_items_must_be_hashable(self, catalog):
+        with pytest.raises(InvalidInputError, match="catalog must be a flat"):
+            coverage(RECOMMENDATIONS, catalog)
+
+    def test_a_string_is_not_a_catalog(self):
+        with pytest.raises(TypeError, match="catalog must be a collection"):
+            coverage(RECOMMENDATIONS, "ABCD")
+
+    def test_nothing_recommended_covers_nothing(self):
+        assert coverage(RECOMMENDATIONS.iloc[:0], ["A", "B", "C", "D"]) == 0.0
+
+
+class TestScores:
+    # Degrees out of 5 users: A 4, B 2, C 1 (see INTERACTIONS).
+    scored = frame([("u", "A", 2.0), ("u", "B", 1.0), ("u", "C", 1.0)], ["user", "item", "score"])
+    a, b, c = math.log2(5 / 4), math.log2(5 / 2), math.log2(5 / 1)
+
+    def test_novelty_of_scored_lists(self):
+        assert novelty(self.scored, INTERACTIONS) == pytest.approx((self.a + self.b + self.c) / 3)
+
+    def test_tied_scores_give_the_expected_novelty(self):
+        # Cutoff 2: A and, with the same probability, B or C.
+        expected = (self.a + (self.b + self.c) / 2) / 2
+        assert novelty(self.scored, INTERACTIONS, k=2) == pytest.approx(expected)
+
+    def test_coverage_of_scored_lists(self):
+        catalog = ["A", "B", "C", "D"]
+        assert coverage(self.scored, catalog) == pytest.approx(3 / 4)
+        assert coverage(self.scored, catalog, k=1) == pytest.approx(1 / 4)
+
+    def test_coverage_refuses_a_tie_that_straddles_the_cutoff(self):
+        # B and C have the same score: which of them is second is not defined.
+        with pytest.raises(InvalidInputError, match="same score straddle the cutoff"):
+            coverage(self.scored, ["A", "B", "C", "D"], k=2)
+
+    @pytest.mark.parametrize("k", [1, 3, 6, 9, None])
+    def test_novelty_agrees_with_the_average_over_every_order_of_the_ties(self, tied_data, k):
+        from conftest import scored_lists
+        from reference import expected_per_user
+
+        recommendations, interactions = tied_data["recommendations"], tied_data["interactions"]
+        pairs = list(interactions.itertuples(index=False, name=None))
+        expected = expected_per_user(
+            scored_lists(recommendations),
+            lambda user, order: reference_novelty({user: order}, pairs, k),
+        )
+        actual = novelty(recommendations, interactions, k=k, per_user=True)
+        assert actual.to_dict() == pytest.approx(expected, rel=1e-12)

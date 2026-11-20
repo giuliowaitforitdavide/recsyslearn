@@ -1,141 +1,117 @@
 Quickstart
 ==========
 
-.. contents:: Table of Contents
-
-To use recsyslearn in a project:
-
-.. code-block:: python
-
-    import recsyslearn
-
-To use its features in a project you just need a dataset
-in the form of ``user, item, rating`` or
-``user, item, timestamp``.
-
-Segment your dataset
----------------------
-
-Before evaluating the fairness of your recommendation system, you may
-want to segment your dataset in groups of users or items based on one
-of their features.
-
-To segment your dataset in groups (e.g. based on the item popularity):
+The examples below use three tables in the format described in :doc:`data`: the
+training interactions, the held-out test interactions, and the top-10 recommendations
+of a model. The files are in the ``examples/__assets__`` folder of the repository.
 
 .. code-block:: python
 
-    import json
     import pandas as pd
-    from recsyslearn.dataset.segmentations import InteractionSegmentation
 
-    # Read the entire dataset (in the form user, item, rank)
-    train_data = pd.read_csv("train_dataset.csv")
+    # Training and held-out interactions: user, item.
+    train = pd.read_csv("examples/__assets__/train_dataset.csv")
+    test = pd.read_csv("examples/__assets__/test_dataset.csv")
+    # Recommendations: user, item, rank.
+    top_k = pd.read_csv("examples/__assets__/top_k.csv")
 
-    # Segment the dataset in two groups based on the item popularity
-    segmented_items = InteractionSegmentation().segment(train_data, [0.8, 0.2])
+The interactions are implicit feedback. With explicit feedback, a ``rating`` column in
+the ground truth is the graded relevance of each pair.
 
-    # Print the results
-    print(segmented_items.head())
-
-
-Evaluate the Accuracy
----------------------
-
-To evaluate the accuracy of your recommendation system:
+Accuracy
+--------
 
 .. code-block:: python
 
-    import json
-    import pandas as pd
-    from recsyslearn.accuracy.metrics import NDCG
-    from recsyslearn.dataset.utils import find_relevant_items
+    from recsyslearn.accuracy import ndcg
 
-    # Read the recommendation lists (in the form user, item, rank)
-    top_k = pd.read_csv("top_k.csv")
+    ndcg(top_k, test, k=10)                  # mean over the test users
+    ndcg(top_k, test, k=10, per_user=True)   # one score per user
 
-    # Read the test dataset against you would like to evaluate accuracy
-    # (in the form user, item, rank)
-    dataset = pd.read_csv("dataset.csv")
+Scores instead of ranks
+-----------------------
 
-    # Find the relevant items for each user in the test dataset
-    pos_items = find_relevant_items(dataset)
-
-    # Evaluate the accuracy with NDCG@5 and NDCG@10
-    ats = (5, 10)
-    ndcg_df = NDCG().evaluate(top_k, pos_items, ats)
-
-    # Print the results
-    print(json.dumps({f"NDCG@{at}": ndcg_df[f"NDCG@{at}"].mean() for at in ats}, indent=4))
-
-
-Evaluate the Beyond Accuracy
-----------------------------
-
-To evaluate the Beyond Accuracy (e.g. Novelty) of your recommendation system:
+Lists can be ordered by a ``score`` column (the highest is the best) instead of a
+``rank``. Scores can be tied, and then no order is chosen for the tied items: see
+:doc:`data`.
 
 .. code-block:: python
 
-    import json
-    import pandas as pd
-    from recsyslearn.beyond_accuracy.metrics import Coverage, Novelty
-    from recsyslearn.dataset.segmentations import InteractionSegmentation
+    # The same lists, so the same value.
+    scored = top_k.assign(score=1 / top_k["rank"]).drop(columns="rank")
+    ndcg(scored, test, k=10)
 
-    # Read the entire dataset (in the form user, item, rank)
-    train_data = pd.read_csv("train_dataset.csv")
-
-    # Segment the dataset in two groups based on the item popularity
-    segmented_items = InteractionSegmentation().segment(train_data, [0.8, 0.2])
-
-    # Read the recommendation lists (in the form user, item, rank)
-    top_k = pd.read_csv("top_k.csv")
-
-    # Merge the recommendation lists with the item groups
-    top_k_with_item_groups = top_k.merge(segmented_items, on="item")
-
-    # Evaluate the Novelty
-    novelty = Novelty().evaluate(top_k_with_item_groups)
-
-    # Print the results
-    print(json.dumps({"novelty": novelty}, indent=4))
-
-Evaluate the Fairness
----------------------
-
-To evaluate the fairness (e.g. Kullback-Leibler Divergence) of your recommendation system:
+Beyond accuracy
+---------------
 
 .. code-block:: python
 
-    import json
-    import pandas as pd
-    from recsyslearn.dataset.segmentations import (
-        ActivitySegmentation,
-        InteractionSegmentation,
-    )
-    from recsyslearn.fairness.metrics import KullbackLeibler
+    from recsyslearn.beyond_accuracy import coverage, novelty
 
-    # Read the entire dataset (in the form user, item, rank)
-    train_data = pd.read_csv("train_dataset.csv")
+    # Share of the training items that get recommended.
+    coverage(top_k, train, k=10)
+    # Mean self-information of the recommended items, in bits.
+    novelty(top_k, train, k=10)
 
-    # Segment the dataset in two groups based on the item popularity
-    segmented_items = InteractionSegmentation().segment(train_data, [0.8, 0.2])
+Segment items and users
+-----------------------
 
-    # Read the recommendation lists (in the form user, item, rank)
-    top_k = pd.read_csv("top_k.csv")
+Segmentations split items or users into groups, typically on the training set.
 
-    # Merge the recommendation lists with the item groups
-    top_k_with_item_groups = top_k.merge(segmented_items, on="item")
+.. code-block:: python
 
-    # Read the test dataset against you would like to evaluate accuracy
-    # (in the form user, item, rank)
-    test_data = pd.read_csv("test_dataset.csv")
+    from recsyslearn import segmentation
 
-    # Set the target representation of the item groups
-    target_representation = pd.DataFrame(
-        [["1", 0.5], ["2", 0.5]], columns=["group", "target_representation"]
+    # Short head (items that account for 80% of the interactions) and long tail.
+    item_groups = segmentation.by_cumulative_interactions(
+        train, (0.8, 0.2), labels=("head", "tail")
     )
 
-    # Evaluate the Kullback-Leibler Divergence
-    divergence = KullbackLeibler().evaluate(top_k_with_item_groups, target_representation)
+    # The 20% most active users and the others.
+    user_groups = segmentation.by_interaction_count(
+        train, (0.2, 0.8), by="user", labels=("active", "casual")
+    )
 
-    # Print the results
-    print(json.dumps({"KL@[0.5, 0.5]": divergence}, indent=4))
+    # Popularity of every item as the share of interactions it received.
+    segmentation.popularity(train)
+
+    # Groups from any categorical attribute, e.g. the gender of the users.
+    # segmentation.by_feature(users, "gender")
+
+The segmentations return a table ``[item | user, "group"]``, which the fairness metrics
+take as it is; ``popularity`` returns ``[item | user, "popularity"]``.
+
+Fairness
+--------
+
+The fairness metrics describe how the *benefit* of being recommended is distributed
+over the groups. By default the benefit is the exposure, which decays with the position
+in the list; pass ``ground_truth=test`` to measure the effectiveness instead, i.e. to
+count only relevant recommendations.
+
+.. code-block:: python
+
+    from recsyslearn import fairness
+
+    # Share of the exposure received by head and tail items.
+    fairness.group_distribution(top_k, item_groups)
+
+    # How far is it from a target? Here: proportional to the size of each group.
+    target = item_groups["group"].value_counts(normalize=True)
+    fairness.kl_divergence(top_k, item_groups, target)
+
+    # How evenly is it spread? (1 bit = evenly over two groups)
+    fairness.entropy(top_k, item_groups)
+
+    # Are relevant recommendations spread over user groups like the users are?
+    target = user_groups["group"].value_counts(normalize=True)
+    fairness.kl_divergence(top_k, user_groups, target, ground_truth=test)
+
+    # Do active and casual users get different mixes of head and tail items?
+    fairness.mutual_information(
+        top_k, user_groups=user_groups, item_groups=item_groups
+    )
+
+The :doc:`../methodology` page lists the formula and the source of every function.
+:doc:`examples` has a complete script for each of these topics, and for tied scores, the
+comparison of several recommenders and the errors.

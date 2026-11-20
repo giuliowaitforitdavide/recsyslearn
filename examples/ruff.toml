@@ -1,0 +1,3 @@
+# The examples are shown in the documentation, whose column holds 77 characters of code.
+extend = "../pyproject.toml"
+line-length = 77

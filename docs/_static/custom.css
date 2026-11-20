@@ -1,0 +1,39 @@
+/* Justified body text, as in a paper. Hyphenation keeps the word spacing even; code,
+   tables, headings and navigation stay left-aligned. */
+.bd-article p,
+.bd-article li,
+.bd-article dd {
+    text-align: justify;
+    hyphens: auto;
+}
+
+.bd-article table p,
+.bd-article table li,
+.bd-article .sig,
+.bd-article pre {
+    text-align: left;
+    hyphens: manual;
+}
+
+/* Long display formulas scroll inside the page instead of overflowing it on narrow screens. */
+.bd-article div.math {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* Tables of prose fit the column: cells share its width and long code wraps. */
+.bd-article table.table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.bd-article table.table code,
+.bd-article table.table code .pre {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* A line of 77 characters, the limit of the examples (examples/ruff.toml), fits the text column of a laptop. */
+.bd-article div.highlight pre {
+    font-size: 0.8125rem;
+}

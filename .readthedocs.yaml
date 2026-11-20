@@ -1,9 +1,9 @@
 version: 2
 
 build:
-    os: "ubuntu-22.04"
+    os: "ubuntu-24.04"
     tools:
-        python: "3.10"
+        python: "3.12"
     jobs:
         pre_create_environment:
             - asdf plugin add uv
@@ -12,7 +12,10 @@ build:
         create_environment:
             - uv venv "${READTHEDOCS_VIRTUALENV_PATH}"
         install:
-            - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv sync --frozen --no-default-groups --group docs
+            # The native module is mocked in docs/conf.py, so the package itself (which
+            # would need a Rust toolchain to build) is not installed.
+            - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv sync --frozen --no-install-project --no-default-groups --group docs
 
 sphinx:
     configuration: docs/conf.py
+    fail_on_warning: true
