@@ -70,6 +70,17 @@ def check_choice(name: str, value: Any, choices: Sequence[str]) -> str:
     return value
 
 
+def check_flag(name: str, value: Any) -> bool:
+    """Validate an on/off option: ``True`` or ``False``, nothing that merely acts as one.
+
+    ``"False"`` and ``1`` are true in Python: accepting them would switch an option on
+    that the caller wrote as off, or return a table where a number was expected.
+    """
+    if not isinstance(value, (bool, np.bool_)):
+        raise InvalidInputError(f"{name} must be True or False, got {value!r}")
+    return bool(value)
+
+
 def _kind(column: pd.Series) -> str:
     """What the identifiers of a column are: ``"integer"``, ``"string"``, ..."""
     values = column.cat.categories if isinstance(column.dtype, pd.CategoricalDtype) else column

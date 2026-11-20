@@ -164,8 +164,9 @@ def by_cumulative_interactions(
     ordered. Ties are broken by ascending identifier, so that the result does not
     depend on the order of the rows.
 
-    Proportions must sum to 1 within :math:`10^{-9}`, and a threshold within
-    floating-point rounding error of an integer is taken to be that integer.
+    Proportions must sum to 1 within :math:`10^{-9}`. They are read as the decimal
+    numbers they are written as, and the thresholds are computed exactly, whatever the
+    number of interactions (see :doc:`/methodology`).
 
     References
     ----------
@@ -233,9 +234,9 @@ def by_interaction_count(
     literature. With few items a group after the first can be empty: ``(0.3, 0.3,
     0.4)`` on 5 items gives boundaries 2 and 3, hence groups of 2, 1 and 2 items.
 
-    Proportions must sum to 1 within :math:`10^{-9}`, and a boundary within
-    floating-point rounding error of an integer is taken to be that integer (``0.1 +
-    0.2`` of 10 items is 3, not 4).
+    Proportions must sum to 1 within :math:`10^{-9}`. They are read as the decimal
+    numbers they are written as, and the boundaries are computed exactly: ``0.1 + 0.2``
+    of 10 items is 3, not the 4 that floating point would give.
 
     References
     ----------

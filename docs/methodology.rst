@@ -233,11 +233,14 @@ In both segmentations, entities with the same number of interactions are ordered
 ascending identifier. No source specifies the order of ties; this one makes the result
 independent of the order of the rows.
 
-Proportions are floating-point numbers, so two tolerances are applied in both
-segmentations: they must sum to 1 within :math:`10^{-9}`, and a threshold that falls
-within rounding error of an integer (a few units in the last place for every proportion
-summed) is taken to be that integer. Without the second one, ``0.1 + 0.2`` of 10 items
-would be 3.0000000000000004 and round up to 4.
+Proportions are floating-point numbers, in which ``0.1 + 0.2`` is 0.30000000000000004:
+taken literally, 30% of 10 items would be 3.0000000000000004 and round up to 4. Both
+segmentations therefore read every proportion as the decimal number it is written as
+(``0.1`` is one tenth) and compute the thresholds on integers, exactly, whatever the
+number of interactions. Two tolerances remain: the proportions must sum to 1 within
+:math:`10^{-9}`; and a proportion with more than 19 decimal places is handled in
+floating point, where a threshold within rounding error of an integer (a few units in
+the last place for every proportion summed) is taken to be that integer.
 
 :func:`recsyslearn.segmentation.popularity`
 

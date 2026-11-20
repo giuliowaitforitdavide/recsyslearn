@@ -469,6 +469,27 @@ class TestReviewOfTheWholeChange:
         assert accuracy.ndcg(negative, TRUTH) == accuracy.ndcg(RECOMMENDATIONS, TRUTH)
 
 
+@pytest.mark.parametrize("value", ["False", 1, 0, None, [True]])
+def test_flags_must_be_booleans(value):
+    # "False" is a non-empty string, hence true: it would silently switch the option on.
+    from recsyslearn.errors import InvalidInputError
+
+    with pytest.raises(InvalidInputError, match="per_user must be True or False"):
+        accuracy.ndcg(RECOMMENDATIONS, TRUTH, per_user=value)
+    with pytest.raises(InvalidInputError, match="per_user must be True or False"):
+        beyond_accuracy.novelty(RECOMMENDATIONS, TRUTH, per_user=value)
+    with pytest.raises(InvalidInputError, match="normalize must be True or False"):
+        fairness.entropy(RECOMMENDATIONS, GROUPS, normalize=value)
+
+
+def test_flags_accept_numpy_booleans():
+    import numpy as np
+
+    scores = accuracy.ndcg(RECOMMENDATIONS, TRUTH, per_user=np.True_)
+    assert isinstance(scores, pd.Series)
+    assert fairness.entropy(RECOMMENDATIONS, GROUPS, normalize=np.False_) == EXPECTED[3]
+
+
 def test_results_do_not_depend_on_the_number_of_threads():
     """The same tied, grouped data give bit-identical results with one thread and with four."""
     import os

@@ -95,17 +95,20 @@ pub struct BenefitDistribution {
     cells: Vec<(u32, u32, f64)>,
 }
 
-/// Up to this many cells, the joint is accumulated in a dense table, which is faster
-/// than sorting the recommendations by block.
+/// Up to this many cells, the joint is accumulated in a dense table, the fastest way;
+/// beyond it the table would no longer be small against the recommendations.
 const DENSE_CELLS: usize = 1 << 20;
 
 /// Add up the benefits that fall in the same `(user block, item block)` cell and keep
 /// the cells with a positive total, sorted by block.
+///
+/// Benefits of the same cell are added in the order in which they arrive, on either
+/// path: the result does not depend on which one is taken.
 fn joint_cells(
     benefits: impl Iterator<Item = (u32, u32, f64)>,
     n_user_blocks: usize,
     n_item_blocks: usize,
-) -> Vec<(u32, u32, f64)> {
+) -> Result<Vec<(u32, u32, f64)>> {
     let dense = n_user_blocks
         .checked_mul(n_item_blocks)
         .filter(|&cells| cells <= DENSE_CELLS);
@@ -114,26 +117,56 @@ fn joint_cells(
         for (row, column, benefit) in benefits {
             table[row as usize * n_item_blocks + column as usize] += benefit;
         }
-        table
+        return Ok(table
             .into_iter()
             .enumerate()
             .filter(|&(_, mass)| mass > 0.0)
             .map(|(cell, mass)| (code(cell / n_item_blocks), code(cell % n_item_blocks), mass))
-            .collect()
-    } else {
-        let mut entries: Vec<(u32, u32, f64)> =
-            benefits.filter(|&(_, _, benefit)| benefit > 0.0).collect();
-        // Stable: benefits of the same cell are added in the order of the lists.
-        entries.sort_by_key(|&(row, column, _)| (row, column));
-        entries.dedup_by(|next, kept| {
-            let same = (next.0, next.1) == (kept.0, kept.1);
-            if same {
-                kept.2 += next.2;
-            }
-            same
-        });
-        entries
+            .collect());
     }
+    // Too many cells for a table: a counting sort gathers the benefits of each user
+    // block, in the order in which they arrived, and one row of the table at a time
+    // adds up those of the same item block. Linear in the benefits and in the blocks.
+    let entries: Vec<(u32, u32, f64)> = benefits.filter(|&(_, _, benefit)| benefit > 0.0).collect();
+    // `next[row]` starts as the number of benefits of the rows before `row`, which is
+    // where the first benefit of the row goes; it then moves forward with each one.
+    let mut next = filled(0usize, n_user_blocks, "user groups")?;
+    for &(row, _, _) in &entries {
+        next[row as usize] += 1;
+    }
+    let mut placed = 0;
+    for slot in &mut next {
+        placed += std::mem::replace(slot, placed);
+    }
+    let mut by_row = filled((0u32, 0.0f64), entries.len(), "benefits")?;
+    for &(row, column, benefit) in &entries {
+        by_row[next[row as usize]] = (column, benefit);
+        next[row as usize] += 1;
+    }
+    drop(entries);
+
+    let mut cells = Vec::new();
+    let mut masses = filled(0.0f64, n_item_blocks, "item groups")?;
+    let mut columns: Vec<u32> = Vec::new();
+    // Every row is now complete: it ends where `next` stopped, and starts where the
+    // row before it ends.
+    let mut start = 0;
+    for (row, &end) in next.iter().enumerate() {
+        for &(column, benefit) in &by_row[start..end] {
+            // Benefits are positive: a mass of zero means the column is new to the row.
+            if masses[column as usize] == 0.0 {
+                columns.push(column);
+            }
+            masses[column as usize] += benefit;
+        }
+        columns.sort_unstable();
+        for column in columns.drain(..) {
+            cells.push((code(row), column, masses[column as usize]));
+            masses[column as usize] = 0.0;
+        }
+        start = end;
+    }
+    Ok(cells)
 }
 
 impl BenefitDistribution {
@@ -217,7 +250,7 @@ impl BenefitDistribution {
                 })
         });
 
-        let mut cells = joint_cells(benefits, n_user_blocks, n_item_blocks);
+        let mut cells = joint_cells(benefits, n_user_blocks, n_item_blocks)?;
 
         let total: f64 = cells.iter().map(|&(_, _, mass)| mass).sum();
         if total <= 0.0 {
@@ -730,6 +763,47 @@ mod tests {
         let expected = [(0, 0, 0.75), (0, 5, 0.25)];
         assert_eq!(build(6).cells(), &expected); // 36 cells: dense table
         assert_eq!(build(1 << 11).cells(), &expected); // 2^22 cells: sorted entries
+    }
+
+    /// With more cells than the dense table holds, the benefits are grouped by user
+    /// block and then by item block. Whatever the order in which they arrive, the
+    /// cells come out sorted, and are the same as those of the dense table.
+    #[test]
+    fn sparse_accumulation_sorts_the_cells() {
+        // Three users, each with the items 4, 0, 2, 0-based positions of a list; user
+        // groups 2, 0, 2 and item groups 3, _, 1, _, 0 (items 1 and 3 are not used).
+        let users = [0, 0, 0, 1, 1, 1, 2, 2, 2];
+        let items = [4, 0, 2, 2, 4, 0, 0, 2, 4];
+        let lists = RankedLists::new(&users, &items, None, 3).unwrap();
+        let build = |n_groups| {
+            BenefitDistribution::new(
+                &lists,
+                None,
+                Exposure::Flat,
+                None,
+                Partition::Groups {
+                    codes: &[2, 0, 2],
+                    n_groups,
+                },
+                Partition::Groups {
+                    codes: &[3, 0, 1, 0, 0],
+                    n_groups,
+                },
+            )
+            .unwrap()
+        };
+        // Every pair carries 1 of 9. User block 0 is user 1; block 2 is users 0 and 2.
+        let (one, two) = (1.0 / 9.0, 2.0 / 9.0);
+        let expected = [
+            (0, 0, one),
+            (0, 1, one),
+            (0, 3, one),
+            (2, 0, two),
+            (2, 1, two),
+            (2, 3, two),
+        ];
+        assert_eq!(build(4).cells(), &expected); // 16 cells: dense table
+        assert_eq!(build(1 << 11).cells(), &expected); // 2^22 cells: grouped entries
     }
 
     /// Two items with the same score, in different groups, and a cutoff of one: each

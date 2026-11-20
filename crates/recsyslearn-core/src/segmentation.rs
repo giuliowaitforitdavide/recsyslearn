@@ -84,15 +84,85 @@ pub fn shares(counts: &[u64], total: u64) -> Result<Vec<f64>> {
         .collect())
 }
 
-/// Cumulative proportions scaled to `total`, without the last one (always `total`).
+/// Most decimal places with which the thresholds are computed exactly: a cumulative
+/// proportion times a 64-bit total then fits in 128 bits.
+const EXACT_DECIMALS: usize = 19;
+
+/// `proportion` as the decimal number it is written as: its digits as an integer, and
+/// how many of them follow the decimal point.
+///
+/// Rust prints a float as the shortest decimal that reads back as the same float, so
+/// `0.1` is `(1, 1)`, not the binary fraction closest to one tenth. `None` when there
+/// are more decimal places than [`EXACT_DECIMALS`].
+fn decimal(proportion: f64) -> Option<(u128, usize)> {
+    let written = format!("{proportion}");
+    let (whole, fraction) = written.split_once('.').unwrap_or((&written, ""));
+    if fraction.len() > EXACT_DECIMALS {
+        return None;
+    }
+    let digits = format!("{whole}{fraction}").parse().ok()?;
+    Some((digits, fraction.len()))
+}
+
+/// The cumulative proportions times `total`, rounded up, computed on integers.
+///
+/// `None` when a proportion has too many decimal places for that.
+fn exact_thresholds(proportions: &[f64], total: u64) -> Option<Vec<u64>> {
+    let parts = proportions
+        .iter()
+        .map(|&proportion| decimal(proportion))
+        .collect::<Option<Vec<_>>>()?;
+    let places = parts.iter().map(|&(_, places)| places).max()?;
+    let unit = 10u128.pow(u32::try_from(places).ok()?);
+    let mut cumulative = 0u128;
+    parts
+        .iter()
+        .map(|&(digits, own)| {
+            // Every proportion over the same denominator, `unit`.
+            cumulative += digits * 10u128.pow(u32::try_from(places - own).ok()?);
+            let scaled = cumulative.checked_mul(u128::from(total))?;
+            Some(u64::try_from(scaled.div_ceil(unit)).unwrap_or(u64::MAX))
+        })
+        .collect()
+}
+
+/// The same in floating point, for proportions with more decimal places than the
+/// exact arithmetic holds.
 ///
 /// Sums such as `0.1 + 0.2` are not exact in floating point: a threshold that lands
 /// within rounding error of an integer (a few units in the last place per proportion
-/// summed, whatever the scale) is snapped to it. A genuinely fractional threshold, such
-/// as `0.8 * 1_000_000_004`, is left alone, as long as its fractional part is larger
-/// than that rounding error: the error grows with the total, and beyond about `10^9`
-/// interactions a fraction of a millionth can no longer be told from an integer.
-fn thresholds(proportions: &[f64], total: f64) -> Result<Vec<f64>> {
+/// summed, whatever the scale) is taken to be that integer before it is rounded up.
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "a positive float no larger than about `total`; the cast saturates"
+)]
+fn rounded_thresholds(proportions: &[f64], total: u64) -> Vec<u64> {
+    let rounding = 2.0 * f64::EPSILON * (proportions.len() as f64 + 2.0);
+    let mut cumulative = 0.0;
+    proportions
+        .iter()
+        .map(|p| {
+            cumulative += p;
+            let threshold = cumulative * total as f64;
+            let nearest = threshold.round();
+            // Never down to zero: a positive share, however small, takes one entity.
+            let snapped = nearest > 0.0 && (threshold - nearest).abs() <= rounding * nearest;
+            (if snapped { nearest } else { threshold.ceil() }) as u64
+        })
+        .collect()
+}
+
+/// Cumulative proportions of `total`, each rounded up to an integer, without the last
+/// one (always `total`).
+///
+/// Counts are integers, so "reaching a share of the total" is reaching the first
+/// integer that is not below it. Proportions are read as the decimal numbers they are
+/// written as (`0.1 + 0.2` is exactly `0.3`) and the thresholds are computed on
+/// integers, exactly at any scale. Only a proportion with more than
+/// [`EXACT_DECIMALS`] decimal places is handled in floating point, see
+/// [`rounded_thresholds`].
+fn thresholds(proportions: &[f64], total: u64) -> Result<Vec<u64>> {
     if proportions.is_empty() {
         return Err(Error::invalid(
             "proportions must contain at least one value",
@@ -110,22 +180,8 @@ fn thresholds(proportions: &[f64], total: f64) -> Result<Vec<f64>> {
             "proportions must sum to 1, but sum to {sum}"
         )));
     }
-    let rounding = 2.0 * f64::EPSILON * (proportions.len() as f64 + 2.0);
-    let mut cumulative = 0.0;
-    Ok(proportions[..proportions.len() - 1]
-        .iter()
-        .map(|p| {
-            cumulative += p;
-            let threshold = cumulative * total;
-            let nearest = threshold.round();
-            // Never down to zero: a positive share, however small, takes one entity.
-            if nearest > 0.0 && (threshold - nearest).abs() <= rounding * nearest {
-                nearest
-            } else {
-                threshold
-            }
-        })
-        .collect())
+    let leading = &proportions[..proportions.len() - 1];
+    Ok(exact_thresholds(leading, total).unwrap_or_else(|| rounded_thresholds(leading, total)))
 }
 
 /// Entities by decreasing count, ties by ascending code.
@@ -151,12 +207,12 @@ pub fn by_cumulative_interactions(counts: &[u64], proportions: &[f64]) -> Result
         .iter()
         .try_fold(0u64, |total, &count| total.checked_add(count))
         .ok_or_else(|| Error::invalid("the number of interactions does not fit in 64 bits"))?;
-    let thresholds = thresholds(proportions, total as f64)?;
+    let thresholds = thresholds(proportions, total)?;
     let mut groups = vec![0u32; counts.len()];
     let mut before = 0u64;
     let mut group = 0usize;
     for entity in by_decreasing_count(counts)? {
-        while group < thresholds.len() && before as f64 >= thresholds[group] {
+        while group < thresholds.len() && before >= thresholds[group] {
             group += 1;
         }
         groups[entity as usize] = code(group);
@@ -172,14 +228,11 @@ pub fn by_cumulative_interactions(counts: &[u64], proportions: &[f64]) -> Result
 /// Fails when the proportions are not strictly positive or do not sum to 1, or there
 /// are more entities than a `u32` can index.
 pub fn by_interaction_count(counts: &[u64], proportions: &[f64]) -> Result<Vec<u32>> {
-    let boundaries: Vec<f64> = thresholds(proportions, counts.len() as f64)?
-        .into_iter()
-        .map(f64::ceil)
-        .collect();
+    let boundaries = thresholds(proportions, counts.len() as u64)?;
     let mut groups = vec![0u32; counts.len()];
     let mut group = 0usize;
     for (position, entity) in by_decreasing_count(counts)?.into_iter().enumerate() {
-        while group < boundaries.len() && position as f64 >= boundaries[group] {
+        while group < boundaries.len() && position as u64 >= boundaries[group] {
             group += 1;
         }
         groups[entity as usize] = code(group);
@@ -295,6 +348,58 @@ mod tests {
         assert_eq!(groups, vec![0, 0, 1, 1]);
     }
 
+    /// Proportions are read as the decimal numbers they are written as, and the
+    /// thresholds are computed on integers: no rounding at any scale.
+    #[test]
+    fn thresholds_are_exact_whatever_the_total() {
+        // 0.8000001 * 2_000_000_005 = 1_600_000_204.0000005: the first entity, with
+        // 1_600_000_204 interactions, does not reach it, so the second is in the head.
+        let counts = [1_600_000_204, 399_999_801];
+        let groups = by_cumulative_interactions(&counts, &[0.800_000_1, 0.199_999_9]).unwrap();
+        assert_eq!(groups, vec![0, 0]);
+        // Total 808_777_006_829_317. The thresholds are 0.6, 0.8 and 0.9 of it; the
+        // third is 727_899_306_146_385.3, which the first entity misses by 0.3: the
+        // second entity is in the third group, not in the fourth.
+        let counts = [727_899_306_146_385, 80_877_700_682_932];
+        let groups = by_cumulative_interactions(&counts, &[0.6, 0.2, 0.1, 0.1]).unwrap();
+        assert_eq!(groups, vec![0, 2]);
+        // With a round total, 10^15, the third threshold is the integer 9 * 10^14 and
+        // the first entity reaches it: the second is in the last group.
+        let counts = [900_000_000_000_000, 100_000_000_000_000];
+        let groups = by_cumulative_interactions(&counts, &[0.6, 0.2, 0.1, 0.1]).unwrap();
+        assert_eq!(groups, vec![0, 3]);
+        // By count: ceil(0.2000001 * 10_000_000) = ceil(2_000_001) = 2_000_001.
+        let groups = by_interaction_count(&vec![1; 10_000_000], &[0.200_000_1, 0.799_999_9]);
+        let groups = groups.unwrap();
+        assert_eq!(
+            groups.iter().filter(|&&group| group == 0).count(),
+            2_000_001
+        );
+    }
+
+    /// A proportion with more decimal places than the exact arithmetic holds falls
+    /// back to floating point, where a threshold within rounding error of an integer
+    /// is that integer.
+    #[test]
+    fn proportions_with_many_decimals_fall_back_to_floating_point() {
+        let third = 1.0 / 3.0; // 0.3333333333333333 as written; fine for the exact path
+        let groups = by_interaction_count(&[1; 3], &[third, third, third]).unwrap();
+        assert_eq!(groups, vec![0, 1, 2]);
+        // 1e-25 has 25 decimal places: of 3 entities it still takes one.
+        let groups = by_interaction_count(&[3, 1, 1], &[1e-25, 1.0]).unwrap();
+        assert_eq!(groups, vec![0, 1, 1]);
+        let groups = by_cumulative_interactions(&[3, 1, 1], &[1e-25, 1.0]).unwrap();
+        assert_eq!(groups, vec![0, 1, 1]);
+        // 0.1 + 0.2 next to a proportion of 25 decimal places: in floating point the
+        // second threshold is 3.0000000000000004, and is still 3. The third group,
+        // 1e-25 of 10 entities, starts and ends there: it is empty.
+        let long = [0.1, 0.2, 1e-25, 0.7];
+        assert_eq!(
+            by_interaction_count(&[1; 10], &long).unwrap(),
+            vec![0, 1, 1, 3, 3, 3, 3, 3, 3, 3]
+        );
+    }
+
     #[test]
     fn counts_too_large_to_sum_are_rejected() {
         let half = 1u64 << 63;
@@ -365,8 +470,8 @@ mod tests {
 
     #[test]
     fn a_positive_share_is_never_rounded_down_to_nothing() {
-        // 1e-16 of 3 entities (or of 5 interactions) is within rounding error of zero,
-        // but the first group must still take the first entity: ceil(3e-16) = 1.
+        // 1e-16 of 3 entities (or of 5 interactions) is far below one, but the first
+        // group must still take the first entity: ceil(3e-16) = 1.
         let tiny = [1e-16, 1.0 - 1e-16];
         assert_eq!(
             by_interaction_count(&[3, 1, 1], &tiny).unwrap(),

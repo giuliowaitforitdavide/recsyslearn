@@ -30,6 +30,7 @@ from recsyslearn._frames import (
     USER,
     Recommendations,
     check_choice,
+    check_flag,
     check_frame,
     check_k,
     has_duplicates,
@@ -298,11 +299,12 @@ def entropy(
       hyperparameter optimization of recommender systems*. PERSPECTIVES @ RecSys 2023.
       https://ceur-ws.org/Vol-3476/paper3.pdf
     """
+    normalize = check_flag("normalize", normalize)
     distribution = group_distribution(
         recommendations, groups, k, exposure=exposure, ground_truth=ground_truth
     )
     probabilities = np.ascontiguousarray(distribution.to_numpy(dtype=np.float64))
-    return float(_core.entropy(probabilities, bool(normalize)))
+    return float(_core.entropy(probabilities, normalize))
 
 
 def _target(target: Any, labels: pd.Index) -> pd.Series:

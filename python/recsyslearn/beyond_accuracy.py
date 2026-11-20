@@ -9,7 +9,16 @@ import numpy as np
 import pandas as pd
 
 from recsyslearn import _core
-from recsyslearn._frames import ITEM, USER, check_frame, check_k, encode, ordering, ranked_lists
+from recsyslearn._frames import (
+    ITEM,
+    USER,
+    check_flag,
+    check_frame,
+    check_k,
+    encode,
+    ordering,
+    ranked_lists,
+)
 from recsyslearn.errors import InvalidInputError
 
 __all__ = ["coverage", "novelty"]
@@ -175,6 +184,7 @@ def novelty(
       for recommender systems*. RecSys 2011. https://doi.org/10.1145/2043932.2043955
     """
     k = check_k(k)
+    per_user = check_flag("per_user", per_user)
     order = ordering(recommendations)
     check_frame(interactions, "interactions", [USER, ITEM])
     if recommendations.empty:
