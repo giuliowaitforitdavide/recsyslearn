@@ -27,7 +27,8 @@
     width: 100%;
 }
 
-.bd-article table.table code {
+.bd-article table.table code,
+.bd-article table.table code .pre {
     white-space: normal;
     overflow-wrap: anywhere;
 }
