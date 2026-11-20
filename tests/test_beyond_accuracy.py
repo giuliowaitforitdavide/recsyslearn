@@ -117,7 +117,7 @@ class TestNovelty:
         )
 
     def test_explicit_feedback_values_are_ignored(self):
-        rated = INTERACTIONS.assign(rank=4.0)
+        rated = INTERACTIONS.assign(rating=4.0)
         assert novelty(RECOMMENDATIONS, rated) == pytest.approx(
             novelty(RECOMMENDATIONS, INTERACTIONS)
         )
@@ -208,3 +208,41 @@ class TestCatalogAsAList:
 
     def test_nothing_recommended_covers_nothing(self):
         assert coverage(RECOMMENDATIONS.iloc[:0], ["A", "B", "C", "D"]) == 0.0
+
+
+class TestScores:
+    # Degrees out of 5 users: A 4, B 2, C 1 (see INTERACTIONS).
+    scored = frame([("u", "A", 2.0), ("u", "B", 1.0), ("u", "C", 1.0)], ["user", "item", "score"])
+    a, b, c = math.log2(5 / 4), math.log2(5 / 2), math.log2(5 / 1)
+
+    def test_novelty_of_scored_lists(self):
+        assert novelty(self.scored, INTERACTIONS) == pytest.approx((self.a + self.b + self.c) / 3)
+
+    def test_tied_scores_give_the_expected_novelty(self):
+        # Cutoff 2: A and, with the same probability, B or C.
+        expected = (self.a + (self.b + self.c) / 2) / 2
+        assert novelty(self.scored, INTERACTIONS, k=2) == pytest.approx(expected)
+
+    def test_coverage_of_scored_lists(self):
+        catalog = ["A", "B", "C", "D"]
+        assert coverage(self.scored, catalog) == pytest.approx(3 / 4)
+        assert coverage(self.scored, catalog, k=1) == pytest.approx(1 / 4)
+
+    def test_coverage_refuses_a_tie_that_straddles_the_cutoff(self):
+        # B and C have the same score: which of them is second is not defined.
+        with pytest.raises(InvalidInputError, match="same score straddle the cutoff"):
+            coverage(self.scored, ["A", "B", "C", "D"], k=2)
+
+    @pytest.mark.parametrize("k", [1, 3, 6, None])
+    def test_novelty_agrees_with_the_average_over_every_order_of_the_ties(self, tied_data, k):
+        from conftest import scored_lists
+        from reference import expected_per_user
+
+        recommendations, interactions = tied_data["recommendations"], tied_data["interactions"]
+        pairs = list(interactions.itertuples(index=False, name=None))
+        expected = expected_per_user(
+            scored_lists(recommendations),
+            lambda user, order: reference_novelty({user: order}, pairs, k),
+        )
+        actual = novelty(recommendations, interactions, k=k, per_user=True)
+        assert actual.to_dict() == pytest.approx(expected, rel=1e-12)

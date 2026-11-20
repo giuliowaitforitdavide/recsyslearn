@@ -116,11 +116,11 @@ pub fn ndcg(
                 .map(|(value, discount)| value * discount)
                 .sum();
 
+            // With tied scores, the discount of an item is the one it is expected to
+            // receive over the orders of its tie.
             let achieved: f64 = lists
-                .top(user, k)
-                .iter()
-                .zip(&discounts)
-                .map(|(&item, discount)| gain.apply(truth.relevance(user, item)) * discount)
+                .weighted(user, k, &discounts)
+                .map(|(item, discount)| gain.apply(truth.relevance(user, item)) * discount)
                 .sum();
             // The sum of no terms is -0.0 in Rust (the IEEE 754 identity of addition), so
             // a user whose list is empty would score -0.0, which prints as "-0.0" and has
@@ -308,6 +308,24 @@ mod tests {
         let (lists, truth) = single_user(&[5], &[0], None);
         let score = ndcg(&lists, &truth, None, Gain::Linear).unwrap()[0];
         assert!(score == 0.0 && score.is_sign_positive());
+    }
+
+    /// `McSherry` & Najork 2008: with tied scores the DCG is its mean over the orders of
+    /// the tied items. Items 0 (score 2), 1 and 2 (score 1, tied); only item 2 is relevant.
+    #[test]
+    fn tied_scores_give_the_expected_ndcg() {
+        let lists = RankedLists::from_scores(&[0; 3], &[0, 1, 2], &[2.0, 1.0, 1.0], 1).unwrap();
+        let truth = GroundTruth::new(&[0], &[2], None, 1).unwrap();
+        // Order (0, 1, 2) puts the hit at position 3, order (0, 2, 1) at position 2.
+        let expected = f64::midpoint(1.0 / 4f64.log2(), 1.0 / 3f64.log2());
+        let score = ndcg(&lists, &truth, None, Gain::Linear).unwrap()[0];
+        assert!(close(score, expected));
+        // Cutoff 2: the hit is within it in one order out of two.
+        let expected = f64::midpoint(0.0, 1.0 / 3f64.log2());
+        let score = ndcg(&lists, &truth, Some(2), Gain::Linear).unwrap()[0];
+        assert!(close(score, expected));
+        // Cutoff 1: the tie starts after it.
+        assert_eq!(ndcg(&lists, &truth, Some(1), Gain::Linear).unwrap()[0], 0.0);
     }
 
     #[test]

@@ -71,20 +71,40 @@ fn has_duplicates(sorted: &[u32]) -> bool {
     sorted.windows(2).any(|pair| pair[0] == pair[1])
 }
 
+/// How the rows of a recommendation table are turned into ordered lists.
+#[derive(Debug, Clone, Copy)]
+enum Order<'a> {
+    /// The order of the rows is the ranking.
+    Rows,
+    /// Ascending rank: the best item has the smallest one, and ranks are distinct.
+    Rank(&'a [f64]),
+    /// Descending score: the best item has the largest one, and scores can be tied.
+    Score(&'a [f64]),
+}
+
 /// Recommendation lists: for every user, the recommended items from best to worst.
+///
+/// Lists built from scores can contain *ties*: items of a user with the same score,
+/// whose relative order is unknown. Metrics treat every order of the tied items as
+/// equally likely and return their expected value (`McSherry` & Najork 2008), which
+/// [`RankedLists::weighted`] computes for any metric that adds up a weight per position.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RankedLists {
     offsets: Vec<usize>,
     items: Vec<u32>,
+    /// `tied[p]` when the item at `p` has the same score as the one before it in the
+    /// list of the same user. Empty when no list has a tie.
+    tied: Vec<bool>,
 }
 
 impl RankedLists {
     /// Build the lists from a long `(user, item[, rank])` table.
     ///
     /// When `ranks` is given, each user's rows are ordered by ascending rank (the best
-    /// item has the smallest rank) and two items of a user cannot have the same rank:
-    /// their order would be undefined. Otherwise the order of the rows is the ranking. Either way, formulas use the resulting
-    /// 1-based *position* of an item in the list, never the raw rank value.
+    /// item has the smallest rank) and two items of a user cannot have the same rank: a
+    /// rank is a position. Otherwise the order of the rows is the ranking. Either way,
+    /// formulas use the resulting 1-based *position* of an item in the list, never the
+    /// raw rank value.
     ///
     /// # Errors
     ///
@@ -97,33 +117,102 @@ impl RankedLists {
         ranks: Option<&[f64]>,
         n_users: usize,
     ) -> Result<Self> {
+        Self::build(
+            users,
+            items,
+            ranks.map_or(Order::Rows, Order::Rank),
+            n_users,
+        )
+    }
+
+    /// Build the lists from a long `(user, item, score)` table.
+    ///
+    /// Each user's rows are ordered by descending score: the best item has the largest
+    /// one. Items of a user with the same score are tied (see [`RankedLists`]); within a
+    /// tie they are stored by ascending item code. Infinite scores are allowed.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the columns differ in length, a user code is not below `n_users`,
+    /// a score is NaN, or a user is recommended the same item twice.
+    pub fn from_scores(
+        users: &[u32],
+        items: &[u32],
+        scores: &[f64],
+        n_users: usize,
+    ) -> Result<Self> {
+        Self::build(users, items, Order::Score(scores), n_users)
+    }
+
+    fn build(users: &[u32], items: &[u32], order: Order<'_>, n_users: usize) -> Result<Self> {
         check_indexable("recommendations", users.len())?;
         check_same_len("user", users.len(), "item", items.len())?;
         check_codes("user", users, n_users)?;
-        if let Some(ranks) = ranks {
-            check_same_len("user", users.len(), "rank", ranks.len())?;
-            if ranks.iter().any(|rank| rank.is_nan()) {
-                return Err(Error::invalid("recommendations contain a NaN rank"));
+        match order {
+            Order::Rows => {}
+            Order::Rank(ranks) => {
+                check_same_len("user", users.len(), "rank", ranks.len())?;
+                if ranks.iter().any(|rank| rank.is_nan()) {
+                    return Err(Error::invalid("recommendations contain a NaN rank"));
+                }
+            }
+            Order::Score(scores) => {
+                check_same_len("user", users.len(), "score", scores.len())?;
+                if scores.iter().any(|score| score.is_nan()) {
+                    return Err(Error::invalid("recommendations contain a NaN score"));
+                }
             }
         }
 
-        let (offsets, mut order) = group_rows_by_user(users, n_users)?;
+        let (offsets, mut rows) = group_rows_by_user(users, n_users)?;
         let mut sorted_items = vec![0u32; items.len()];
-        let failure = split_by_offsets(&mut order, &offsets)?
+        let mut tied = match order {
+            Order::Score(_) => vec![false; items.len()],
+            _ => Vec::new(),
+        };
+        // Without scores there are no flags to write: every user gets an empty slice.
+        let flags = if tied.is_empty() {
+            let mut none = Vec::new();
+            none.try_reserve_exact(n_users)
+                .map_err(|_| Error::invalid("not enough memory for the users"))?;
+            none.resize_with(n_users, Default::default);
+            none
+        } else {
+            split_by_offsets(&mut tied, &offsets)?
+        };
+        let failure = split_by_offsets(&mut rows, &offsets)?
             .into_par_iter()
             .zip(split_by_offsets(&mut sorted_items, &offsets)?)
-            .map(|(rows, list)| {
-                if let Some(ranks) = ranks {
-                    rows.sort_unstable_by(|&a, &b| ranks[a as usize].total_cmp(&ranks[b as usize]));
-                    // Sorted and without NaN: a pair that is not increasing is a tie
-                    // (which also covers 0.0 and -0.0).
-                    let tied = rows
-                        .windows(2)
-                        .any(|pair| ranks[pair[0] as usize] >= ranks[pair[1] as usize]);
-                    if tied {
-                        return Err(Error::invalid(
-                            "recommendations give the same rank to two items of a user",
-                        ));
+            .zip(flags)
+            .map(|((rows, list), flags): ((_, _), &mut [bool])| {
+                match order {
+                    Order::Rows => {}
+                    Order::Rank(ranks) => {
+                        rows.sort_unstable_by(|&a, &b| {
+                            ranks[a as usize].total_cmp(&ranks[b as usize])
+                        });
+                        // Sorted and without NaN: a pair that is not increasing is a tie
+                        // (which also covers 0.0 and -0.0).
+                        let same = rows
+                            .windows(2)
+                            .any(|pair| ranks[pair[0] as usize] >= ranks[pair[1] as usize]);
+                        if same {
+                            return Err(Error::invalid(
+                                "recommendations give the same rank to two items of a user",
+                            ));
+                        }
+                    }
+                    Order::Score(scores) => {
+                        rows.sort_unstable_by(|&a, &b| {
+                            scores[b as usize]
+                                .total_cmp(&scores[a as usize])
+                                .then_with(|| items[a as usize].cmp(&items[b as usize]))
+                        });
+                        for (flag, pair) in flags.iter_mut().skip(1).zip(rows.windows(2)) {
+                            // The partial order, not the total one: 0.0 and -0.0 are the same score.
+                            *flag = scores[pair[0] as usize].partial_cmp(&scores[pair[1] as usize])
+                                == Some(std::cmp::Ordering::Equal);
+                        }
                     }
                 }
                 for (slot, &row) in list.iter_mut().zip(rows.iter()) {
@@ -144,11 +233,21 @@ impl RankedLists {
         if let Some(error) = failure {
             return Err(error);
         }
+        if !tied.contains(&true) {
+            tied = Vec::new();
+        }
 
         Ok(Self {
             offsets,
             items: sorted_items,
+            tied,
         })
+    }
+
+    /// Whether any list has two items with the same score.
+    #[must_use]
+    pub fn has_ties(&self) -> bool {
+        !self.tied.is_empty()
     }
 
     /// Number of users, including those with an empty list.
@@ -184,10 +283,99 @@ impl RankedLists {
         }
     }
 
+    /// Items that can be among the first `k` of `user`: the top `k`, extended to the end
+    /// of the tie that the cutoff falls in. Without ties it is [`RankedLists::top`].
+    #[must_use]
+    pub fn reachable(&self, user: usize, k: Option<usize>) -> &[u32] {
+        let rows = self.rows(user);
+        let limit = k.map_or(rows.len(), |k| k.min(rows.len()));
+        let mut end = limit;
+        if !self.tied.is_empty() && limit > 0 {
+            let tied = &self.tied[rows.clone()];
+            while end < tied.len() && tied[end] {
+                end += 1;
+            }
+        }
+        &self.items[rows][..end]
+    }
+
+    /// The items of `user` with the weight each receives from a metric that gives
+    /// `weights[p]` to the item at position `p` (0-based) and nothing after `k`.
+    ///
+    /// Without ties, the item at `p` receives `weights[p]`. Items tied with each other
+    /// share the positions of their group: over all the orders of the group, each is
+    /// expected to receive the mean of the group's weights, counting as zero the
+    /// positions after the cutoff (`McSherry` & Najork 2008). Items that cannot reach
+    /// the first `k` positions are not yielded.
+    ///
+    /// `weights` must cover the positions up to the cutoff, i.e. have at least
+    /// `min(k, length of the list)` values; missing ones count as zero.
+    #[must_use]
+    pub fn weighted<'a>(
+        &'a self,
+        user: usize,
+        k: Option<usize>,
+        weights: &'a [f64],
+    ) -> Weighted<'a> {
+        let rows = self.rows(user);
+        let limit = k.map_or(rows.len(), |k| k.min(rows.len()));
+        Weighted {
+            tied: if self.tied.is_empty() {
+                &[]
+            } else {
+                &self.tied[rows.clone()]
+            },
+            items: &self.items[rows],
+            weights: &weights[..limit.min(weights.len())],
+            position: 0,
+            group_end: 0,
+            weight: 0.0,
+        }
+    }
+
     /// Largest item code that appears in any list, if there is one.
     #[must_use]
     pub fn max_item(&self) -> Option<u32> {
         self.items.iter().copied().max()
+    }
+}
+
+/// Iterator returned by [`RankedLists::weighted`].
+#[derive(Debug, Clone)]
+pub struct Weighted<'a> {
+    items: &'a [u32],
+    /// Tie flags of the list, or empty when the lists have no tie.
+    tied: &'a [bool],
+    /// Weight of every position before the cutoff.
+    weights: &'a [f64],
+    position: usize,
+    /// End of the tie group the current position belongs to.
+    group_end: usize,
+    /// Expected weight of the items of the current group.
+    weight: f64,
+}
+
+impl Iterator for Weighted<'_> {
+    type Item = (u32, f64);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.position == self.group_end {
+            // A group that starts after the cutoff cannot receive anything.
+            if self.position >= self.weights.len() || self.position >= self.items.len() {
+                return None;
+            }
+            let mut end = self.position + 1;
+            while end < self.tied.len() && self.tied[end] {
+                end += 1;
+            }
+            let within = end.min(self.weights.len());
+            let total: f64 = self.weights[self.position..within].iter().sum();
+            self.weight = total / (end - self.position) as f64;
+            self.group_end = end;
+        }
+        let item = self.items[self.position];
+        self.position += 1;
+        Some((item, self.weight))
     }
 }
 
@@ -355,6 +543,103 @@ mod tests {
                 "the same rank to two items"
             );
         }
+    }
+
+    #[test]
+    fn scores_order_the_lists_from_the_largest() {
+        // User 0: item 7 (0.9), item 5 (0.1), item 6 (0.5). User 1: one item, -inf.
+        let users = [0, 0, 0, 1];
+        let scores = [0.9, 0.1, 0.5, f64::NEG_INFINITY];
+        let lists = RankedLists::from_scores(&users, &[7, 5, 6, 9], &scores, 2).unwrap();
+        assert_eq!(lists.top(0, None), &[7, 6, 5]);
+        assert_eq!(lists.top(1, None), &[9]);
+        assert!(!lists.has_ties());
+        // Without ties, scores and the ranks they imply build the same lists.
+        let ranked = RankedLists::new(&users, &[7, 5, 6, 9], Some(&[1.0, 3.0, 2.0, 1.0]), 2);
+        assert_eq!(lists, ranked.unwrap());
+    }
+
+    #[test]
+    fn scores_reject_invalid_input() {
+        assert_fails!(
+            RankedLists::from_scores(&[0], &[1], &[f64::NAN], 1),
+            "NaN score"
+        );
+        assert!(matches!(
+            RankedLists::from_scores(&[0, 0], &[1, 2], &[1.0], 1),
+            Err(Error::LengthMismatch { right: "score", .. })
+        ));
+        assert!(matches!(
+            RankedLists::from_scores(&[0, 0], &[1, 1], &[2.0, 1.0], 1),
+            Err(Error::DuplicatePair { .. })
+        ));
+    }
+
+    /// One user, scores 3, 2, 2, 2, 1 for the items 10, 13, 11, 12, 14: the three items
+    /// with score 2 are tied and share the positions 2, 3 and 4.
+    fn tied_example() -> RankedLists {
+        let scores = [3.0, 2.0, 2.0, 2.0, 1.0];
+        RankedLists::from_scores(&[0; 5], &[10, 13, 11, 12, 14], &scores, 1).unwrap()
+    }
+
+    #[test]
+    fn equal_scores_are_ties() {
+        let lists = tied_example();
+        assert!(lists.has_ties());
+        // Within a tie the items are stored by ascending code.
+        assert_eq!(lists.top(0, None), &[10, 11, 12, 13, 14]);
+        // 0.0 and -0.0 are the same score; the same score for two users is no tie.
+        let zeros = RankedLists::from_scores(&[0, 0], &[1, 2], &[0.0, -0.0], 1).unwrap();
+        assert!(zeros.has_ties());
+        let users = RankedLists::from_scores(&[0, 1], &[1, 2], &[5.0, 5.0], 2).unwrap();
+        assert!(!users.has_ties());
+    }
+
+    #[test]
+    fn tied_items_share_the_weights_of_their_positions() {
+        let lists = tied_example();
+        let weights = [16.0, 8.0, 4.0, 2.0, 1.0];
+        // No cutoff: the tie spans the positions with weights 8, 4 and 2, mean 14/3.
+        let shared = 14.0 / 3.0;
+        let all: Vec<(u32, f64)> = lists.weighted(0, None, &weights).collect();
+        assert_eq!(
+            all,
+            vec![
+                (10, 16.0),
+                (11, shared),
+                (12, shared),
+                (13, shared),
+                (14, 1.0)
+            ]
+        );
+        // Cutoff 2: only the first position of the tie is within it, so each of the
+        // three items expects 8 / 3; the last item cannot reach the cutoff.
+        let cut: Vec<(u32, f64)> = lists.weighted(0, Some(2), &weights).collect();
+        assert_eq!(
+            cut,
+            vec![
+                (10, 16.0),
+                (11, 8.0 / 3.0),
+                (12, 8.0 / 3.0),
+                (13, 8.0 / 3.0)
+            ]
+        );
+        // Cutoff 1: the tie starts after it.
+        let first: Vec<(u32, f64)> = lists.weighted(0, Some(1), &weights).collect();
+        assert_eq!(first, vec![(10, 16.0)]);
+        assert_eq!(lists.weighted(1, None, &weights).count(), 0);
+    }
+
+    #[test]
+    fn items_within_reach_of_the_cutoff() {
+        let lists = tied_example();
+        assert_eq!(lists.reachable(0, Some(1)), &[10]);
+        assert_eq!(lists.reachable(0, Some(2)), &[10, 11, 12, 13]);
+        assert_eq!(lists.reachable(0, Some(4)), &[10, 11, 12, 13]);
+        assert_eq!(lists.reachable(0, None), &[10, 11, 12, 13, 14]);
+        let ranked = RankedLists::new(&[0, 0], &[4, 3], None, 1).unwrap();
+        assert_eq!(ranked.reachable(0, Some(1)), &[4]);
+        assert!(ranked.reachable(3, Some(1)).is_empty());
     }
 
     #[test]

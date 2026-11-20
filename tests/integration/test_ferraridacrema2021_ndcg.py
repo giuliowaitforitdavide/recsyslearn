@@ -84,6 +84,16 @@ def top_popular_ndcg(dataset: str, k: int, held_out_first: bool) -> float:
     return ndcg(ranked[["user", "item"]], held_out, k=k)
 
 
+@functools.cache
+def top_popular_ndcg_from_scores(dataset: str, k: int) -> float:
+    """The same baseline with the popularity as ``score``: equally popular candidates
+    are tied, and recsyslearn returns the expected nDCG over their orders (McSherry &
+    Najork, 2008)."""
+    held_out, pool = candidates(dataset)
+    scored = pool[["user", "item"]].assign(score=pool["popularity"])
+    return ndcg(scored, held_out, k=k)
+
+
 @pytest.mark.parametrize(
     ("dataset", "k", "printed"),
     [
@@ -101,3 +111,15 @@ def test_ndcg_of_top_popular(dataset, k, printed):
     assert optimistic - pessimistic < 1e-3
     # The printed value has four decimals: allow half a unit of the last one.
     assert pessimistic - 5e-5 <= printed <= optimistic + 5e-5
+
+
+@pytest.mark.parametrize("k", [1, 5, 10])
+@pytest.mark.parametrize("dataset", ["ml-1m", "pinterest-20"])
+def test_expected_ndcg_over_tied_scores_lies_between_the_extreme_orders(dataset, k):
+    """With scores, no order of the ties has to be assumed: the result is the mean over
+    all of them, which the two extreme orders bracket and so, within half a unit of its
+    last decimal, does the printed value (see the test above)."""
+    expected = top_popular_ndcg_from_scores(dataset, k)
+    pessimistic = top_popular_ndcg(dataset, k, held_out_first=False)
+    optimistic = top_popular_ndcg(dataset, k, held_out_first=True)
+    assert pessimistic < expected < optimistic

@@ -33,8 +33,9 @@ use crate::lists::RankedLists;
 ///
 /// # Errors
 ///
-/// Fails when `k` is zero, the catalog is empty or impossibly large, or a recommended
-/// item is not part of the catalog (its code is not below `n_items`).
+/// Fails when `k` is zero, the catalog is empty or impossibly large, a recommended
+/// item is not part of the catalog (its code is not below `n_items`), or items with
+/// the same score straddle the cutoff.
 pub fn catalog_coverage(lists: &RankedLists, k: Option<usize>, n_items: usize) -> Result<f64> {
     if k == Some(0) {
         return Err(Error::invalid("k must be a positive integer"));
@@ -50,6 +51,17 @@ pub fn catalog_coverage(lists: &RankedLists, k: Option<usize>, n_items: usize) -
         });
     }
     check_cardinality("catalog items", n_items)?;
+    // Which items of a tie are within the cutoff depends on their order, and so does the
+    // number of distinct items; no published definition of coverage says what to do.
+    if lists.has_ties()
+        && (0..lists.n_users())
+            .any(|user| lists.reachable(user, k).len() > lists.top(user, k).len())
+    {
+        return Err(Error::invalid(
+            "coverage is undefined when items with the same score straddle the cutoff: \
+             choose a cutoff that does not split a tie, or give distinct ranks",
+        ));
+    }
     let mut recommended = filled(false, n_items, "catalog items")?;
     for user in 0..lists.n_users() {
         for &item in lists.top(user, k) {
@@ -92,23 +104,27 @@ pub fn novelty(
         .map(|&degree| (population / degree.max(1) as f64).log2())
         .collect();
 
+    // Every position within the cutoff counts the same; with tied scores, an item
+    // counts for the probability that it is within the cutoff.
+    let presence = vec![1.0; lists.max_len()];
     let scores = (0..lists.n_users())
         .into_par_iter()
         .map(|user| {
-            let list = lists.top(user, k);
-            if list.is_empty() {
+            let length = lists.top(user, k).len();
+            if length == 0 {
                 return f64::NAN;
             }
-            let total: f64 = list
-                .iter()
-                .map(|&item| {
-                    self_information
-                        .get(item as usize)
-                        .copied()
-                        .unwrap_or(unseen)
+            let total: f64 = lists
+                .weighted(user, k, &presence)
+                .map(|(item, probability)| {
+                    probability
+                        * self_information
+                            .get(item as usize)
+                            .copied()
+                            .unwrap_or(unseen)
                 })
                 .sum();
-            total / list.len() as f64
+            total / length as f64
         })
         .collect();
     Ok(scores)
@@ -202,6 +218,33 @@ mod tests {
         let scores = novelty(&lists, None, &[1], 2).unwrap();
         assert!(scores[0].is_nan());
         assert_eq!(scores[1], 1.0);
+    }
+
+    /// Items 0 (score 2), 1 and 2 (score 1, tied) with degrees 4, 2 and 1 out of 4 users.
+    #[test]
+    fn tied_scores_give_the_expected_novelty() {
+        let lists = RankedLists::from_scores(&[0; 3], &[0, 1, 2], &[2.0, 1.0, 1.0], 1).unwrap();
+        let (a, b, c) = (0.0, 2f64.log2(), 4f64.log2());
+        // Whole list: the order of the tie does not matter.
+        let scores = novelty(&lists, None, &[4, 2, 1], 4).unwrap();
+        assert!(close(scores[0], (a + b + c) / 3.0));
+        // Cutoff 2: item 0 and, with probability 1/2 each, item 1 or item 2.
+        let scores = novelty(&lists, Some(2), &[4, 2, 1], 4).unwrap();
+        assert!(close(scores[0], f64::midpoint(a, f64::midpoint(b, c))));
+    }
+
+    /// Scores 2, 1, 1: the order of the tie does not matter for the whole list or for
+    /// a cutoff of one, but it decides which item is second.
+    #[test]
+    fn coverage_refuses_a_tie_that_straddles_the_cutoff() {
+        let lists = RankedLists::from_scores(&[0; 3], &[0, 1, 2], &[2.0, 1.0, 1.0], 1).unwrap();
+        assert_eq!(catalog_coverage(&lists, None, 4).unwrap(), 0.75);
+        assert_eq!(catalog_coverage(&lists, Some(1), 4).unwrap(), 0.25);
+        assert_eq!(catalog_coverage(&lists, Some(3), 4).unwrap(), 0.75);
+        assert_fails!(
+            catalog_coverage(&lists, Some(2), 4),
+            "items with the same score straddle the cutoff"
+        );
     }
 
     #[test]

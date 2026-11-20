@@ -2,7 +2,8 @@
 and segmentations of users and items.
 
 Every function works on pandas DataFrames with the columns ``["user", "item"]``
-(implicit feedback) or ``["user", "item", "rank"]`` (explicit feedback), and is
+(implicit feedback) or ``["user", "item", "rating"]`` (explicit feedback), with the
+recommendations ordered by a ``rank`` or a ``score`` column, and is
 implemented from its definition in the literature by a native Rust core.
 """
 

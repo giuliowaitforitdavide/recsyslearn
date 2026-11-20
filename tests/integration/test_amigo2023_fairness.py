@@ -106,7 +106,9 @@ def inputs(dataset: str):
         dataset, "{tag}_users_w_activClass.csv", {"userId": "user", "is_active": "group"}
     )
     truth = read(
-        dataset, "{tag}_ratings_df_test.csv", {"userId": "user", "itemId": "item", "rating": "rank"}
+        dataset,
+        "{tag}_ratings_df_test.csv",
+        {"userId": "user", "itemId": "item", "rating": "rating"},
     )
     # As the authors' script: a repeated pair keeps its last rating, and only the items
     # that have a popularity class are considered.
@@ -124,14 +126,22 @@ def inputs(dataset: str):
 
 
 @functools.cache
-def computed(dataset: str, system: str) -> dict[str, float]:
-    """Every column of the authors' output for one system, computed with recsyslearn."""
+def computed(dataset: str, system: str, scored: bool = False) -> dict[str, float]:
+    """Every column of the authors' output for one system, computed with recsyslearn.
+
+    With ``scored``, the published ranks are passed as scores (the negated rank) instead
+    of as ranks: the lists are the same, and so must the results be.
+    """
     truth, user_groups, item_groups, targets = inputs(dataset)
     recommendations = read(
         dataset,
         system + "_{tag}_samplingRate_1.csv",
         {"userId": "user", "itemId": "item", "rank": "rank"},
     ).drop_duplicates(["user", "item"], keep="last")
+    if scored:
+        recommendations = recommendations.assign(score=-recommendations["rank"]).drop(
+            columns="rank"
+        )
 
     values = {}
     for benefit, ground_truth in (("Exp", None), ("Eff", truth)):
@@ -199,3 +209,11 @@ def test_output_of_the_reference_implementation(dataset, system):
         for column, value in values.items()
     }
     assert shown == {column: reference[column] for column in values}
+
+
+@pytest.mark.parametrize("system", ["BPR", "Random"])
+@pytest.mark.parametrize("dataset", list(DATASETS))
+def test_scores_reproduce_the_same_values_as_ranks(dataset, system):
+    """The lists given as scores instead of ranks: every column is identical, hence
+    equal to the published one."""
+    assert computed(dataset, system, scored=True) == computed(dataset, system)

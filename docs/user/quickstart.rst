@@ -9,8 +9,8 @@ of a model. The files are in the ``examples/__assets__`` folder of the repositor
 
     import pandas as pd
 
-    train = pd.read_csv("examples/__assets__/train_dataset.csv")  # user, item, rank
-    test = pd.read_csv("examples/__assets__/test_dataset.csv")    # user, item, rank
+    train = pd.read_csv("examples/__assets__/train_dataset.csv")  # user, item, rating
+    test = pd.read_csv("examples/__assets__/test_dataset.csv")    # user, item, rating
     top_k = pd.read_csv("examples/__assets__/top_k.csv")          # user, item, rank
 
 Accuracy

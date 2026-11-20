@@ -6,7 +6,7 @@ from recsyslearn.accuracy import ndcg
 
 # Recommendation lists: user, item, rank (1 = best).
 top_k = pd.read_csv("./examples/__assets__/top_k.csv")
-# Held-out interactions: user, item, rank (the feedback value).
+# Held-out interactions: user, item, rating (the feedback value).
 test_data = pd.read_csv("./examples/__assets__/test_dataset.csv")
 
 for k in (5, 10):

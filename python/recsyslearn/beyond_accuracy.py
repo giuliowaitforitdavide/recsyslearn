@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from recsyslearn import _core
-from recsyslearn._frames import ITEM, RANK, USER, check_frame, check_k, encode, values
+from recsyslearn._frames import ITEM, USER, check_frame, check_k, encode, ordering, ranked_lists
 from recsyslearn.errors import InvalidInputError
 
 __all__ = ["coverage", "novelty"]
@@ -32,7 +32,7 @@ def coverage(
     Parameters
     ----------
     recommendations
-        Columns ``["user", "item", "rank"]`` (``rank`` optional, see
+        Columns ``["user", "item"]`` and ``rank`` or ``score`` to order the lists (see
         :func:`recsyslearn.accuracy.ndcg`).
     catalog
         The items available for recommendation: any collection of item identifiers,
@@ -50,7 +50,10 @@ def coverage(
     InvalidInputError
         If a table or ``k`` is invalid in one of the ways listed in :ref:`input-errors`;
         if the catalog is empty, is not a flat collection of hashable identifiers or
-        contains a missing identifier; or if a recommended item is not part of it.
+        contains a missing identifier; if a recommended item is not part of it; or if
+        items of a user with the same ``score`` straddle the cutoff: which of them are
+        recommended is then undefined, and no published definition of coverage says
+        how to count them.
 
     References
     ----------
@@ -59,7 +62,7 @@ def coverage(
       https://doi.org/10.1145/1864708.1864761
     """
     k = check_k(k)
-    check_frame(recommendations, "recommendations", [USER, ITEM], [RANK])
+    order = ordering(recommendations)
     if isinstance(catalog, pd.DataFrame):
         check_frame(catalog, "catalog", [ITEM])
         catalog = catalog[ITEM]
@@ -95,8 +98,7 @@ def coverage(
         )
     (user_codes,), users = encode(recommendations[USER])
     item_codes = np.ascontiguousarray(positions, dtype=np.uint32)
-    ranks = values(recommendations, RANK, "recommendations")
-    lists = _core.RankedLists(user_codes, item_codes, ranks, len(users))
+    lists = ranked_lists(user_codes, item_codes, order, len(users))
     return float(_core.catalog_coverage(lists, k, len(items)))
 
 
@@ -125,11 +127,11 @@ def novelty(
     Parameters
     ----------
     recommendations
-        Columns ``["user", "item", "rank"]`` (``rank`` optional, see
+        Columns ``["user", "item"]`` and ``rank`` or ``score`` to order the lists (see
         :func:`recsyslearn.accuracy.ndcg`).
     interactions
         The interactions the popularity is measured on, typically the training set.
-        Columns ``["user", "item"]``; a ``rank`` column (explicit feedback) is
+        Columns ``["user", "item"]``; a ``rating`` column (explicit feedback) is
         ignored. A user who interacted with an item several times counts once.
     k
         Cutoff; ``None`` uses the whole lists.
@@ -141,6 +143,11 @@ def novelty(
     The formula diverges for a recommended item that nobody interacted with, and the
     literature does not say how to treat it. Such an item is assigned the
     self-information of an item with a single user, :math:`\log_2 |U|`.
+
+    When items of a user have the same ``score`` and the cutoff falls among them, each
+    counts for the probability that it is within the cutoff when every order of the tied
+    items is equally likely: the result is the mean of the novelty over those orders,
+    obtained with the formula McSherry & Najork (2008) give for discounted gains.
 
     Raises
     ------
@@ -162,7 +169,7 @@ def novelty(
       for recommender systems*. RecSys 2011. https://doi.org/10.1145/2043932.2043955
     """
     k = check_k(k)
-    check_frame(recommendations, "recommendations", [USER, ITEM], [RANK])
+    order = ordering(recommendations)
     check_frame(interactions, "interactions", [USER, ITEM])
     if recommendations.empty:
         raise InvalidInputError("there are no recommendations to evaluate")
@@ -175,8 +182,7 @@ def novelty(
     degrees = _core.distinct_counts(known_items, known_users, len(items))
 
     (user_codes,), users = encode(recommendations[USER])
-    ranks = values(recommendations, RANK, "recommendations")
-    lists = _core.RankedLists(user_codes, recommended_items, ranks, len(users))
+    lists = ranked_lists(user_codes, recommended_items, order, len(users))
 
     scores = _core.novelty(lists, k, degrees, len(population))
     if per_user:

@@ -173,7 +173,8 @@ reviewer reports nothing rather than something it cannot back up.
 - The invariants of each layer hold (no `unsafe`, no panic on user input, deterministic,
   no I/O in the core; inputs never modified, no per-row Python work, only the documented
   exceptions in the Python package).
-- The data contract (`user`, `item`, `rank`, `group`; positions, not raw ranks) is
+- The data contract (`user`, `item`, `rating`, `rank` or `score`, `group`; positions,
+  not raw ranks or scores; tied scores never ordered arbitrarily) is
   respected, and `docs/user/data.rst` changes with it.
 - Documentation in the code (› Documentation in the code): new Python modules, public
   functions and non-obvious helpers have docstrings, and public Rust items have

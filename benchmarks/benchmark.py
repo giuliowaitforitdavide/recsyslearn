@@ -31,7 +31,7 @@ def synthetic(n_users: int, n_items: int, length: int, seed: int = 0):
 
     train = interactions(40)
     test = interactions(10)
-    test["rank"] = rng.integers(1, 6, size=len(test)).astype(float)
+    test["rating"] = rng.integers(1, 6, size=len(test)).astype(float)
     scores = rng.random((n_users, n_items)) * weights
     top = np.argpartition(-scores, length, axis=1)[:, :length]
     recommendations = pd.DataFrame(

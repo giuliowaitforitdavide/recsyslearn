@@ -180,7 +180,7 @@ impl BenefitDistribution {
         // not the largest code.
         let recommended: Option<Vec<u32>> = (items == Partition::Singletons).then(|| {
             let mut distinct: Vec<u32> = (0..n_users)
-                .flat_map(|user| lists.top(user, k).iter().copied())
+                .flat_map(|user| lists.reachable(user, k).iter().copied())
                 .collect();
             distinct.sort_unstable();
             distinct.dedup();
@@ -204,11 +204,11 @@ impl BenefitDistribution {
         let benefits = (0..n_users).flat_map(|user| {
             let row = code(users.block(user));
             let (discounts, item_block) = (&discounts, &item_block);
+            // With tied scores, `attention` is the exposure an item is expected to
+            // receive over the orders of its tie.
             lists
-                .top(user, k)
-                .iter()
-                .zip(discounts)
-                .map(move |(&item, &attention)| {
+                .weighted(user, k, discounts)
+                .map(move |(item, attention)| {
                     let benefit = match truth {
                         Some(truth) => attention * truth.relevance(user, item),
                         None => attention,
@@ -621,6 +621,43 @@ mod tests {
         let expected = [(0, 0, 0.75), (0, 5, 0.25)];
         assert_eq!(build(6).cells(), &expected); // 36 cells: dense table
         assert_eq!(build(1 << 11).cells(), &expected); // 2^22 cells: sorted entries
+    }
+
+    /// Two items with the same score, in different groups, and a cutoff of one: each
+    /// is expected to receive half of the exposure of the first position.
+    #[test]
+    fn tied_scores_share_the_exposure() {
+        let lists = RankedLists::from_scores(&[0, 0, 0], &[0, 1, 2], &[5.0, 5.0, 1.0], 1).unwrap();
+        let users = Partition::Groups {
+            codes: &[0],
+            n_groups: 1,
+        };
+        let items = Partition::Groups {
+            codes: &[0, 1, 1],
+            n_groups: 2,
+        };
+        let build = |k, exposure| {
+            BenefitDistribution::new(&lists, k, exposure, None, users, items).unwrap()
+        };
+        assert_eq!(build(Some(1), Exposure::Flat).item_marginal(), &[0.5, 0.5]);
+        // Whole list, logarithmic exposure: the tied items expect the mean of the
+        // exposures of positions 1 and 2, the third item has that of position 3.
+        let shared = f64::midpoint(1.0, 1.0 / 3f64.log2());
+        let total = 2.0 * shared + 0.5;
+        let marginal = build(None, Exposure::Logarithmic);
+        assert!(close(marginal.item_marginal()[0], shared / total));
+        assert!(close(marginal.item_marginal()[1], (shared + 0.5) / total));
+        // One block per item: the item that cannot reach the cutoff is no block.
+        let singles = BenefitDistribution::new(
+            &lists,
+            Some(1),
+            Exposure::Flat,
+            None,
+            users,
+            Partition::Singletons,
+        )
+        .unwrap();
+        assert_eq!(singles.item_marginal(), &[0.5, 0.5]);
     }
 
     #[test]

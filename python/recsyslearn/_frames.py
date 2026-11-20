@@ -25,6 +25,8 @@ _MAX_EXACT_INTEGER = 2**53
 USER = "user"
 ITEM = "item"
 RANK = "rank"
+SCORE = "score"
+RATING = "rating"
 GROUP = "group"
 
 
@@ -157,6 +159,31 @@ def values(frame: pd.DataFrame, column: str, name: str) -> np.ndarray | None:
         raise InvalidInputError(f"the {column!r} column of {name} must be numeric") from None
 
 
+def ordering(recommendations: Any) -> tuple[str | None, np.ndarray | None]:
+    """Validate the recommendations and say what orders their lists.
+
+    Returns the name of the column that gives the order and its values: ``rank``
+    (ascending, distinct positions) when it is there, else ``score`` (descending, ties
+    allowed), else nothing, and the order of the rows is the ranking. A ``score`` next
+    to a ``rank`` is not read.
+    """
+    check_frame(recommendations, "recommendations", [USER, ITEM], [RANK, SCORE])
+    for column in (RANK, SCORE):
+        if column in recommendations.columns:
+            return column, values(recommendations, column, "recommendations")
+    return None, None
+
+
+def ranked_lists(
+    users: np.ndarray, items: np.ndarray, order: tuple[str | None, np.ndarray | None], n_users: int
+) -> _core.RankedLists:
+    """The native recommendation lists, ordered as :func:`ordering` found."""
+    column, numbers = order
+    if column == SCORE:
+        return _core.RankedLists.from_scores(users, items, numbers, n_users)
+    return _core.RankedLists(users, items, numbers, n_users)
+
+
 def _present(codes: np.ndarray, n: int) -> np.ndarray:
     """Boolean mask, by code, of the ``n`` identifiers that appear in ``codes``."""
     mask = np.zeros(n, dtype=bool)
@@ -181,14 +208,13 @@ class Recommendations:
         metric ends up reading: what makes a table invalid does not depend on the
         recommendations.
         """
-        check_frame(recommendations, "recommendations", [USER, ITEM], [RANK])
-        ranks = values(recommendations, RANK, "recommendations")
+        order = ordering(recommendations)
 
         if ground_truth is None:
             (user_codes,), self.users = encode(recommendations[USER])
             (item_codes,), self.items = encode(recommendations[ITEM])
         else:
-            check_frame(ground_truth, "ground_truth", [USER, ITEM], [RANK])
+            check_frame(ground_truth, "ground_truth", [USER, ITEM], [RATING])
             (user_codes, truth_users), self.users = encode(
                 recommendations[USER], ground_truth[USER]
             )
@@ -198,8 +224,8 @@ class Recommendations:
 
         self.recommended_users = _present(user_codes, len(self.users))
         self.recommended_items = _present(item_codes, len(self.items))
-        self.lists = _core.RankedLists(user_codes, item_codes, ranks, len(self.users))
+        self.lists = ranked_lists(user_codes, item_codes, order, len(self.users))
         self.truth = None
         if ground_truth is not None:
-            relevance = values(ground_truth, RANK, "ground_truth")
+            relevance = values(ground_truth, RATING, "ground_truth")
             self.truth = _core.GroundTruth(truth_users, truth_items, relevance, len(self.users))

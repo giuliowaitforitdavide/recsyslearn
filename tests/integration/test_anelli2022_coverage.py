@@ -30,6 +30,7 @@ import pytest
 from paper_data import fetch
 
 from recsyslearn.beyond_accuracy import coverage
+from recsyslearn.errors import InvalidInputError
 
 pytestmark = pytest.mark.integration
 
@@ -41,7 +42,7 @@ LENGTH = 20
 
 def read(dataset: str, fold: int, split: str) -> pd.DataFrame:
     path = fetch(REPOSITORY, COMMIT, f"data/{dataset}/splitting/{fold}/{split}.tsv")
-    return pd.read_csv(path, sep="\t", header=None, names=["user", "item", "rank", "timestamp"])
+    return pd.read_csv(path, sep="\t", header=None, names=["user", "item", "rating", "timestamp"])
 
 
 def most_popular(train: pd.DataFrame, users: np.ndarray, descending_ties: bool) -> pd.DataFrame:
@@ -101,3 +102,37 @@ def test_result_does_not_depend_on_the_order_of_ties(dataset, k, printed):
 def test_movielens_at_20_depends_on_the_order_of_ties():
     """How far the fourth value moves with the opposite order: 92.2 instead of 92.0."""
     assert round(recommended_items("movielens_1m", 20, descending_ties=True), 1) == 92.2
+
+
+def scored_most_popular(dataset: str, fold: int) -> tuple[pd.DataFrame, np.ndarray]:
+    """The lists of the baseline with the popularity as ``score``, and the catalog."""
+    train, test = read(dataset, fold, "train"), read(dataset, fold, "test")
+    users = np.intersect1d(train["user"].unique(), test["user"].unique())
+    popularity = train.drop_duplicates(["user", "item"])["item"].value_counts()
+    ranked = most_popular(train, users, descending_ties=False)
+    scored = ranked.assign(score=ranked["item"].map(popularity)).drop(columns="rank")
+    return scored, train["item"].unique()
+
+
+@pytest.mark.parametrize(
+    ("dataset", "printed"),
+    [("movielens_1m", 92.0), ("epinions", 72.0)],  # Tables 9 and 11, at 20
+)
+def test_item_coverage_from_scores(dataset, printed):
+    """With scores instead of ranks, equally popular items are tied. Over the whole
+    lists (20 items) no tie is split by the cutoff, and the printed value is reproduced."""
+    counts = []
+    for fold in FOLDS:
+        scored, catalog = scored_most_popular(dataset, fold)
+        counts.append(coverage(scored, catalog, k=LENGTH) * len(catalog))
+    assert round(float(np.mean(counts)), 1) == printed
+
+
+@pytest.mark.parametrize("dataset", ["movielens_1m", "epinions"])
+def test_coverage_is_refused_when_a_tie_straddles_the_cutoff(dataset):
+    """At 10, some user has equally popular items on both sides of the cutoff: which of
+    them are recommended is not defined, and no published definition of coverage says
+    what to do, so recsyslearn refuses instead of choosing an order."""
+    scored, catalog = scored_most_popular(dataset, fold=0)
+    with pytest.raises(InvalidInputError, match="same score straddle the cutoff"):
+        coverage(scored, catalog, k=10)

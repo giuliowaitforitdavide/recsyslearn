@@ -171,8 +171,12 @@ def group_distribution(
     Parameters
     ----------
     recommendations
-        Columns ``["user", "item", "rank"]`` (``rank`` optional: without it the order
-        of the rows is the ranking).
+        Columns ``["user", "item"]`` and ``rank`` or ``score`` to order the lists (see
+        :func:`recsyslearn.accuracy.ndcg`); with neither, the order of the rows is the
+        ranking. Items of a user with the same ``score`` share the exposure of the
+        positions they span: each receives the exposure it is expected to have when
+        every order of the tied items is equally likely (the expected exposure of Diaz
+        et al., 2020).
     groups
         Columns ``["item", "group"]`` to study groups of items (e.g. popular vs niche
         items, providers) or ``["user", "group"]`` for groups of users (e.g. by
@@ -186,7 +190,7 @@ def group_distribution(
     ground_truth
         Held-out interactions, as in :func:`recsyslearn.accuracy.ndcg`. When given,
         only relevant recommendations carry benefit (weighted by their relevance if a
-        ``rank`` column is present).
+        ``rating`` column is present).
 
     Returns
     -------
@@ -215,6 +219,9 @@ def group_distribution(
       & Management 60(1), 2023. https://doi.org/10.1016/j.ipm.2022.103115
     * A. Singh and T. Joachims. *Fairness of exposure in rankings*. KDD 2018.
       https://arxiv.org/abs/1802.07281
+    * F. Diaz, B. Mitra, M. D. Ekstrand, A. J. Biega and B. Carterette. *Evaluating
+      stochastic rankings with expected exposure* (Eq. 4). CIKM 2020.
+      https://arxiv.org/abs/2004.13157
     """
     side = _side(groups, "groups")
     users, items, _ = _distribution(

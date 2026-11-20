@@ -27,8 +27,9 @@ fairness, plus the segmentations of users and items those analyses need.
   reproduced and which cannot be.
 * **Fast.** The computations run in a multi-threaded Rust core: on a laptop, a million
   recommendations are evaluated in a few tens of milliseconds.
-* **Plain pandas in, plain numbers out.** Tables with the columns ``user``, ``item``
-  and, optionally, ``rank``.
+* **Plain pandas in, plain numbers out.** Tables with the columns ``user`` and
+  ``item``, an optional ``rating`` for explicit feedback, and ``rank`` or ``score`` to
+  order the recommendations.
 
 
 Installation
@@ -49,9 +50,9 @@ Example
     import pandas as pd
     from recsyslearn import accuracy, beyond_accuracy, fairness, segmentation
 
-    train = pd.read_csv("train.csv")   # user, item[, rank]: the training interactions
-    test = pd.read_csv("test.csv")     # user, item[, rank]: the held-out interactions
-    top_k = pd.read_csv("top_k.csv")   # user, item, rank: the recommendations, 1 = best
+    train = pd.read_csv("train.csv")   # user, item[, rating]: the training interactions
+    test = pd.read_csv("test.csv")     # user, item[, rating]: the held-out interactions
+    top_k = pd.read_csv("top_k.csv")   # user, item, rank (1 = best) or score (highest = best)
 
     accuracy.ndcg(top_k, test, k=10)
     beyond_accuracy.coverage(top_k, train, k=10)
@@ -66,7 +67,8 @@ Features
 --------
 
 All the tables are pandas DataFrames with the columns ``["user", "item"]`` for implicit
-feedback or ``["user", "item", "rank"]`` for explicit feedback.
+feedback or ``["user", "item", "rating"]`` for explicit feedback; recommendations are
+ordered by a ``rank`` or by a ``score`` column, and scores can be tied.
 
 Accuracy
 ^^^^^^^^

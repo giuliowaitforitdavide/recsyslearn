@@ -49,14 +49,17 @@ pandas DataFrames                                            floats / Series / D
 
 ## The data contract
 
-- Input tables are long-format DataFrames with the columns `user`, `item` and, optionally,
-  `rank`. In recommendations `rank` orders each user's list (1 = best; without it the row
-  order is the ranking). In interactions `rank` is the explicit feedback value, used as
-  graded relevance when the table is a ground truth.
+- Input tables are long-format DataFrames with the columns `user` and `item`. In
+  recommendations each user's list is ordered by `rank` (1 = best), else by `score`
+  (highest = best), else by the order of the rows. In interactions `rating` is the
+  explicit feedback value, used as graded relevance when the table is a ground truth.
+  The names are those most tools use.
 - Group tables have the columns `user` or `item`, and `group`.
-- Formulas use the *position* of an item in the sorted list, never the raw `rank` value.
-  Two items of a user cannot have the same `rank`, and tables that must agree cannot hold
-  identifiers of different types.
+- Formulas use the *position* of an item in the sorted list, never the raw `rank` or
+  `score`. Two items of a user cannot have the same `rank`; they can have the same
+  `score`, and then no order is chosen for them: a metric returns its expected value
+  over the orders of the tie where a published definition exists, and refuses the input
+  where none does. Tables that must agree cannot hold identifiers of different types.
 - The full contract is documented for users in [`docs/user/data.rst`](../user/data.rst);
   change both together.
 
@@ -102,7 +105,7 @@ These hold everywhere; a change that needs to break one must be discussed in an 
   identifiers are coded in their sort order (and an optional table such as a target is
   aligned to it), so the core always adds things up in the same order. It costs a sort of
   the distinct identifiers per call. The exceptions are the tables whose row order
-  carries meaning (recommendations without `rank`; the output of `by_feature` follows
+  carries meaning (recommendations with neither `rank` nor `score`; the output of `by_feature` follows
   its input) and a column whose identifiers cannot be compared with each other, which
   keeps the order of first appearance.
 - A table is validated whole, whichever of its rows a metric ends up reading.

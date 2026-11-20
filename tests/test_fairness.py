@@ -59,7 +59,7 @@ class TestGroupDistribution:
     def test_effectiveness_weights_exposure_by_relevance(self):
         # Relevant: (u1, i2) with grade 2 at position 2 and (u2, i4) with grade 1 at position 3.
         truth = frame(
-            [("u1", "i2", 2.0), ("u2", "i4", 1.0), ("u2", "i9", 5.0)], ["user", "item", "rank"]
+            [("u1", "i2", 2.0), ("u2", "i4", 1.0), ("u2", "i9", 5.0)], ["user", "item", "rating"]
         )
         first, second = 2 * PHI[1], PHI[2]
         users = group_distribution(RECOMMENDATIONS, USER_GROUPS, ground_truth=truth)
@@ -430,14 +430,14 @@ class TestEdgeCases:
     )
     def test_the_whole_ground_truth_is_validated(self, rows, message):
         # The invalid rows concern no recommended user or item: the table is still invalid.
-        truth = frame(rows, ["user", "item", "rank"])
+        truth = frame(rows, ["user", "item", "rating"])
         with pytest.raises(InvalidInputError, match=message):
             entropy(RECOMMENDATIONS, ITEM_GROUPS, ground_truth=truth)
 
     def test_ground_truth_about_other_users_and_items_changes_nothing(self):
-        truth = frame([("u1", "i2", 2.0), ("u2", "i4", 1.0)], ["user", "item", "rank"])
+        truth = frame([("u1", "i2", 2.0), ("u2", "i4", 1.0)], ["user", "item", "rating"])
         more = pd.concat(
-            [truth, frame([("u9", "i1", 5.0), ("u1", "i9", 5.0)], ["user", "item", "rank"])]
+            [truth, frame([("u9", "i1", 5.0), ("u1", "i9", 5.0)], ["user", "item", "rating"])]
         )
         for groups in (ITEM_GROUPS, USER_GROUPS):
             pd.testing.assert_series_equal(
@@ -483,3 +483,68 @@ class TestEdgeCases:
         truth = frame([("u1", "i1")], ["user", "item"])
         with pytest.raises(InvalidInputError, match="the total benefit is zero"):
             entropy(RECOMMENDATIONS.iloc[:0], ITEM_GROUPS.iloc[:0], ground_truth=truth)
+
+
+class TestScores:
+    def test_scores_order_the_lists(self):
+        scored = RECOMMENDATIONS.assign(score=-RECOMMENDATIONS["rank"]).drop(columns="rank")
+        pd.testing.assert_series_equal(
+            group_distribution(scored, ITEM_GROUPS),
+            group_distribution(RECOMMENDATIONS, ITEM_GROUPS),
+        )
+
+    def test_tied_scores_share_the_exposure(self):
+        # i1 (group G1) and i3 (group G2) have the same score: with a cutoff of one,
+        # each is expected to receive half of the exposure of the first position.
+        scored = frame(
+            [("u1", "i1", 5.0), ("u1", "i3", 5.0), ("u1", "i2", 1.0)], ["user", "item", "score"]
+        )
+        distribution = group_distribution(scored, ITEM_GROUPS, k=1)
+        assert distribution.to_dict() == pytest.approx({"G1": 0.5, "G2": 0.5})
+        # Whole list: the tied items expect the mean exposure of positions 1 and 2.
+        shared = (PHI[0] + PHI[1]) / 2
+        distribution = group_distribution(scored, ITEM_GROUPS)
+        assert distribution["G2"] == pytest.approx(shared / (2 * shared + PHI[2]))
+
+    @pytest.mark.parametrize("effectiveness", [False, True])
+    @pytest.mark.parametrize("exposure", ["logarithmic", "flat"])
+    @pytest.mark.parametrize("k", [2, None])
+    def test_agrees_with_the_average_over_every_order_of_the_ties(
+        self, tied_data, k, exposure, effectiveness
+    ):
+        from conftest import scored_lists
+        from reference import expected_joint_distribution
+
+        recommendations = tied_data["recommendations"]
+        truth = tied_data["ground_truth"] if effectiveness else None
+        relevance = None
+        if effectiveness:
+            relevance = {}
+            for user, item, grade in truth.itertuples(index=False):
+                relevance.setdefault(user, {})[item] = grade
+        user_group = dict(tied_data["user_groups"].itertuples(index=False, name=None))
+        item_group = dict(tied_data["item_groups"].itertuples(index=False, name=None))
+        lists = scored_lists(recommendations)
+        options = {"k": k, "exposure": exposure, "ground_truth": truth}
+
+        def joint(block_of_user, block_of_item):
+            return expected_joint_distribution(
+                lists, k, block_of_user, block_of_item, flat=exposure == "flat", relevance=relevance
+            )
+
+        grouped = joint(user_group.get, item_group.get)
+        actual = group_distribution(recommendations, tied_data["item_groups"], **options)
+        items = marginal(grouped, 1)
+        assert actual.to_dict() == pytest.approx({g: items.get(g, 0.0) for g in actual.index})
+        assert mutual_information(
+            recommendations,
+            user_groups=tied_data["user_groups"],
+            item_groups=tied_data["item_groups"],
+            **options,
+        ) == pytest.approx(reference_mi(grouped), abs=1e-12)
+        assert mutual_information(
+            recommendations, item_groups=tied_data["item_groups"], **options
+        ) == pytest.approx(reference_mi(joint(lambda user: user, item_group.get)), abs=1e-12)
+        assert mutual_information(
+            recommendations, user_groups=tied_data["user_groups"], **options
+        ) == pytest.approx(reference_mi(joint(user_group.get, lambda item: item)), abs=1e-12)

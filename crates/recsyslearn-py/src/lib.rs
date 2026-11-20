@@ -89,6 +89,25 @@ mod _core {
             let ranks = ranks.as_ref().map(PyReadonlyArray1::as_slice).transpose()?;
             run(py, || core::RankedLists::new(users, items, ranks, n_users)).map(Self)
         }
+
+        /// Lists ordered by descending score; equal scores of a user are ties.
+        #[staticmethod]
+        #[pyo3(signature = (users, items, scores, n_users))]
+        fn from_scores(
+            py: Python<'_>,
+            users: PyReadonlyArray1<'_, u32>,
+            items: PyReadonlyArray1<'_, u32>,
+            scores: PyReadonlyArray1<'_, f64>,
+            n_users: usize,
+        ) -> PyResult<Self> {
+            let users = users.as_slice()?;
+            let items = items.as_slice()?;
+            let scores = scores.as_slice()?;
+            run(py, || {
+                core::RankedLists::from_scores(users, items, scores, n_users)
+            })
+            .map(Self)
+        }
     }
 
     /// Held-out relevance judgements grouped by user.

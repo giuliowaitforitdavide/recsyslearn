@@ -347,11 +347,11 @@ class TestEdgeCases:
         assert list(result["user"]) == ["u3", "u1", "u2"]
         assert list(result["group"]) == ["F", "M", "F"]
 
-    def test_rank_column_is_ignored(self):
+    def test_rating_column_is_ignored(self):
         interactions = frame(
-            [("u1", "a", 5), ("u2", "a", 1), ("u1", "b", 3)], ["user", "item", "rank"]
+            [("u1", "a", 5), ("u2", "a", 1), ("u1", "b", 3)], ["user", "item", "rating"]
         )
-        without = interactions.drop(columns="rank")
+        without = interactions.drop(columns="rating")
         for segment in (by_cumulative_interactions, by_interaction_count, popularity):
             pd.testing.assert_frame_equal(segment(interactions), segment(without))
 

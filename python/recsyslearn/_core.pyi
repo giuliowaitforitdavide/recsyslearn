@@ -11,6 +11,13 @@ class RankedLists:
         ranks: NDArray[np.float64] | None,
         n_users: int,
     ) -> RankedLists: ...
+    @staticmethod
+    def from_scores(
+        users: NDArray[np.uint32],
+        items: NDArray[np.uint32],
+        scores: NDArray[np.float64],
+        n_users: int,
+    ) -> RankedLists: ...
 
 class GroundTruth:
     def __new__(

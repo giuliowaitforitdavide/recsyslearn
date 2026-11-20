@@ -58,7 +58,7 @@ class TestGradedRelevance:
 
     truth = frame(
         [("u", "a", 3), ("u", "b", 2), ("u", "c", 1), ("u", "x", 3), ("u", "y", 2)],
-        ["user", "item", "rank"],
+        ["user", "item", "rating"],
     )
 
     @pytest.mark.parametrize(
@@ -186,7 +186,7 @@ class TestErrors:
 
     def test_negative_relevance(self):
         with pytest.raises(InvalidInputError, match="non-negative"):
-            ndcg(RECOMMENDATIONS, self.truth.assign(rank=-1.0))
+            ndcg(RECOMMENDATIONS, self.truth.assign(rating=-1.0))
 
     def test_missing_identifier(self):
         with pytest.raises(InvalidInputError, match="missing"):
@@ -194,7 +194,7 @@ class TestErrors:
 
     def test_no_relevant_item_at_all(self):
         with pytest.raises(InvalidInputError, match="relevant"):
-            ndcg(RECOMMENDATIONS, self.truth.assign(rank=0.0))
+            ndcg(RECOMMENDATIONS, self.truth.assign(rating=0.0))
 
 
 @pytest.mark.parametrize("k", [1, 5, 10, 50, None])
@@ -216,12 +216,12 @@ class TestReviewRegressions:
 
     def test_relevance_too_large_for_the_exponential_gain(self):
         # 2 ** 1024 is not a finite float: the perfectly ranked user "u" used to be dropped.
-        truth = frame([("u", "a", 1024.0), ("v", "b", 1.0)], ["user", "item", "rank"])
+        truth = frame([("u", "a", 1024.0), ("v", "b", 1.0)], ["user", "item", "rating"])
         with pytest.raises(InvalidInputError, match="exponential"):
             ndcg(self.recommendations, truth, gain="exponential")
         scores = ndcg(self.recommendations, truth, gain="linear", per_user=True)
         assert scores.to_dict() == {"u": 1.0, "v": 0.0}
-        truth = truth.assign(rank=[1023.0, 1.0])
+        truth = truth.assign(rating=[1023.0, 1.0])
         scores = ndcg(self.recommendations, truth, gain="exponential", per_user=True)
         assert scores.to_dict() == {"u": 1.0, "v": 0.0}
 
@@ -267,7 +267,7 @@ class TestReviewRegressions:
         )
         truth = frame(
             [("u", "a", relevance), ("u", "b", relevance), ("u", "c", relevance), ("v", "z", 1.0)],
-            ["user", "item", "rank"],
+            ["user", "item", "rating"],
         )
         with pytest.raises(InvalidInputError, match="too large to be added"):
             ndcg(recommendations, truth, gain=gain)
@@ -279,3 +279,91 @@ class TestReviewRegressions:
         )
         with pytest.raises(InvalidInputError, match=r"rank.*2\^53"):
             ndcg(recommendations, frame([("u", "a")], ["user", "item"]))
+
+
+class TestScores:
+    """Lists ordered by a ``score`` column: the largest score is the best item."""
+
+    truth = frame([("u", "c")], ["user", "item"])
+
+    def test_scores_order_the_list(self):
+        scored = frame(
+            [("u", "a", 0.2), ("u", "b", 0.9), ("u", "c", 0.5)], ["user", "item", "score"]
+        )
+        # c is second: DCG = 1 / log2(3), and the ideal DCG is 1.
+        assert ndcg(scored, self.truth) == pytest.approx(1 / math.log2(3))
+        ranked = frame([("u", "b", 1), ("u", "c", 2), ("u", "a", 3)], ["user", "item", "rank"])
+        assert ndcg(scored, self.truth) == ndcg(ranked, self.truth)
+
+    def test_only_the_order_of_the_scores_matters(self):
+        scored = frame(
+            [("u", "a", 0.2), ("u", "b", 0.9), ("u", "c", 0.5)], ["user", "item", "score"]
+        )
+        rescaled = scored.assign(score=[-30, 40, 0])
+        assert ndcg(rescaled, self.truth) == ndcg(scored, self.truth)
+
+    def test_tied_scores_give_the_expected_value(self):
+        # McSherry & Najork (2008): b and c are tied, so c is second or third with the
+        # same probability, and the DCG is the mean of the two cases.
+        scored = frame(
+            [("u", "a", 2.0), ("u", "b", 1.0), ("u", "c", 1.0)], ["user", "item", "score"]
+        )
+        expected = (1 / math.log2(3) + 1 / math.log2(4)) / 2
+        assert ndcg(scored, self.truth) == pytest.approx(expected)
+        # Cutoff 2: c is within it in one order out of two.
+        assert ndcg(scored, self.truth, k=2) == pytest.approx((1 / math.log2(3)) / 2)
+        # Cutoff 1: the tie starts after it.
+        assert ndcg(scored, self.truth, k=1) == 0.0
+
+    def test_all_candidates_tied(self):
+        # One relevant item among 31 tied candidates, cutoff 10: the expected nDCG is
+        # the mean discount of the 31 positions, counting zero after the tenth.
+        scored = frame([("u", item, 0.0) for item in range(31)], ["user", "item", "score"])
+        truth = frame([("u", 7)], ["user", "item"])
+        expected = sum(1 / math.log2(position + 1) for position in range(1, 11)) / 31
+        assert ndcg(scored, truth, k=10) == pytest.approx(expected)
+
+    def test_rank_takes_precedence_over_score(self):
+        both = frame([("u", "a", 2, 0.9), ("u", "c", 1, 0.1)], ["user", "item", "rank", "score"])
+        assert ndcg(both, self.truth) == 1.0
+        assert ndcg(both.drop(columns="rank"), self.truth) == pytest.approx(1 / math.log2(3))
+
+    def test_invalid_scores(self):
+        scored = frame([("u", "a", 2.0), ("u", "c", 1.0)], ["user", "item", "score"])
+        with pytest.raises(InvalidInputError, match="NaN score"):
+            ndcg(scored.assign(score=[1.0, None]), self.truth)
+        with pytest.raises(InvalidInputError, match="'score' column of recommendations"):
+            ndcg(scored.assign(score=["high", "low"]), self.truth)
+        with pytest.raises(InvalidInputError, match="more than one column named 'score'"):
+            ndcg(pd.concat([scored, scored[["score"]]], axis=1), self.truth)
+
+    def test_infinite_scores_are_ordered_like_any_other(self):
+        scored = frame(
+            [("u", "a", float("-inf")), ("u", "c", float("inf"))], ["user", "item", "score"]
+        )
+        assert ndcg(scored, self.truth) == 1.0
+
+    @pytest.mark.parametrize("gain", ["linear", "exponential"])
+    @pytest.mark.parametrize("k", [1, 3, 6, None])
+    def test_agrees_with_the_average_over_every_order_of_the_ties(self, tied_data, k, gain):
+        from conftest import scored_lists
+        from reference import expected_per_user
+
+        recommendations, truth = tied_data["recommendations"], tied_data["ground_truth"]
+        relevance = {}
+        for user, item, grade in truth.itertuples(index=False):
+            relevance.setdefault(user, {})[item] = grade
+
+        def value(user, order):
+            return reference_ndcg(
+                {user: order}, {user: relevance[user]}, k, exponential=gain == "exponential"
+            )
+
+        lists = {
+            user: scored
+            for user, scored in scored_lists(recommendations).items()
+            if user in relevance
+        }
+        expected = expected_per_user(lists, value)
+        actual = ndcg(recommendations, truth, k=k, gain=gain, per_user=True)
+        assert actual.to_dict() == pytest.approx(expected, rel=1e-12)

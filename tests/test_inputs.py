@@ -84,6 +84,32 @@ def test_results_do_not_depend_on_the_order_of_the_rows(random_data):
         assert compute(shuffled) == expected
 
 
+def test_results_with_tied_scores_do_not_depend_on_the_order_of_the_rows(tied_data):
+    def compute(tables):
+        recommendations, items = tables["recommendations"], tables["item_groups"]
+        return [
+            accuracy.ndcg(recommendations, tables["ground_truth"], k=3),
+            beyond_accuracy.novelty(recommendations, tables["interactions"], k=3),
+            *fairness.group_distribution(recommendations, items, k=3),
+            fairness.mutual_information(recommendations, item_groups=items, k=3),
+        ]
+
+    expected = compute(tied_data)
+    for seed in range(5):
+        shuffled = {
+            name: table.sample(frac=1, random_state=seed) for name, table in tied_data.items()
+        }
+        assert compute(shuffled) == expected
+
+
+def test_scores_of_any_numeric_type():
+    scores = {"x": 3, "y": 2, "z": 1}
+    scored = RECOMMENDATIONS.assign(score=RECOMMENDATIONS["item"].map(scores)).drop(columns="rank")
+    expected = accuracy.ndcg(RECOMMENDATIONS, TRUTH)
+    for dtype in ("int8", "uint16", "Int64", "float32", "float64"):
+        assert accuracy.ndcg(scored.astype({"score": dtype}), TRUTH) == expected
+
+
 @pytest.mark.parametrize(
     "columns",
     [["user", "item", "rank", "rank"], ["user", "user", "item"], ["user", "item", "item"]],
@@ -106,9 +132,9 @@ def test_duplicated_columns_that_are_not_used_are_ignored():
     extra = pd.DataFrame({"group": ["g"] * 4, "other": [0] * 4})
     recommendations = pd.concat([RECOMMENDATIONS, extra, extra], axis=1)
     assert accuracy.ndcg(recommendations, TRUTH) == accuracy.ndcg(RECOMMENDATIONS, TRUTH)
-    # The segmentations ignore `rank`, so two of them are no obstacle either.
+    # The segmentations ignore `rating`, so two of them are no obstacle either.
     interactions = pd.concat(
-        [TRUTH, pd.DataFrame({"rank": [1, 2]}), pd.DataFrame({"rank": [3, 4]})], axis=1
+        [TRUTH, pd.DataFrame({"rating": [1, 2]}), pd.DataFrame({"rating": [3, 4]})], axis=1
     )
     pd.testing.assert_frame_equal(
         segmentation.popularity(interactions), segmentation.popularity(TRUTH)
@@ -178,7 +204,7 @@ def test_no_function_modifies_its_arguments():
     features = frame([("a", "f"), ("b", None)], ["user", "gender"])
     tables = {
         "recommendations": RECOMMENDATIONS.sample(frac=1, random_state=1),
-        "truth": TRUTH.assign(rank=[2.0, 1.0]),
+        "truth": TRUTH.assign(rating=[2.0, 1.0]),
         "groups": GROUPS,
         "features": features,
     }
@@ -206,8 +232,8 @@ def test_rank_must_be_numeric():
         accuracy.ndcg(RECOMMENDATIONS.assign(rank=["first", "second", "first", "second"]), TRUTH)
     with pytest.raises(InvalidInputError, match="NaN rank"):
         accuracy.ndcg(RECOMMENDATIONS.assign(rank=[1.0, None, 1.0, 2.0]), TRUTH)
-    with pytest.raises(InvalidInputError, match="'rank' column of ground_truth"):
-        accuracy.ndcg(RECOMMENDATIONS, TRUTH.assign(rank=["good"] * len(TRUTH)))
+    with pytest.raises(InvalidInputError, match="'rating' column of ground_truth"):
+        accuracy.ndcg(RECOMMENDATIONS, TRUTH.assign(rating=["good"] * len(TRUTH)))
 
 
 def test_target_must_map_groups_to_probabilities():

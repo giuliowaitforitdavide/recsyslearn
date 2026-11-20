@@ -42,12 +42,14 @@ def ndcg(
     ----------
     recommendations
         Columns ``["user", "item", "rank"]``: lists are ordered by ascending ``rank``,
-        and two items of a user cannot have the same rank. Without ``rank``, the order
-        of the rows is the ranking.
+        and two items of a user cannot have the same rank. Or columns ``["user",
+        "item", "score"]``: lists are ordered by descending ``score``, and items of a
+        user can have the same score (see the notes). With neither, the order of the
+        rows is the ranking.
     ground_truth
         Held-out interactions. Columns ``["user", "item"]`` for implicit feedback
-        (every pair is relevant) or ``["user", "item", "rank"]`` for explicit
-        feedback, where ``rank`` is the graded relevance (e.g. the rating) of the pair.
+        (every pair is relevant) or ``["user", "item", "rating"]`` for explicit
+        feedback, where ``rating`` is the graded relevance of the pair.
     k
         Cutoff; ``None`` evaluates the whole lists.
     gain
@@ -64,6 +66,13 @@ def ndcg(
         truth, or their scores indexed by user. Users without relevant items are left
         out (the metric is undefined for them); users with relevant items but no
         recommendations score 0.
+
+    Notes
+    -----
+    When items of a user have the same ``score``, their order is unknown. The DCG is
+    then its mean over all the orders of the tied items, as in McSherry & Najork
+    (2008): every item of a tie receives the mean discount of the positions the tie
+    spans, counting as zero those after the cutoff. The ideal DCG does not change.
 
     Raises
     ------
@@ -86,6 +95,9 @@ def ndcg(
       https://doi.org/10.1145/1102351.1102363
     * W. Krichene and S. Rendle. *On sampled metrics for item recommendation*
       (Eq. 8). KDD 2020. https://doi.org/10.1145/3394486.3403226
+    * F. McSherry and M. Najork. *Computing information retrieval performance measures
+      efficiently in the presence of tied scores* (Section 2.6). ECIR 2008.
+      https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ecir2008.pdf
     """
     k = check_k(k)
     check_choice("gain", gain, ("linear", "exponential"))

@@ -14,8 +14,9 @@ cases are marked below.
      - Version 4
    * - ``NDCG().evaluate(top_n, find_relevant_items(test), ats)``
      - ``accuracy.ndcg(top_n, test, k=...)``, one call per cutoff. It returns the mean;
-       ``per_user=True`` returns the scores. If ``test`` has a ``rank`` column it is
-       now used as graded relevance: drop the column to keep binary relevance.
+       ``per_user=True`` returns the scores. The feedback value of ``test`` is now
+       read from a ``rating`` column and used as graded relevance: leave the column
+       out to keep binary relevance.
    * - ``find_relevant_items``
      - Removed: pass the test interactions directly.
    * - ``Coverage().evaluate(top_n, items)``
@@ -64,3 +65,7 @@ Other changes:
   recommendations in place.
 * Every metric accepts a cutoff ``k``.
 * Recommendations in which two items of a user have the same ``rank`` are refused.
+* The explicit feedback of the interactions is in a ``rating`` column; ``rank`` now
+  only means the position of a recommendation.
+* Recommendations can be ordered by a ``score`` column instead of ``rank``. Scores can
+  be tied, see :doc:`data`.

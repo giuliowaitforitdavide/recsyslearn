@@ -37,7 +37,7 @@ before it is not complete.
 | Core unit tests | `#[cfg(test)]` modules in `crates/recsyslearn-core/src` | Each formula on integer codes, edge cases, and every error path of the core. |
 | API unit tests | `tests/test_<module>.py` | Hand-worked examples through the public API; input validation and error messages; options (`k`, `per_user`, ...). |
 | Reference oracle | `tests/reference.py`, used by the `test_agrees_with_the_reference_implementation` tests | A naive, loop-based transcription of each formula agrees with the library on the random data of `tests/conftest.py`. It must not share code with the library. |
-| Input handling | `tests/test_inputs.py` | Results do not depend on identifier dtype, index, or the scale of `rank`. |
+| Input handling | `tests/test_inputs.py` | Results do not depend on identifier dtype, index, or the scale of `rank` and `score`. |
 | Documentation | `tests/test_docs.py` | The code of the quickstart, of the README and of every script in `examples/` runs as written. |
 | Integration | `tests/integration/` | Numbers printed in papers are reproduced from the papers' public data. |
 

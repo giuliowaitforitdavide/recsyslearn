@@ -104,7 +104,7 @@ def by_cumulative_interactions(
     Parameters
     ----------
     interactions
-        Columns ``["user", "item"]``; a ``rank`` column (explicit feedback) is
+        Columns ``["user", "item"]``; a ``rating`` column (explicit feedback) is
         ignored. Every row is one interaction: repeated pairs count.
     proportions
         Share of the interactions of each group, from the most to the least popular.
@@ -236,7 +236,7 @@ def popularity(
     Parameters
     ----------
     interactions
-        Columns ``["user", "item"]``; a ``rank`` column (explicit feedback) is ignored.
+        Columns ``["user", "item"]``; a ``rating`` column (explicit feedback) is ignored.
     by
         ``"item"`` (popularity) or ``"user"`` (activity).
     relative_to

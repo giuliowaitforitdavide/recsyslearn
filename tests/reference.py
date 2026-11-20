@@ -6,6 +6,7 @@ test-suite checks the Rust implementation against them on random data.
 
 from __future__ import annotations
 
+import itertools
 import math
 from collections import Counter, defaultdict
 from fractions import Fraction
@@ -71,6 +72,48 @@ def joint_distribution(lists, k, block_of_user, block_of_item, flat=False, relev
             if relevance is not None:
                 benefit *= relevance.get(user, {}).get(item, 0.0)
             mass[block_of_user(user), block_of_item(item)] += benefit
+    total = sum(mass.values())
+    return {blocks: value / total for blocks, value in mass.items()}
+
+
+def tie_orders(scored):
+    """Every order of ``[(item, score)]`` the scores allow, best first.
+
+    Items with different scores are in decreasing order of score; items with the same
+    score appear in every permutation. This is the set of rankings a metric is averaged
+    over when scores are tied (McSherry & Najork, 2008).
+    """
+    by_score = defaultdict(list)
+    for item, score in scored:
+        by_score[score].append(item)
+    groups = [by_score[score] for score in sorted(by_score, reverse=True)]
+    for parts in itertools.product(*(itertools.permutations(group) for group in groups)):
+        yield [item for part in parts for item in part]
+
+
+def expected_per_user(scored_lists, value):
+    """``{user: mean of value(user, order) over the orders of the user's ties}``."""
+    result = {}
+    for user, scored in scored_lists.items():
+        values = [value(user, order) for order in tie_orders(scored)]
+        result[user] = sum(values) / len(values)
+    return result
+
+
+def expected_joint_distribution(
+    scored_lists, k, block_of_user, block_of_item, flat=False, relevance=None
+):
+    """As :func:`joint_distribution`, with the benefit of every pair averaged over the
+    orders of the user's ties before it is normalised."""
+    mass = defaultdict(float)
+    for user, scored in scored_lists.items():
+        orders = list(tie_orders(scored))
+        for order in orders:
+            for position, item in enumerate(order[:k], 1):
+                benefit = 1.0 if flat else 1.0 / math.log2(1 + position)
+                if relevance is not None:
+                    benefit *= relevance.get(user, {}).get(item, 0.0)
+                mass[block_of_user(user), block_of_item(item)] += benefit / len(orders)
     total = sum(mass.values())
     return {blocks: value / total for blocks, value in mass.items()}
 
