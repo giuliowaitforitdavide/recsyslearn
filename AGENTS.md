@@ -75,7 +75,9 @@ These rules apply to every review, by a person or by an agent.
   | 3 | Only the changes made in answer to the findings of round 2, in the same way. |
 
   A published review opens with `Agent review <n> of 3 at <commit>`, the commit it
-  reviewed, so that the next round knows where its diff starts. After round 3 no agent
+  reviewed, so that the next round knows where its diff starts. Its findings are inline
+  comments on the lines they refer to; only a finding with no line in the diff (a commit,
+  the title, the description) is written in the body of the review. After round 3 no agent
   reviews the pull request again, locally or not: a human reviewer takes over and decides
   on whatever is still open. The rounds belong to the pull request and are not reset by
   new commits.

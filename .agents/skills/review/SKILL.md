@@ -29,7 +29,7 @@ phase 2 it argues *against* its own findings.
 - Review only what the change introduces: the lines of the diff, and code elsewhere only
   when the change breaks it.
 - Read-only. Do not edit tracked files, commit, push, comment on the pull request or open
-  issues. Running the project's own commands (tests, lints) is allowed and encouraged as
+  issues (the only exception is in **If the review is published**). Running the project's own commands (tests, lints) is allowed and encouraged as
   evidence; the ignored build output they create (`.venv/`, `target/`) is fine. `uv run`
   commands need the environment built once with `uv sync`. If the environment cannot be
   built, review by reading and say so in the answer.
@@ -365,6 +365,28 @@ Then answer the contributor, in the conversation, with:
 - the confirmed findings, from the most to the least severe;
 - one closing line with the count of each level that has findings, or "No findings" — say
   that plainly when it is the case, without inventing something to report.
+
+### If the review is published
+
+The review itself posts nothing: publishing is a separate step, taken by the
+contributor or, only on their explicit request and after the answer above has been
+given, by you. That request is the one exception to the read-only ground rule. The
+result goes on the pull request as **one review made of inline comments**
+(`AGENTS.md` › Review):
+
+- every finding located at a `path:line` of the diff is an inline comment on that line,
+  holding the finding in full, with its action item;
+- a finding that has no line in the diff (a commit, the branch, the title, the
+  description, a line the diff does not show) goes in the body of the review, the only
+  place where it can;
+- the body of the review opens with the marker line and holds the opening lines, "Not
+  checked", the answers to the previous round and the closing count. It does not repeat
+  the inline findings;
+- a review with no findings is the body alone.
+
+With `gh`, that is one call to `POST /repos/{owner}/{repo}/pulls/{number}/reviews` with
+`event: COMMENT`, the body and the `comments` array (`path`, `line`, `side: RIGHT`,
+`body`), on the commit the review looked at.
 
 ## What not to report
 
