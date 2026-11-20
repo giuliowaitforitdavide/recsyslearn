@@ -279,9 +279,9 @@ class TestErrors:
 
     def test_no_benefit_to_distribute(self):
         truth = frame([("u1", "i4")], ["user", "item"])
-        with pytest.raises(InvalidInputError, match="benefit"):
+        with pytest.raises(InvalidInputError, match="the total benefit is zero"):
             entropy(RECOMMENDATIONS, ITEM_GROUPS, ground_truth=truth)
-        with pytest.raises(InvalidInputError, match="benefit"):
+        with pytest.raises(InvalidInputError, match="the total benefit is zero"):
             entropy(RECOMMENDATIONS.iloc[:0], ITEM_GROUPS)
 
 

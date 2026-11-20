@@ -21,6 +21,10 @@ class MissingColumnsError(RecsyslearnError, ValueError):
         columns = ", ".join(repr(column) for column in self.missing)
         super().__init__(f"{name} must have the column(s) {columns}")
 
+    def __reduce__(self) -> tuple[type[MissingColumnsError], tuple[str, tuple[str, ...]]]:
+        """Rebuild from the two arguments, so that the error can be pickled and copied."""
+        return type(self), (self.name, self.missing)
+
 
 class InvalidInputError(RecsyslearnError, ValueError):
     """The content of an argument violates the definition of what is being computed."""

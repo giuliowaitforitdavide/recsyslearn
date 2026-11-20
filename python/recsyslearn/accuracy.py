@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from recsyslearn import _core
-from recsyslearn._frames import Recommendations, check_choice, check_k
+from recsyslearn._frames import ITEM, USER, Recommendations, check_choice, check_frame, check_k
 from recsyslearn.errors import InvalidInputError
 
 __all__ = ["ndcg"]
@@ -101,6 +101,8 @@ def ndcg(
     """
     k = check_k(k)
     check_choice("gain", gain, ("linear", "exponential"))
+    # Asked here: for `Recommendations` a ground truth of None is one that is not needed.
+    check_frame(ground_truth, "ground_truth", [USER, ITEM])
     data = Recommendations(recommendations, ground_truth)
 
     scores = _core.ndcg(data.lists, data.truth, k, gain)

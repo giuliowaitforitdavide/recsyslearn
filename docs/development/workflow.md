@@ -158,5 +158,5 @@ Labels are mandatory on every issue and every pull request, from the moment it i
 - Python: `uv add <package>` / `uv lock --upgrade-package <package>`. Rust: `cargo add` /
   `cargo update -p <crate>`. Never edit a lock file by hand.
 - Dependabot opens the routine update pull requests (`build` and `ci` prefixes).
-- A new runtime dependency needs a justification in the pull request: see
-  [security.md](security.md#dependencies).
+- A new dependency, of the package, of the core or of the development tools, needs a
+  justification in the pull request: see [security.md](security.md#dependencies).

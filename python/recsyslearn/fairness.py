@@ -16,6 +16,7 @@ metrics describe that distribution, in bits.
 
 from __future__ import annotations
 
+import numbers
 from collections.abc import Mapping
 from typing import Any, Literal
 
@@ -31,6 +32,7 @@ from recsyslearn._frames import (
     check_choice,
     check_frame,
     check_k,
+    has_duplicates,
 )
 from recsyslearn.errors import InvalidInputError
 
@@ -71,9 +73,9 @@ def _group_codes(
         raise InvalidInputError(f"{name} contain missing groups")
     if groups[side].isna().any():
         raise InvalidInputError(f"{name}: {side} identifiers must not be missing")
-    members = pd.Index(groups[side], tupleize_cols=False)
-    if members.has_duplicates:
+    if has_duplicates(groups[side], side):
         raise InvalidInputError(f"{name} list the same {side} more than once")
+    members = pd.Index(groups[side], tupleize_cols=False)
     try:
         try:
             codes, labels = pd.factorize(groups[GROUP], sort=True)
@@ -114,8 +116,13 @@ def _distribution(
     user_groups: pd.DataFrame | None = None,
     item_groups: pd.DataFrame | None = None,
     singletons: str | None = None,
+    names: tuple[str, str] = ("user_groups", "item_groups"),
 ) -> tuple[pd.Series | None, pd.Series | None, float]:
-    """Marginal distributions over the given groups and their mutual information."""
+    """Marginal distributions over the given groups and their mutual information.
+
+    ``names`` are the names of the caller's arguments that hold the groups of users
+    and of items, for the error messages.
+    """
     k = check_k(k)
     check_choice("exposure", exposure, ("logarithmic", "flat"))
     data = Recommendations(recommendations, ground_truth)
@@ -123,11 +130,11 @@ def _distribution(
     user_codes = item_codes = user_labels = item_labels = None
     if user_groups is not None:
         user_codes, user_labels = _group_codes(
-            user_groups, USER, "user groups", data.users, data.recommended_users
+            user_groups, USER, names[0], data.users, data.recommended_users
         )
     if item_groups is not None:
         item_codes, item_labels = _group_codes(
-            item_groups, ITEM, "item groups", data.items, data.recommended_items
+            item_groups, ITEM, names[1], data.items, data.recommended_items
         )
 
     over_users, over_items, information = _core.benefit_distribution(
@@ -232,6 +239,7 @@ def group_distribution(
         ground_truth,
         user_groups=groups if side == USER else None,
         item_groups=groups if side == ITEM else None,
+        names=("groups", "groups"),
     )
     return users if side == USER else items
 
@@ -314,6 +322,18 @@ def _target(target: Any, labels: pd.Index) -> pd.Series:
     absent = labels.difference(target.index)
     if len(absent):
         raise InvalidInputError(f"target gives no probability to the group(s) {list(absent)}")
+    dtype = target.dtype
+    if pd.api.types.is_object_dtype(dtype):
+        # One value per group: a mapping can hold anything, and `float` would also
+        # convert strings of digits and booleans.
+        numeric = all(
+            isinstance(value, (numbers.Real, np.number)) and not isinstance(value, (bool, np.bool_))
+            for value in target
+        )
+    else:
+        numeric = pd.api.types.is_integer_dtype(dtype) or pd.api.types.is_float_dtype(dtype)
+    if not numeric:
+        raise InvalidInputError("the probabilities of target must be numeric")
     try:
         return target.astype(float)
     except (TypeError, ValueError):

@@ -334,6 +334,19 @@ mod tests {
         assert_eq!(ndcg(&lists, &truth, Some(1), Gain::Linear).unwrap()[0], 0.0);
     }
 
+    /// The ideal ranking holds every relevant item, also when there are more of them
+    /// than the longest list: one hit at the top against three relevant items.
+    #[test]
+    fn the_ideal_ranking_is_not_limited_by_the_lists() {
+        let lists = RankedLists::new(&[0], &[0], None, 1).unwrap();
+        let truth = GroundTruth::new(&[0, 0, 0], &[0, 1, 2], None, 1).unwrap();
+        let ideal = 1.0 + 1.0 / 3f64.log2() + 1.0 / 4f64.log2();
+        for k in [None, Some(5)] {
+            let score = ndcg(&lists, &truth, k, Gain::Linear).unwrap()[0];
+            assert!(close(score, 1.0 / ideal));
+        }
+    }
+
     /// A list whose ties agree with the relevance is perfect in every order, but the
     /// achieved DCG adds the mean discount of each tie and the ideal one adds the
     /// discounts one by one: the two sums round differently.

@@ -85,7 +85,11 @@ These hold everywhere; a change that needs to break one must be discussed in an 
   code), never by hash order.
 - Memory follows the rows and the number of users the caller declares (`n_users`), never
   the largest item code: item codes need not be dense. Every allocation that an argument
-  sizes is fallible and returns an error instead of aborting.
+  sizes is fallible and returns an error instead of aborting. The limit of that
+  guarantee is the operating system: where memory is overcommitted a reservation
+  succeeds and the failure comes when the pages are written. The Python package only
+  ever declares the number of identifiers it found in the tables, so this concerns
+  direct callers of the core.
 - No I/O: no files, no network, no environment variables, no logging.
 - It passes `clippy::pedantic` with `-D warnings` and builds on the `rust-version` of
   [`Cargo.toml`](../../Cargo.toml).

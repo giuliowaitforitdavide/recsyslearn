@@ -66,6 +66,9 @@ def coverage(
     if isinstance(catalog, pd.DataFrame):
         check_frame(catalog, "catalog", [ITEM])
         catalog = catalog[ITEM]
+    elif isinstance(catalog, pd.MultiIndex):
+        # Its entries are tuples, which are identifiers like any other.
+        catalog = catalog.to_flat_index()
     elif not isinstance(catalog, (pd.Series, pd.Index, np.ndarray)):
         if isinstance(catalog, (str, bytes)) or not isinstance(catalog, Iterable):
             raise TypeError(
@@ -88,7 +91,10 @@ def coverage(
     if items.isna().any():
         raise InvalidInputError("the catalog contains missing item identifiers")
 
-    positions = items.get_indexer(pd.Index(recommendations[ITEM], tupleize_cols=False))
+    try:
+        positions = items.get_indexer(pd.Index(recommendations[ITEM], tupleize_cols=False))
+    except TypeError:
+        raise InvalidInputError("item identifiers must be hashable") from None
     outside = int((positions < 0).sum())
     if outside:
         raise InvalidInputError(

@@ -237,6 +237,9 @@ impl BenefitDistribution {
             user_marginal[*row as usize] += *mass;
             item_marginal[*column as usize] += *mass;
         }
+        // A positive mass can be so small against the total that its share is zero in
+        // floating point. Such a cell carries nothing, like one that was never there.
+        cells.retain(|&(_, _, mass)| mass > 0.0);
         Ok(Self {
             users: user_marginal,
             items: item_marginal,
@@ -276,8 +279,9 @@ impl BenefitDistribution {
                 p * (p / self.users[row as usize] / self.items[column as usize]).log2()
             })
             .sum();
-        // Mutual information is non-negative; clamp the rounding noise around zero.
-        information.max(0.0)
+        // Mutual information is non-negative: the limit removes the rounding noise below
+        // zero, and the addition turns a -0.0 into +0.0 (see `accuracy::ndcg`).
+        information.max(0.0) + 0.0
     }
 }
 
@@ -310,7 +314,8 @@ pub fn entropy(distribution: &[f64]) -> Result<f64> {
         .filter(|&&p| p > 0.0)
         .map(|&p| -p * p.log2())
         .sum();
-    Ok(bits.max(0.0))
+    // Non-negative by definition: no rounding noise below zero, and no -0.0.
+    Ok(bits.max(0.0) + 0.0)
 }
 
 /// Shannon entropy divided by its maximum, `log2 n` for `n` groups (Patro et al. 2020).
@@ -368,9 +373,20 @@ pub fn kl_divergence(distribution: &[f64], target: &[f64]) -> Result<f64> {
         .iter()
         .zip(target)
         .filter(|&(&p, _)| p > 0.0)
-        .map(|(&p, &q)| p * (p / q).log2())
+        .map(|(&p, &q)| {
+            let ratio = p / q;
+            // The ratio is the accurate form when the two are close. It overflows for
+            // a target that is positive but tiny: then the logarithms are subtracted.
+            let log = if ratio.is_finite() || q == 0.0 {
+                ratio.log2()
+            } else {
+                p.log2() - q.log2()
+            };
+            p * log
+        })
         .sum();
-    Ok(bits.max(0.0))
+    // Non-negative by definition: no rounding noise below zero, and no -0.0.
+    Ok(bits.max(0.0) + 0.0)
 }
 
 #[cfg(test)]
@@ -407,6 +423,99 @@ mod tests {
         codes: &[0, 0, 1, 1],
         n_groups: 2,
     };
+
+    /// Two users and two items, each a group of its own, everything recommended.
+    /// The relevance of the first pair is so small against the others that its share of
+    /// the benefit is zero in floating point: the cell carries nothing, like a pair that
+    /// is not relevant, and must not turn the sum into `0 * log2(0)`.
+    #[test]
+    fn a_share_that_underflows_carries_no_benefit() {
+        let (users, items) = ([0, 0, 1, 1], [0, 1, 0, 1]);
+        let lists = RankedLists::new(&users, &items, None, 2).unwrap();
+        let relevance = [1e-20, 1e305, 1e305, 1e305];
+        let truth = GroundTruth::new(&users, &items, Some(&relevance), 2).unwrap();
+        let each = Partition::Groups {
+            codes: &[0, 1],
+            n_groups: 2,
+        };
+        let distribution =
+            BenefitDistribution::new(&lists, None, Exposure::Flat, Some(&truth), each, each)
+                .unwrap();
+        // Three cells of 1/3: marginals (1/3, 2/3) on both sides.
+        let third = 1.0f64 / 3.0;
+        let expected = 2.0 * third * (third / (third * 2.0 * third)).log2()
+            + third * (third / (2.0 * third * 2.0 * third)).log2();
+        assert!(close(distribution.mutual_information(), expected));
+        assert_eq!(distribution.cells().len(), 3);
+    }
+
+    /// Sums of products of logarithms land a rounding error below zero, or on `-0.0`:
+    /// the three quantities are non-negative by definition and are returned as such.
+    #[test]
+    fn rounding_never_makes_a_result_negative() {
+        for value in [
+            entropy(&[1.0]).unwrap(),
+            entropy(&[1.0, 0.0]).unwrap(),
+            kl_divergence(&[1.0], &[1.0]).unwrap(),
+            kl_divergence(&[0.3, 0.7], &[0.3, 0.7]).unwrap(),
+        ] {
+            assert!(value == 0.0 && value.is_sign_positive(), "{value:?}");
+        }
+        // Every user has the same list, so the item group does not depend on the user
+        // group: the mutual information is zero, whatever the groups.
+        let (n_users, length) = (6u32, 5u32);
+        let users: Vec<u32> = (0..n_users)
+            .flat_map(|u| vec![u; length as usize])
+            .collect();
+        let items: Vec<u32> = (0..n_users).flat_map(|_| 0..length).collect();
+        let lists = RankedLists::new(&users, &items, None, n_users as usize).unwrap();
+        let mut state = 12345u32;
+        let mut next = || {
+            // A linear congruential generator: fixed, so the cases are always the same.
+            state = state.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+            (state >> 16) % 3
+        };
+        for _ in 0..300 {
+            let user_codes: Vec<u32> = (0..n_users).map(|_| next()).collect();
+            let item_codes: Vec<u32> = (0..length).map(|_| next()).collect();
+            let distribution = BenefitDistribution::new(
+                &lists,
+                None,
+                Exposure::Logarithmic,
+                None,
+                Partition::Groups {
+                    codes: &user_codes,
+                    n_groups: 3,
+                },
+                Partition::Groups {
+                    codes: &item_codes,
+                    n_groups: 3,
+                },
+            )
+            .unwrap();
+            let information = distribution.mutual_information();
+            assert!(information >= 0.0 && information.is_sign_positive());
+            assert!(information < TOLERANCE);
+            let bits = entropy(distribution.item_marginal()).unwrap();
+            assert!(bits >= 0.0 && bits.is_sign_positive());
+        }
+    }
+
+    /// A target probability can be positive and too small for `p / q` to be finite:
+    /// the divergence is large, not infinite.
+    #[test]
+    fn a_tiny_target_probability_gives_a_finite_divergence() {
+        let bits = kl_divergence(&[0.5, 0.5], &[1e-310, 1.0]).unwrap();
+        let expected = 0.5 * (0.5f64.log2() - 1e-310f64.log2()) + 0.5 * 0.5f64.log2();
+        assert!(bits.is_finite());
+        assert!(close(bits, expected));
+        // A probability of zero still excludes the group.
+        assert!(
+            kl_divergence(&[0.5, 0.5], &[0.0, 1.0])
+                .unwrap()
+                .is_infinite()
+        );
+    }
 
     #[test]
     fn logarithmic_exposure_is_normalised_over_all_pairs() {

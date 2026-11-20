@@ -62,11 +62,11 @@ class TestCoverage:
         assert coverage(RECOMMENDATIONS, list("ABC")) == 1.0
 
     def test_item_outside_the_catalog(self):
-        with pytest.raises(InvalidInputError, match="catalog"):
+        with pytest.raises(InvalidInputError, match="items that are not in the catalog"):
             coverage(RECOMMENDATIONS, list("AB"))
 
     def test_empty_catalog(self):
-        with pytest.raises(InvalidInputError, match="catalog"):
+        with pytest.raises(InvalidInputError, match="the catalog is empty"):
             coverage(RECOMMENDATIONS.iloc[:0], [])
 
     def test_missing_columns(self):
@@ -165,7 +165,7 @@ class TestReviewRegressions:
     def test_catalog_must_be_a_flat_collection(self):
         import numpy as np
 
-        with pytest.raises(InvalidInputError, match="catalog"):
+        with pytest.raises(InvalidInputError, match="catalog must be a flat"):
             coverage(RECOMMENDATIONS, np.array([["A", "B"], ["C", "D"]]))
         with pytest.raises(TypeError, match="catalog"):
             coverage(RECOMMENDATIONS, None)
@@ -199,7 +199,7 @@ class TestCatalogAsAList:
 
     @pytest.mark.parametrize("catalog", [[["A", "B"], ["C"]], [["A", "B"], ["C", "D"]], [{}, {}]])
     def test_items_must_be_hashable(self, catalog):
-        with pytest.raises(InvalidInputError, match="catalog"):
+        with pytest.raises(InvalidInputError, match="catalog must be a flat"):
             coverage(RECOMMENDATIONS, catalog)
 
     def test_a_string_is_not_a_catalog(self):

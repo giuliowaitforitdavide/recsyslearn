@@ -46,9 +46,12 @@ Accuracy
 Choices: users without relevant items are left out of the mean, since the metric is
 0/0 for them (the convention of ``trec_eval``); users with relevant items but no
 recommendations score 0; positions missing from a list shorter than :math:`k` add no
-gain; a relevance whose exponential gain is not a finite number (:math:`r \geq 1024`)
-is refused, and so are gains so large that their sum is not one (the score would be
-:math:`\infty / \infty`).
+gain; the ideal ranking holds all the relevant items of the user, also when they are
+more than the list is long; a pair listed in the ground truth with a relevance of 0 is
+not relevant, and a negative relevance is refused, because a negative gain has no
+ideal ranking; a relevance whose exponential gain is not a finite number
+(:math:`r \geq 1024`) is refused, and so are gains so large that their sum is not one
+(the score would be :math:`\infty / \infty`).
 
 Order of the lists and tied scores
 ----------------------------------
@@ -133,7 +136,10 @@ it is the "inverse user frequency" of [Vargas2011]_.
 Choices: the self-information of an item nobody interacted with diverges and no source
 says how to treat it; it is set to :math:`\log_2 |U|`, the value of an item with one
 user. (RankSys and Elliot similarly fall back to the largest observed novelty.) The
-mean is over the users who received recommendations.
+mean is over the users who received recommendations. A list shorter than :math:`k` is
+averaged over its own length :math:`|L_u|`: Eq. 12 of [Schedl2018]_ divides by the
+number of recommendations requested, which is the same thing only when every list is
+complete.
 
 Fairness
 --------
@@ -142,8 +148,10 @@ The metrics implement the framework of [Amigo2023]_, which is the reference used
 [Moscati2023]_. A recommended pair carries a benefit :math:`\theta(u, i)`:
 
 * exposure, :math:`\phi(u, i) = 1 / \log_2(1 + pos_u(i))`, the rank discount used by
-  [Singh2018]_ and by the reference implementation of [Amigo2023]_, or the flat
-  :math:`\phi(u, i) = 1` within the cutoff;
+  [Singh2018]_ and by the reference implementation of [Amigo2023]_ (the text of that
+  paper prints :math:`1 / (\log(pos) + 1)`; its tables, reproduced below, follow from
+  the expression of the implementation), or the flat :math:`\phi(u, i) = 1` within the
+  cutoff;
 * effectiveness, :math:`\phi(u, i) \cdot \psi(u, i)`, where the utility :math:`\psi` is
   the relevance of the pair in the ground truth.
 
@@ -307,6 +315,12 @@ No published result could be reproduced for the following functions.
 * :func:`~recsyslearn.segmentation.by_interaction_count`: the papers found either print
   no group sizes, or do not publish the training set the groups are computed on, or rank
   users by the sum of their ratings rather than by their number of interactions.
+* :func:`~recsyslearn.segmentation.popularity`: it is a count divided by a total, the
+  quantity the two segmentations above are built on; no paper found publishes a table
+  of it with the data to recompute it. Its two definitions are checked against exact
+  fractions.
+* :func:`~recsyslearn.segmentation.by_feature`: it computes nothing, it relabels a
+  column, so there is no number a paper could print.
 * Novelty and the fairness metrics *with tied scores*: no paper found prints a value
   for them. Novelty is checked against its mean over every order of the ties,
   enumerated, on small random data; the group distributions against the expected

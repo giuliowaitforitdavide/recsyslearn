@@ -138,9 +138,18 @@ class TestByInteractionCount:
 class TestProportionErrors:
     interactions = interactions_with({"a": 3, "b": 1})
 
-    @pytest.mark.parametrize("proportions", [(0.5, 0.4), (1.2, -0.2), (0.0, 1.0), (), ("a", "b")])
-    def test_invalid_proportions(self, segment, proportions):
-        with pytest.raises(InvalidInputError, match="proportions"):
+    @pytest.mark.parametrize(
+        ("proportions", "message"),
+        [
+            ((0.5, 0.4), "proportions must sum to 1"),
+            ((1.2, -0.2), "proportions must be finite and strictly positive"),
+            ((0.0, 1.0), "proportions must be finite and strictly positive"),
+            ((), "proportions must contain at least one value"),
+            (("a", "b"), "proportions must be a sequence of numbers"),
+        ],
+    )
+    def test_invalid_proportions(self, segment, proportions, message):
+        with pytest.raises(InvalidInputError, match=message):
             segment(self.interactions, proportions)
 
     def test_labels_must_match_the_groups(self, segment):

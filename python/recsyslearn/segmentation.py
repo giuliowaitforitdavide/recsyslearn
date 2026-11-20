@@ -8,14 +8,23 @@ Thresholds should be computed on the training interactions.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+import numbers
+from collections.abc import Callable, Iterable, Mapping, Sequence, Set
 from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
 
 from recsyslearn import _core
-from recsyslearn._frames import GROUP, ITEM, USER, check_choice, check_frame, encode_sorted
+from recsyslearn._frames import (
+    GROUP,
+    ITEM,
+    USER,
+    check_choice,
+    check_frame,
+    encode_sorted,
+    has_duplicates,
+)
 from recsyslearn.errors import InvalidInputError
 
 __all__ = ["by_cumulative_interactions", "by_feature", "by_interaction_count", "popularity"]
@@ -54,14 +63,27 @@ def _segment(
     """
     by = _check_side(interactions, by)
     try:
-        proportions = [float(proportion) for proportion in proportions]
-    except (TypeError, ValueError) as error:
-        raise InvalidInputError("proportions must be a sequence of numbers") from error
+        proportions = list(proportions)
+    except TypeError:
+        raise InvalidInputError("proportions must be a sequence of numbers") from None
+    # One value per group. `float` would also convert strings of digits and booleans.
+    if not all(
+        isinstance(proportion, (numbers.Real, np.number))
+        and not isinstance(proportion, (bool, np.bool_))
+        for proportion in proportions
+    ):
+        raise InvalidInputError("proportions must be a sequence of numbers")
+    proportions = [float(proportion) for proportion in proportions]
     if labels is None:
         labels = range(1, len(proportions) + 1)
     if isinstance(labels, (str, bytes)) or not isinstance(labels, Iterable):
         raise InvalidInputError(
             f"labels must be a sequence of {len(proportions)} distinct values, one per proportion"
+        )
+    if isinstance(labels, (Set, Mapping)):
+        # The first label names the most popular group: a set has no first element.
+        raise InvalidInputError(
+            "labels must be an ordered sequence (a list, a tuple, ...), in the order of proportions"
         )
     labels = list(labels)
     if not all(pd.api.types.is_scalar(label) for label in labels):
@@ -113,9 +135,10 @@ def by_cumulative_interactions(
     by
         ``"item"`` (popularity) or ``"user"`` (activity).
     labels
-        Names of the groups, in the order of ``proportions``: distinct scalar values
-        (strings, numbers, ...), none of them missing. Defaults to ``1, 2, ...``,
-        where 1 is the most popular group.
+        Names of the groups, in the order of ``proportions``: an ordered sequence (a
+        list, a tuple, ...; not a set) of distinct scalar values (strings, numbers,
+        ...), none of them missing. Defaults to ``1, 2, ...``, where 1 is the most
+        popular group.
 
     Returns
     -------
@@ -300,7 +323,9 @@ def by_feature(features: pd.DataFrame, column: str, *, missing: Any = "unknown")
     features
         One row per user (item): a ``user`` or an ``item`` column, and the attribute.
     column
-        Name of the column holding the attribute.
+        Name of the column holding the attribute. It can itself be ``user`` or
+        ``item`` in a table that has both: the other one is then what is grouped,
+        e.g. ``by_feature(pairs, "item")`` groups the users by their item.
     missing
         Label of the group of the users (items) without a value: a scalar (a string,
         a number, ...) that is not itself a missing value (``None``, ``NaN``, ...).
@@ -318,7 +343,8 @@ def by_feature(features: pd.DataFrame, column: str, *, missing: Any = "unknown")
         If a table lacks a column it needs.
     InvalidInputError
         If a table is invalid in one of the ways listed in :ref:`input-errors`; if
-        ``features`` has both a ``user`` and an ``item`` column or neither; if a user
+        ``features`` has both a ``user`` and an ``item`` column next to the attribute, or
+        neither; if ``column`` is not the name of a column; if a user
         (item) is listed more than once; if ``missing`` is not a scalar or is itself a
         missing value; or if it is already one of the values of the attribute while some
         values are missing.
@@ -332,7 +358,10 @@ def by_feature(features: pd.DataFrame, column: str, *, missing: Any = "unknown")
       in recommender systems*. UMUAI 31, 2021.
       https://doi.org/10.1007/s11257-020-09285-1
     """
+    if not pd.api.types.is_hashable(column):
+        raise InvalidInputError("column must be the name of a column of features")
     check_frame(features, "features", [column])
+    # `column` can itself be `user` or `item`: the other one is then what is grouped.
     sides = [side for side in (USER, ITEM) if side in features.columns and side != column]
     if len(sides) != 1:
         raise InvalidInputError(
@@ -340,13 +369,14 @@ def by_feature(features: pd.DataFrame, column: str, *, missing: Any = "unknown")
             f"got the columns {list(features.columns)}"
         )
     side = sides[0]
+    check_frame(features, "features", [column, side])
     if not pd.api.types.is_scalar(missing):
         raise InvalidInputError("missing must be a scalar label (a string, a number, ...)")
     if pd.isna(missing):
         raise InvalidInputError("missing must be a label, not a missing value")
     if features[side].isna().any():
         raise InvalidInputError(f"{side} identifiers must not be missing")
-    if features[side].duplicated().any():
+    if has_duplicates(features[side], side):
         raise InvalidInputError(f"features list the same {side} more than once")
 
     groups = features[column]

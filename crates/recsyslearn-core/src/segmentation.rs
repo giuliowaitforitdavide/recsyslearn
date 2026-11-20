@@ -89,7 +89,9 @@ pub fn shares(counts: &[u64], total: u64) -> Result<Vec<f64>> {
 /// Sums such as `0.1 + 0.2` are not exact in floating point: a threshold that lands
 /// within rounding error of an integer (a few units in the last place per proportion
 /// summed, whatever the scale) is snapped to it. A genuinely fractional threshold, such
-/// as `0.8 * 1_000_000_004`, is left alone.
+/// as `0.8 * 1_000_000_004`, is left alone, as long as its fractional part is larger
+/// than that rounding error: the error grows with the total, and beyond about `10^9`
+/// interactions a fraction of a millionth can no longer be told from an integer.
 fn thresholds(proportions: &[f64], total: f64) -> Result<Vec<f64>> {
     if proportions.is_empty() {
         return Err(Error::invalid(

@@ -43,9 +43,14 @@ def test_identifier_dtype(dtype):
 
 def test_integer_identifiers():
     users, items = {"a": 7, "b": 3}, {"x": 30, "y": 10, "z": 20}
-    recommendations = RECOMMENDATIONS.replace({"user": users, "item": items})
-    truth = TRUTH.replace({"user": users, "item": items})
-    groups = GROUPS.replace({"item": items})
+
+    def numbered(table):
+        columns = {"user": users, "item": items}
+        return table.assign(
+            **{name: table[name].map(codes) for name, codes in columns.items() if name in table}
+        )
+
+    recommendations, truth, groups = numbered(RECOMMENDATIONS), numbered(TRUTH), numbered(GROUPS)
     assert results(recommendations, truth, groups) == pytest.approx(EXPECTED)
 
 
@@ -326,3 +331,181 @@ def test_errors_do_not_carry_the_content_of_the_tables():
         accuracy.ndcg(secret, TRUTH)
     assert caught.value.__cause__ is None
     assert "secret-value" not in str(caught.value)
+
+
+class TestReviewOfTheWholeChange:
+    """Inputs found by the review of the pull request to be misread or badly refused."""
+
+    def test_large_integers_of_different_types_are_refused(self):
+        # Combined, int64 and uint64 become float64, where 2**60 and 2**60 + 1 are the
+        # same number: the two users would be merged into one.
+        import numpy as np
+
+        from recsyslearn.errors import InvalidInputError
+
+        users = [2**60, 2**60 + 1]
+        recommendations = pd.DataFrame({"user": np.array(users, dtype="uint64"), "item": [1, 2]})
+        truth = pd.DataFrame({"user": np.array(users, dtype="int64"), "item": [1, 3]})
+        with pytest.raises(InvalidInputError, match=r"user identifiers.*cannot be told apart"):
+            accuracy.ndcg(recommendations, truth)
+        # Below 2**53 the two types hold the same numbers exactly.
+        small = recommendations.assign(user=np.array([5, 6], dtype="uint64"))
+        assert accuracy.ndcg(small, truth.assign(user=[5, 6])) == pytest.approx(0.5)
+
+    def test_unhashable_identifiers_are_refused_everywhere(self):
+        from recsyslearn.errors import InvalidInputError
+
+        groups = pd.DataFrame({"item": [["x"], ["y"], ["z"]], "group": ["a", "b", "b"]})
+        with pytest.raises(InvalidInputError, match="item identifiers must be hashable"):
+            fairness.group_distribution(RECOMMENDATIONS, groups)
+        lists = pd.DataFrame({"user": ["a", "a"], "item": [["x"], ["y"]]})
+        with pytest.raises(InvalidInputError, match="item identifiers must be hashable"):
+            beyond_accuracy.coverage(lists, ["x", "y"])
+        features = pd.DataFrame({"item": [["x"], ["y"]], "genre": ["a", "b"]})
+        with pytest.raises(InvalidInputError, match="item identifiers must be hashable"):
+            segmentation.by_feature(features, "genre")
+
+    def test_by_feature_reads_its_identifier_column_once(self):
+        from recsyslearn.errors import InvalidInputError
+
+        features = pd.DataFrame([[1, 1, "a"], [2, 2, "b"]], columns=["item", "item", "genre"])
+        with pytest.raises(InvalidInputError, match="more than one column named 'item'"):
+            segmentation.by_feature(features, "genre")
+        with pytest.raises(InvalidInputError, match="column must be the name of a column"):
+            segmentation.by_feature(features, ["genre"])
+
+    def test_by_feature_can_group_by_the_other_identifier(self):
+        # `column` can itself be `user` or `item`: the other one is then what is grouped.
+        features = frame([("a", "x"), ("b", "y")], ["user", "item"])
+        grouped = segmentation.by_feature(features, "item")
+        assert grouped.to_dict("list") == {"user": ["a", "b"], "group": ["x", "y"]}
+
+    def test_labels_must_have_an_order(self):
+        from recsyslearn.errors import InvalidInputError
+
+        with pytest.raises(InvalidInputError, match="labels must be an ordered"):
+            segmentation.by_cumulative_interactions(TRUTH, (0.5, 0.5), labels={"head", "tail"})
+
+    def test_datetimes_with_and_without_a_time_zone_do_not_match(self):
+        from recsyslearn.errors import InvalidInputError
+
+        days = pd.to_datetime(["2026-01-01", "2026-01-01", "2026-01-02", "2026-01-02"])
+        recommendations = RECOMMENDATIONS.assign(user=days)
+        truth = TRUTH.assign(user=days[[0, 2]].tz_localize("UTC"))
+        with pytest.raises(InvalidInputError, match=r"user identifiers.*different types"):
+            accuracy.ndcg(recommendations, truth)
+
+    def test_errors_survive_pickling(self):
+        import copy
+        import pickle
+
+        from recsyslearn.errors import InvalidInputError, MissingColumnsError
+
+        error = MissingColumnsError("recommendations", ["user", "item"])
+        for clone in (pickle.loads(pickle.dumps(error)), copy.deepcopy(error)):
+            assert (clone.name, clone.missing) == ("recommendations", ("user", "item"))
+            assert str(clone) == str(error)
+        assert str(pickle.loads(pickle.dumps(InvalidInputError("no")))) == "no"
+
+    @pytest.mark.parametrize(
+        "target",
+        [{"head": "0.5", "tail": "0.5"}, {"head": True, "tail": False}],
+        ids=["strings", "booleans"],
+    )
+    def test_target_probabilities_must_be_numbers(self, target):
+        from recsyslearn.errors import InvalidInputError
+
+        with pytest.raises(InvalidInputError, match="probabilities of target must be numeric"):
+            fairness.kl_divergence(RECOMMENDATIONS, GROUPS, target)
+
+    @pytest.mark.parametrize("proportions", [["0.5", "0.5"], [True], [0.5, None]])
+    def test_proportions_must_be_numbers(self, proportions):
+        from recsyslearn.errors import InvalidInputError
+
+        with pytest.raises(InvalidInputError, match="proportions must be a sequence of numbers"):
+            segmentation.by_interaction_count(TRUTH, proportions)
+
+    def test_a_catalog_of_tuples_given_as_a_multi_index(self):
+        lists = pd.DataFrame({"user": ["a", "a"], "item": [(1, 2), (3, 4)]})
+        catalog = pd.MultiIndex.from_tuples([(1, 2), (3, 4), (5, 6)])
+        assert beyond_accuracy.coverage(lists, catalog) == pytest.approx(2 / 3)
+
+    def test_columns_with_several_levels_are_refused(self):
+        from recsyslearn.errors import InvalidInputError
+
+        nested = RECOMMENDATIONS.set_axis(
+            pd.MultiIndex.from_product([["user", "item", "rank"], ["a"]]), axis=1
+        )
+        with pytest.raises(InvalidInputError, match=r"recommendations.*single level"):
+            accuracy.ndcg(nested, TRUTH)
+        with pytest.raises(InvalidInputError, match=r"interactions.*single level"):
+            segmentation.popularity(nested)
+
+    def test_a_missing_ground_truth_is_named(self):
+        with pytest.raises(TypeError, match="ground_truth must be a pandas DataFrame"):
+            accuracy.ndcg(RECOMMENDATIONS, None)
+
+    @pytest.mark.parametrize("value", [["linear"], pd.NA, None, 1])
+    def test_options_must_be_strings(self, value):
+        from recsyslearn.errors import InvalidInputError
+
+        with pytest.raises(InvalidInputError, match="gain must be 'linear' or 'exponential'"):
+            accuracy.ndcg(RECOMMENDATIONS, TRUTH, gain=value)
+
+    def test_errors_about_groups_name_the_argument(self):
+        from recsyslearn.errors import InvalidInputError
+
+        short = GROUPS.head(1)
+        with pytest.raises(InvalidInputError, match="have no group in groups "):
+            fairness.entropy(RECOMMENDATIONS, short)
+        with pytest.raises(InvalidInputError, match="have no group in item_groups "):
+            fairness.mutual_information(RECOMMENDATIONS, item_groups=short)
+
+    def test_the_largest_exact_integer_is_accepted(self):
+        # 2**53 is still told apart from its neighbours below: only what lies beyond is refused.
+        ranked = RECOMMENDATIONS.assign(rank=[1, 2**53, 1, 2**53])
+        assert accuracy.ndcg(ranked, TRUTH) == accuracy.ndcg(RECOMMENDATIONS, TRUTH)
+        negative = RECOMMENDATIONS.assign(rank=[-(2**53), 2, -(2**53), 2])
+        assert accuracy.ndcg(negative, TRUTH) == accuracy.ndcg(RECOMMENDATIONS, TRUTH)
+
+
+def test_results_do_not_depend_on_the_number_of_threads():
+    """The same tied, grouped data give bit-identical results with one thread and with four."""
+    import os
+    import subprocess
+    import sys
+
+    script = """
+import numpy as np, pandas as pd
+from recsyslearn import accuracy, beyond_accuracy, fairness
+rng = np.random.default_rng(7)
+n_users, n_items, length = 400, 60, 12
+items = np.argsort(rng.random((n_users, n_items)), axis=1)[:, :length].ravel()
+users = np.repeat(np.arange(n_users), length)
+lists = pd.DataFrame({"user": users, "item": items, "score": rng.integers(0, 4, len(users))})
+truth = lists.sample(frac=0.2, random_state=1)[["user", "item"]].assign(rating=2.5)
+groups = pd.DataFrame({"item": np.arange(n_items), "group": np.arange(n_items) % 3})
+values = [
+    accuracy.ndcg(lists, truth, k=5),
+    beyond_accuracy.novelty(lists, truth, k=5),
+    fairness.entropy(lists, groups, k=5, ground_truth=truth),
+    fairness.mutual_information(lists, item_groups=groups, k=5),
+    *accuracy.ndcg(lists, truth, per_user=True),
+]
+print(" ".join(float(value).hex() for value in values))
+"""
+
+    def run(threads):
+        environment = {**os.environ, "RAYON_NUM_THREADS": threads}
+        done = subprocess.run(
+            [sys.executable, "-c", script],
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return done.stdout
+
+    single = run("1")
+    assert len(single.split()) > 100
+    assert run("4") == single

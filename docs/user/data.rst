@@ -136,7 +136,10 @@ Every function checks its tables before computing anything, and raises
 
   * a column the function reads appears more than once;
   * an identifier is missing or is not hashable;
-  * the identifiers of two tables are of different types and none of them match;
+  * the identifiers of two tables are of different types and none of them match, or
+    are numbers of different types (``int64`` and ``uint64``, integers and floats) with
+    integers beyond :math:`2^{53}`, which would be merged once combined;
+  * the columns have more than one level of names;
   * ``k`` is not a positive integer or ``None``;
   * a ``rank``, a ``score`` or a ``rating`` is missing, is in a column whose dtype is
     not an integer or floating-point one (strings of digits, booleans and dates are

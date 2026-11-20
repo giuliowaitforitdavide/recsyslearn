@@ -40,6 +40,8 @@ def check_frame(
     """
     if not isinstance(frame, pd.DataFrame):
         raise TypeError(f"{name} must be a pandas DataFrame, got {type(frame).__name__}")
+    if frame.columns.nlevels > 1:
+        raise InvalidInputError(f"{name} must have a single level of column names")
     missing = [column for column in required if column not in frame.columns]
     if missing:
         raise MissingColumnsError(name, missing)
@@ -62,7 +64,7 @@ def check_k(k: Any) -> int | None:
 
 def check_choice(name: str, value: Any, choices: Sequence[str]) -> str:
     """Validate a string option."""
-    if value not in choices:
+    if not isinstance(value, str) or value not in choices:
         expected = " or ".join(repr(choice) for choice in choices)
         raise InvalidInputError(f"{name} must be {expected}, got {value!r}")
     return value
@@ -71,6 +73,9 @@ def check_choice(name: str, value: Any, choices: Sequence[str]) -> str:
 def _kind(column: pd.Series) -> str:
     """What the identifiers of a column are: ``"integer"``, ``"string"``, ..."""
     values = column.cat.categories if isinstance(column.dtype, pd.CategoricalDtype) else column
+    if isinstance(values.dtype, pd.DatetimeTZDtype):
+        # The same instants with and without a time zone are different identifiers.
+        return "datetime64 with a time zone"
     return pd.api.types.infer_dtype(values, skipna=True)
 
 
@@ -112,6 +117,37 @@ def check_same_kind(first: pd.Series, second: pd.Series) -> None:
         )
 
 
+def has_duplicates(column: pd.Series, name: Any) -> bool:
+    """Whether an identifier is repeated in ``column``; unhashable ones are refused."""
+    # `Index.has_duplicates` and `Series.duplicated` do not always hash the values, and
+    # then let lists through; `factorize` always does.
+    try:
+        _, distinct = pd.factorize(column)
+    except TypeError:
+        raise InvalidInputError(f"{name} identifiers must be hashable") from None
+    return len(distinct) < len(column)
+
+
+def _check_exact(columns: Sequence[pd.Series], name: Any) -> None:
+    """Refuse integer identifiers that their combination into floats would merge.
+
+    Columns of different numeric types (int64 and uint64, integers and floats) are
+    combined as float64, in which integers beyond 2^53 are no longer distinct: two
+    users or items would silently become one.
+    """
+    for column in columns:
+        if not pd.api.types.is_integer_dtype(column.dtype):
+            continue
+        largest, smallest = column.max(), column.min()
+        if largest > _MAX_EXACT_INTEGER or smallest < -_MAX_EXACT_INTEGER:
+            kinds = " and ".join(dict.fromkeys(str(column.dtype) for column in columns))
+            raise InvalidInputError(
+                f"the {name} identifiers of the tables are numbers of different types "
+                f"({kinds}) and some are integers beyond 2^53, which cannot be told apart "
+                "once the tables are combined: give them the same type"
+            )
+
+
 def encode(*columns: pd.Series) -> tuple[list[np.ndarray], pd.Index]:
     """Map identifier columns to shared dense codes, in the order of the identifiers.
 
@@ -122,6 +158,8 @@ def encode(*columns: pd.Series) -> tuple[list[np.ndarray], pd.Index]:
     # dtype is deprecated in pandas.
     filled = [column for column in columns if len(column)] or [columns[0]]
     values = filled[0] if len(filled) == 1 else pd.concat(filled, ignore_index=True)
+    if pd.api.types.is_float_dtype(values.dtype):
+        _check_exact(filled, columns[0].name)
     codes, uniques = _factorize(values, columns[0].name)
     bounds = np.cumsum([len(column) for column in columns])[:-1]
     split = np.split(codes, bounds)

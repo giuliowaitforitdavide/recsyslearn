@@ -57,10 +57,17 @@ print(f"rank and score:    {ndcg(both, truth):.4f}")
 #    as long as the tables that must agree use the same one. Columns that a
 #    function does not read are ignored, and so is the index.
 codes = {"ann": 1, "bob": 2, "x": 10, "y": 20, "z": 30}
-numbered = (
-    by_rank.replace(codes).assign(model="demo").set_index("rank", drop=False)
-)
-print(f"integer ids:       {ndcg(numbered, truth.replace(codes)):.4f}")
+
+
+def numbered(table: pd.DataFrame) -> pd.DataFrame:
+    """The same table with integers in place of the names."""
+    return table.assign(
+        user=table["user"].map(codes), item=table["item"].map(codes)
+    )
+
+
+extra = numbered(by_rank).assign(model="demo").set_index("rank", drop=False)
+print(f"integer ids:       {ndcg(extra, numbered(truth)):.4f}")
 
 # 7. Explicit feedback: a `rating` column in the ground truth is the graded
 #    relevance.

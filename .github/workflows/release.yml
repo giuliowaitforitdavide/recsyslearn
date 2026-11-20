@@ -39,7 +39,9 @@ jobs:
                   target: ${{ matrix.target }}
                   manylinux: ${{ matrix.manylinux }}
                   args: --release --locked --out dist
-                  sccache: "true"
+                  # Not for a release: what is published is compiled from the tagged
+                  # commit, never restored from a cache.
+                  sccache: ${{ github.event_name != 'release' }}
             - name: Test the wheel
               if: matrix.test
               shell: bash

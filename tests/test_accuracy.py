@@ -50,7 +50,18 @@ class TestBinaryRelevance:
     def test_short_list_is_not_padded(self):
         recommendations = frame(recommend("u", "qb"), ["user", "item", "rank"])
         truth = frame([("u", "b"), ("u", "e")], ["user", "item"])
-        assert ndcg(recommendations, truth, k=5) == pytest.approx(0.386853, abs=1e-6)
+        # One hit at position 2, two relevant items: DCG = 1 / log2(3), IDCG = 1 + 1 / log2(3).
+        second = 1 / math.log2(3)
+        assert ndcg(recommendations, truth, k=5) == pytest.approx(second / (1 + second))
+
+    @pytest.mark.parametrize("k", [None, 5])
+    def test_ideal_ranking_holds_every_relevant_item(self, k):
+        # Three relevant items against a list of one: the ideal DCG is built from all of
+        # them, not from as many as the list is long.
+        recommendations = frame([("u", "a")], ["user", "item"])
+        truth = frame([("u", "a"), ("u", "b"), ("u", "c")], ["user", "item"])
+        ideal = 1 + 1 / math.log2(3) + 1 / math.log2(4)
+        assert ndcg(recommendations, truth, k=k) == pytest.approx(1 / ideal)
 
 
 class TestGradedRelevance:
@@ -193,7 +204,7 @@ class TestErrors:
             ndcg(RECOMMENDATIONS, frame([("u", None)], ["user", "item"]))
 
     def test_no_relevant_item_at_all(self):
-        with pytest.raises(InvalidInputError, match="relevant"):
+        with pytest.raises(InvalidInputError, match="contains no relevant item"):
             ndcg(RECOMMENDATIONS, self.truth.assign(rating=0.0))
 
 

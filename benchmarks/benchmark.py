@@ -1,4 +1,7 @@
-"""Time every public function on synthetic data.
+"""Time the public functions that compute something, on synthetic data.
+
+``fairness.group_distribution`` is timed through ``fairness.entropy``, which is built on
+it, and ``segmentation.by_feature`` only relabels a column.
 
 uv run python benchmarks/benchmark.py [n_users] [n_items] [list_length]
 """
@@ -49,6 +52,8 @@ def main() -> None:
     sizes = [50_000, 5_000, 20]
     given = [int(arg) for arg in sys.argv[1:4]]
     n_users, n_items, length = given + sizes[len(given) :]
+    if not 0 < length < n_items:
+        sys.exit("list_length must be positive and smaller than n_items")
     train, test, recommendations = synthetic(n_users, n_items, length)
     print(
         f"{n_users:,} users, {n_items:,} items: {len(recommendations):,} recommendations, "
