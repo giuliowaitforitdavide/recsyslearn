@@ -279,7 +279,7 @@ it. They download the data on first use and are run with ``pytest -m integration
        cut to 20 with the assumed order give the same values at 20 as their ranks.
    * - :func:`~recsyslearn.accuracy.ndcg` with tied scores
      - The toy example of Section 3.2 of [Guo2026]_: one relevant item among 31 tied
-       candidates, expected NDCG@10 = 0.1466.
+       candidates, expected NDCG\@10 = 0.1466.
      - The printed value is reproduced, and so is the closed form of the paper's Eq. 2
        for other sizes of the tie. The values of the paper's Table 3 (Amazon Beauty) are
        not: its repository holds only the aggregated results, and the release that

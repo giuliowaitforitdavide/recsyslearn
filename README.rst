@@ -50,9 +50,11 @@ Example
     import pandas as pd
     from recsyslearn import accuracy, beyond_accuracy, fairness, segmentation
 
-    train = pd.read_csv("train.csv")   # user, item[, rating]: the training interactions
-    test = pd.read_csv("test.csv")     # user, item[, rating]: the held-out interactions
-    top_k = pd.read_csv("top_k.csv")   # user, item, rank (1 = best) or score (highest = best)
+    # Training and held-out interactions: user, item[, rating].
+    train = pd.read_csv("train.csv")
+    test = pd.read_csv("test.csv")
+    # Recommendations: user, item, and rank (1 = best) or score (highest = best).
+    top_k = pd.read_csv("top_k.csv")
 
     accuracy.ndcg(top_k, test, k=10)
     beyond_accuracy.coverage(top_k, train, k=10)

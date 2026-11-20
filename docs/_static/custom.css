@@ -31,3 +31,8 @@
     white-space: normal;
     overflow-wrap: anywhere;
 }
+
+/* A line of 77 characters, the limit of the examples (examples/ruff.toml), fits the text column of a laptop. */
+.bd-article div.highlight pre {
+    font-size: 0.8125rem;
+}

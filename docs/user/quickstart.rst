@@ -9,9 +9,11 @@ of a model. The files are in the ``examples/__assets__`` folder of the repositor
 
     import pandas as pd
 
-    train = pd.read_csv("examples/__assets__/train_dataset.csv")  # user, item
-    test = pd.read_csv("examples/__assets__/test_dataset.csv")    # user, item
-    top_k = pd.read_csv("examples/__assets__/top_k.csv")          # user, item, rank
+    # Training and held-out interactions: user, item.
+    train = pd.read_csv("examples/__assets__/train_dataset.csv")
+    test = pd.read_csv("examples/__assets__/test_dataset.csv")
+    # Recommendations: user, item, rank.
+    top_k = pd.read_csv("examples/__assets__/top_k.csv")
 
 The interactions are implicit feedback. With explicit feedback, a ``rating`` column in
 the ground truth is the graded relevance of each pair.
@@ -23,8 +25,8 @@ Accuracy
 
     from recsyslearn.accuracy import ndcg
 
-    ndcg(top_k, test, k=10)                    # mean over the test users
-    ndcg(top_k, test, k=10, per_user=True)     # one score per user
+    ndcg(top_k, test, k=10)                  # mean over the test users
+    ndcg(top_k, test, k=10, per_user=True)   # one score per user
 
 Scores instead of ranks
 -----------------------
@@ -35,8 +37,9 @@ Lists can be ordered by a ``score`` column (the highest is the best) instead of 
 
 .. code-block:: python
 
+    # The same lists, so the same value.
     scored = top_k.assign(score=1 / top_k["rank"]).drop(columns="rank")
-    ndcg(scored, test, k=10)                   # the same lists, the same value
+    ndcg(scored, test, k=10)
 
 Beyond accuracy
 ---------------
@@ -45,8 +48,10 @@ Beyond accuracy
 
     from recsyslearn.beyond_accuracy import coverage, novelty
 
-    coverage(top_k, train, k=10)   # share of the training items that get recommended
-    novelty(top_k, train, k=10)    # mean self-information of the recommended items
+    # Share of the training items that get recommended.
+    coverage(top_k, train, k=10)
+    # Mean self-information of the recommended items, in bits.
+    novelty(top_k, train, k=10)
 
 Segment items and users
 -----------------------
@@ -103,7 +108,9 @@ count only relevant recommendations.
     fairness.kl_divergence(top_k, user_groups, target, ground_truth=test)
 
     # Do active and casual users get different mixes of head and tail items?
-    fairness.mutual_information(top_k, user_groups=user_groups, item_groups=item_groups)
+    fairness.mutual_information(
+        top_k, user_groups=user_groups, item_groups=item_groups
+    )
 
 The :doc:`../methodology` page lists the formula and the source of every function.
 :doc:`examples` has a complete script for each of these topics, and for tied scores, the
