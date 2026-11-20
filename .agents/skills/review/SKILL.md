@@ -206,6 +206,11 @@ reviewer reports nothing rather than something it cannot back up.
 - No test was weakened, skipped, marked `xfail` or loosened to make the change pass.
 - Tests are deterministic (fixed seeds, no dependence on row order or on the number of
   threads) and, outside `tests/integration`, use no network.
+- A new or changed metric or segmentation comes with an integration test that
+  reproduces a number printed in a paper from the data the paper publishes, or with an
+  entry in `docs/methodology.rst` › Validation against published results saying why no
+  published result can be reproduced. Neither is a Boulder (`AGENTS.md` rule 5). Do not
+  take "no public data" on trust when the cited paper links a repository: open it.
 - Integration tests download from a pinned commit, hard-code printed values with their
   table, and tune nothing.
 

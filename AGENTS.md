@@ -35,7 +35,10 @@ computations run in a Rust core (`crates/recsyslearn-core`) exposed through PyO3
    code under test. A bug fix starts with a test that reproduces the bug.
 5. **Science first.** A metric or segmentation is added or changed only from a published
    source, cited in the docstring and in `docs/methodology.rst`, with every choice the
-   source leaves open documented. Never tune code or tests to make numbers agree.
+   source leaves open documented. Wherever a paper publishes the data behind a number it
+   prints, an integration test in `tests/integration` reproduces that number from those
+   data; when no paper does, `docs/methodology.rst` says so and why. Never tune code or
+   tests to make numbers agree.
 6. **Respect the layers.** Formulas live in the Rust core, which has no `unsafe`, does not
    panic on user input and does no I/O; the bindings contain no logic; the Python layer
    validates, encodes identifiers and labels results, without per-row Python loops and
@@ -137,7 +140,9 @@ project's Python.
 
 ## Definition of done
 
-- Tests written first, and passing, at every layer the testing guide requires.
+- Tests written first, and passing, at every layer the testing guide requires; for a new
+  or changed metric or segmentation, a published result reproduced in
+  `tests/integration`, or the reason why none can be in `docs/methodology.rst`.
 - Docstring with formula and references; `docs/methodology.rst`, the API reference and
   `python/recsyslearn/_core.pyi` updated when they apply.
 - Every check of [testing.md › Commands](docs/development/testing.md#commands) passes.
