@@ -15,7 +15,9 @@ The recommender is deterministic: every user is recommended the items with the m
 training users among those the user has not interacted with. The only choice the paper
 does not document is the order of equally popular items; ascending identifier is used
 here. Three of the four values do not depend on that choice, which is checked with the
-opposite order; MovieLens 1M at 20 does (92.2 with descending identifiers). The
+opposite order; MovieLens 1M at 20 does (92.2 with descending identifiers). Passing
+the popularity as ``score`` does not remove the assumption: it shows that, without an
+order, the values are not defined (the input is refused). The
 Amazon Music table of the same paper is left out because its identifiers are strings,
 whose order in the framework is not reproducible.
 """
@@ -45,8 +47,10 @@ def read(dataset: str, fold: int, split: str) -> pd.DataFrame:
     return pd.read_csv(path, sep="\t", header=None, names=["user", "item", "rating", "timestamp"])
 
 
-def most_popular(train: pd.DataFrame, users: np.ndarray, descending_ties: bool) -> pd.DataFrame:
-    """Top-``LENGTH`` most popular unseen items of every user."""
+def most_popular(
+    train: pd.DataFrame, users: np.ndarray, descending_ties: bool, length: int = LENGTH
+) -> pd.DataFrame:
+    """Top-``length`` most popular unseen items of every user."""
     pairs = train.drop_duplicates(["user", "item"])
     popularity = pairs["item"].value_counts()
     ranking = (
@@ -59,8 +63,8 @@ def most_popular(train: pd.DataFrame, users: np.ndarray, descending_ties: bool) 
     seen = pairs.groupby("user")["item"].agg(set)
     rows = []
     for user in users:
-        unseen = [item for item in ranking[: LENGTH + len(seen[user])] if item not in seen[user]]
-        rows += [(user, item, rank) for rank, item in enumerate(unseen[:LENGTH], 1)]
+        unseen = [item for item in ranking[: length + len(seen[user])] if item not in seen[user]]
+        rows += [(user, item, rank) for rank, item in enumerate(unseen[:length], 1)]
     return pd.DataFrame(rows, columns=["user", "item", "rank"])
 
 
@@ -104,12 +108,19 @@ def test_movielens_at_20_depends_on_the_order_of_ties():
     assert round(recommended_items("movielens_1m", 20, descending_ties=True), 1) == 92.2
 
 
-def scored_most_popular(dataset: str, fold: int) -> tuple[pd.DataFrame, np.ndarray]:
-    """The lists of the baseline with the popularity as ``score``, and the catalog."""
+def scored_most_popular(
+    dataset: str, fold: int, length: int = LENGTH
+) -> tuple[pd.DataFrame, np.ndarray]:
+    """The lists of the baseline with the popularity as ``score``, and the catalog.
+
+    The lists are those of :func:`most_popular` with ascending identifiers among equally
+    popular items: that assumed order still decides which items enter a list of
+    ``length`` items. The scores only leave the order *within* the list undefined.
+    """
     train, test = read(dataset, fold, "train"), read(dataset, fold, "test")
     users = np.intersect1d(train["user"].unique(), test["user"].unique())
     popularity = train.drop_duplicates(["user", "item"])["item"].value_counts()
-    ranked = most_popular(train, users, descending_ties=False)
+    ranked = most_popular(train, users, descending_ties=False, length=length)
     scored = ranked.assign(score=ranked["item"].map(popularity)).drop(columns="rank")
     return scored, train["item"].unique()
 
@@ -119,13 +130,27 @@ def scored_most_popular(dataset: str, fold: int) -> tuple[pd.DataFrame, np.ndarr
     [("movielens_1m", 92.0), ("epinions", 72.0)],  # Tables 9 and 11, at 20
 )
 def test_item_coverage_from_scores(dataset, printed):
-    """With scores instead of ranks, equally popular items are tied. Over the whole
-    lists (20 items) no tie is split by the cutoff, and the printed value is reproduced."""
+    """Lists of 20 items given with scores instead of ranks reproduce the printed value.
+
+    A cutoff equal to the length of the lists splits no tie, so the scores are
+    accepted. This does not make the value independent of the order of equally popular
+    items: the lists were cut to 20 with the assumed order (see
+    :func:`scored_most_popular`), and the next test shows what happens without it."""
     counts = []
     for fold in FOLDS:
         scored, catalog = scored_most_popular(dataset, fold)
         counts.append(coverage(scored, catalog, k=LENGTH) * len(catalog))
     assert round(float(np.mean(counts)), 1) == printed
+
+
+@pytest.mark.parametrize("dataset", ["movielens_1m", "epinions"])
+def test_coverage_at_20_is_refused_when_the_candidates_are_not_cut(dataset):
+    """With 40 candidates per user instead of 20, nothing has chosen which of the
+    equally popular items are among the first 20: the value at 20 is not defined
+    without an order, and recsyslearn refuses to compute it."""
+    scored, catalog = scored_most_popular(dataset, fold=0, length=2 * LENGTH)
+    with pytest.raises(InvalidInputError, match="same score straddle the cutoff"):
+        coverage(scored, catalog, k=LENGTH)
 
 
 @pytest.mark.parametrize("dataset", ["movielens_1m", "epinions"])

@@ -73,7 +73,8 @@ neither
     Columns ``["user", "item"]``: the order of the rows is the ranking, and the first
     row of a user is their best item.
 
-When both ``rank`` and ``score`` are there, ``rank`` is used and ``score`` is not read.
+When both ``rank`` and ``score`` are there, ``rank`` is used and ``score`` is not read:
+like any column a function does not read, it is not checked either.
 
 Only the order matters. Formulas use the *position* of an item in the sorted list
 (1 for the first, 2 for the second, ...), never the value of ``rank`` or ``score``
@@ -91,10 +92,17 @@ refused instead of being ordered by the position of its rows.
 Two items of a user *can* have the same ``score``; for a popularity baseline most of
 them do. Their relative order is then unknown, and recsyslearn does not choose one:
 
-* :func:`~recsyslearn.accuracy.ndcg`, :func:`~recsyslearn.beyond_accuracy.novelty` and
-  the fairness metrics return the value expected when every order of the tied items is
-  equally likely, computed exactly and without sampling (McSherry & Najork, 2008). An
-  item tied across the cutoff counts for the probability that it falls within it;
+* :func:`~recsyslearn.accuracy.ndcg` returns the value expected when every order of the
+  tied items is equally likely, computed exactly and without sampling (McSherry &
+  Najork, 2008). An item tied across the cutoff counts for the probability that it
+  falls within it;
+* :func:`~recsyslearn.beyond_accuracy.novelty` does the same. No paper treats ties for
+  novelty: recsyslearn applies the formula of the nDCG to it, because novelty is a sum
+  over positions too;
+* the fairness metrics give each tied item the exposure it is expected to receive
+  (Diaz et al., 2020) and are then computed on those expected exposures. The result is
+  *not* the mean of the metric over the orders: two tied items of two groups with a
+  cutoff of 1 give an entropy of 1 bit, while every single order gives 0;
 * :func:`~recsyslearn.beyond_accuracy.coverage` has no published definition for that
   case, and refuses a table in which items with the same score straddle the cutoff.
   Ties that the cutoff does not split are no obstacle.
@@ -130,8 +138,9 @@ Every function checks its tables before computing anything, and raises
   * an identifier is missing or is not hashable;
   * the identifiers of two tables are of different types and none of them match;
   * ``k`` is not a positive integer or ``None``;
-  * a ``rank``, a ``score`` or a ``rating`` is not a number or is missing, or holds
-    integers beyond :math:`2^{53}`;
+  * a ``rank``, a ``score`` or a ``rating`` is missing, is in a column whose dtype is
+    not an integer or floating-point one (strings of digits, booleans and dates are
+    not converted), or holds integers beyond :math:`2^{53}`;
   * two recommendations of a user have the same ``rank``, or a ``(user, item)`` pair is
     listed twice in the recommendations or in the ground truth.
 

@@ -508,7 +508,7 @@ class TestScores:
 
     @pytest.mark.parametrize("effectiveness", [False, True])
     @pytest.mark.parametrize("exposure", ["logarithmic", "flat"])
-    @pytest.mark.parametrize("k", [2, None])
+    @pytest.mark.parametrize("k", [2, 9, None])
     def test_agrees_with_the_average_over_every_order_of_the_ties(
         self, tied_data, k, exposure, effectiveness
     ):

@@ -57,9 +57,12 @@ pandas DataFrames                                            floats / Series / D
 - Group tables have the columns `user` or `item`, and `group`.
 - Formulas use the *position* of an item in the sorted list, never the raw `rank` or
   `score`. Two items of a user cannot have the same `rank`; they can have the same
-  `score`, and then no order is chosen for them: a metric returns its expected value
-  over the orders of the tie where a published definition exists, and refuses the input
-  where none does. Tables that must agree cannot hold identifiers of different types.
+  `score`, and then no order is chosen for them: a quantity that is a sum over positions
+  (a discounted gain, an exposure, the self-information of novelty) is replaced by its
+  expected value over the orders of the tie, and what a metric derives from it is
+  computed on that expected value; a metric that is not such a sum (coverage) refuses a
+  tie that the cutoff splits. Which of these has a published source is recorded in
+  [`docs/methodology.rst`](../methodology.rst). Tables that must agree cannot hold identifiers of different types.
 - The full contract is documented for users in [`docs/user/data.rst`](../user/data.rst);
   change both together.
 

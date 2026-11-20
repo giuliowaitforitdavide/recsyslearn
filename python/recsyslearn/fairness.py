@@ -176,7 +176,8 @@ def group_distribution(
         ranking. Items of a user with the same ``score`` share the exposure of the
         positions they span: each receives the exposure it is expected to have when
         every order of the tied items is equally likely (the expected exposure of Diaz
-        et al., 2020).
+        et al., 2020). The distribution is the ratio of those expected benefits, not the
+        mean over the orders of the distribution of each order.
     groups
         Columns ``["item", "group"]`` to study groups of items (e.g. popular vs niche
         items, providers) or ``["user", "group"]`` for groups of users (e.g. by
@@ -262,6 +263,12 @@ def entropy(
         Divide by :math:`\log_2 n` so that the result lies in [0, 1], as in Patro et
         al. (2020). It requires at least two groups.
 
+    Notes
+    -----
+    With tied scores the result is computed on the distribution of the *expected*
+    benefits (see :func:`group_distribution`). It is not the mean of this metric over
+    the orders of the tied items, which can differ from it.
+
     Raises
     ------
     TypeError
@@ -345,6 +352,12 @@ def kl_divergence(
         same probability for every group in ``groups``. Other common choices are the
         share of the catalog or of the training interactions of each group.
 
+    Notes
+    -----
+    With tied scores the result is computed on the distribution of the *expected*
+    benefits (see :func:`group_distribution`). It is not the mean of this metric over
+    the orders of the tied items, which can differ from it.
+
     Raises
     ------
     TypeError
@@ -415,6 +428,12 @@ def mutual_information(
     item_groups
         Columns ``["item", "group"]``. If omitted, every item is a group of its own.
         At least one of ``user_groups`` and ``item_groups`` is required.
+
+    Notes
+    -----
+    With tied scores the result is computed on the distribution of the *expected*
+    benefits (see :func:`group_distribution`). It is not the mean of this metric over
+    the orders of the tied items, which can differ from it.
 
     Raises
     ------

@@ -13,6 +13,8 @@ RECOMMENDATIONS = frame(
 )
 TRUTH = frame([("a", "y"), ("b", "z")], ["user", "item"])
 GROUPS = frame([("x", "head"), ("y", "tail"), ("z", "tail")], ["item", "group"])
+#: The same lists, ordered by score instead of rank.
+SCORED = RECOMMENDATIONS.drop(columns="rank").assign(score=[0.9, 0.4, 0.9, 0.4])
 
 
 def results(recommendations, truth, groups):
@@ -106,7 +108,7 @@ def test_scores_of_any_numeric_type():
     scores = {"x": 3, "y": 2, "z": 1}
     scored = RECOMMENDATIONS.assign(score=RECOMMENDATIONS["item"].map(scores)).drop(columns="rank")
     expected = accuracy.ndcg(RECOMMENDATIONS, TRUTH)
-    for dtype in ("int8", "uint16", "Int64", "float32", "float64"):
+    for dtype in ("int8", "uint16", "Int64", "float32", "float64", "Float64"):
         assert accuracy.ndcg(scored.astype({"score": dtype}), TRUTH) == expected
 
 
@@ -173,6 +175,62 @@ def test_integer_ranks_beyond_the_exact_range_are_refused(extreme):
         accuracy.ndcg(recommendations, TRUTH)
 
 
+def test_integer_scores_beyond_the_exact_range_are_refused():
+    from recsyslearn.errors import InvalidInputError
+
+    scored = SCORED.assign(score=[2**53 + 1, 2, 1, 2])
+    with pytest.raises(InvalidInputError, match=r"score.*2\^53"):
+        accuracy.ndcg(scored, TRUTH)
+
+
+NOT_NUMBERS = {
+    "numeric-strings": ["1", "2", "1", "2"],
+    "string-dtype": pd.array(["1", "2", "1", "2"], dtype="string"),
+    "booleans": [True, False, True, False],
+    # Two integers that float64 cannot tell apart, hidden in a column of objects.
+    "integers-as-objects": pd.Series([2**53, 2**53 + 1, 1, 2], dtype=object),
+    "dates": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-01", "2026-01-02"]),
+    "categories": pd.Categorical([1, 2, 1, 2]),
+    "complex": [1 + 2j, 2 + 0j, 1 + 0j, 2 + 0j],
+}
+
+
+@pytest.mark.parametrize("cells", NOT_NUMBERS.values(), ids=NOT_NUMBERS.keys())
+@pytest.mark.parametrize("column", ["rank", "score"])
+def test_the_order_must_be_given_by_numbers(column, cells):
+    from recsyslearn.errors import InvalidInputError
+
+    recommendations = SCORED.drop(columns="score").assign(**{column: cells})
+    with pytest.raises(InvalidInputError, match=f"'{column}' column of recommendations must be"):
+        accuracy.ndcg(recommendations, TRUTH)
+
+
+@pytest.mark.parametrize("cells", NOT_NUMBERS.values(), ids=NOT_NUMBERS.keys())
+def test_ratings_must_be_numbers(cells):
+    from recsyslearn.errors import InvalidInputError
+
+    truth = RECOMMENDATIONS.drop(columns="rank").assign(rating=cells)
+    with pytest.raises(InvalidInputError, match="'rating' column of ground_truth must be"):
+        accuracy.ndcg(RECOMMENDATIONS, truth)
+
+
+def test_a_score_next_to_a_rank_is_not_read():
+    # Not read means not checked either: whatever the column holds, and however many
+    # times it appears, the lists are those of the ranks.
+    unreadable = RECOMMENDATIONS.assign(score=["high", None, "low", "low"])
+    assert results(unreadable, TRUTH, GROUPS) == EXPECTED
+    repeated = pd.concat([unreadable, unreadable[["score"]]], axis=1)
+    assert results(repeated, TRUTH, GROUPS) == EXPECTED
+
+
+def test_a_pair_recommended_twice_is_refused_with_scores():
+    from recsyslearn.errors import InvalidInputError
+
+    twice = pd.concat([SCORED, SCORED.head(1)], ignore_index=True)
+    with pytest.raises(InvalidInputError, match="same \\(user, item\\) pair more than once"):
+        accuracy.ndcg(twice, TRUTH)
+
+
 def test_identifiers_must_be_hashable():
     from recsyslearn.errors import InvalidInputError
 
@@ -204,6 +262,8 @@ def test_no_function_modifies_its_arguments():
     features = frame([("a", "f"), ("b", None)], ["user", "gender"])
     tables = {
         "recommendations": RECOMMENDATIONS.sample(frac=1, random_state=1),
+        # Tied scores, in an order that is not the one of the lists.
+        "scored": SCORED.assign(score=[0.4, 0.4, 0.4, 0.9]),
         "truth": TRUTH.assign(rating=[2.0, 1.0]),
         "groups": GROUPS,
         "features": features,
@@ -220,6 +280,11 @@ def test_no_function_modifies_its_arguments():
     segmentation.by_interaction_count(truth, by="user")
     segmentation.popularity(truth, relative_to="population")
     segmentation.by_feature(features, "gender")
+    scored = tables["scored"]
+    accuracy.ndcg(scored, truth, k=1, per_user=True)
+    beyond_accuracy.coverage(scored, groups)
+    beyond_accuracy.novelty(scored, truth, k=1)
+    fairness.group_distribution(scored, groups, k=1, ground_truth=truth)
 
     for name, table in tables.items():
         pd.testing.assert_frame_equal(table, before[name])

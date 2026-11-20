@@ -86,8 +86,11 @@ enum Order<'a> {
 ///
 /// Lists built from scores can contain *ties*: items of a user with the same score,
 /// whose relative order is unknown. Metrics treat every order of the tied items as
-/// equally likely and return their expected value (`McSherry` & Najork 2008), which
-/// [`RankedLists::weighted`] computes for any metric that adds up a weight per position.
+/// equally likely: a quantity that adds up a weight per position (a discounted gain, an
+/// exposure) is replaced by its expected value (`McSherry` & Najork 2008), which
+/// [`RankedLists::weighted`] computes. What a metric then derives from those sums, such
+/// as a distribution over groups and its entropy, is computed on the expected sums and
+/// is not the mean of the metric over the orders.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RankedLists {
     offsets: Vec<usize>,
@@ -128,8 +131,9 @@ impl RankedLists {
     /// Build the lists from a long `(user, item, score)` table.
     ///
     /// Each user's rows are ordered by descending score: the best item has the largest
-    /// one. Items of a user with the same score are tied (see [`RankedLists`]); within a
-    /// tie they are stored by ascending item code. Infinite scores are allowed.
+    /// one. Items of a user with the same score are tied (see [`RankedLists`]), and
+    /// `0.0` and `-0.0` are the same score. The order in which tied items are stored is
+    /// deterministic and reaches no result. Infinite scores are allowed.
     ///
     /// # Errors
     ///
@@ -309,7 +313,8 @@ impl RankedLists {
     /// the first `k` positions are not yielded.
     ///
     /// `weights` must cover the positions up to the cutoff, i.e. have at least
-    /// `min(k, length of the list)` values; missing ones count as zero.
+    /// `min(k, length of the list)` values: a position without a weight is treated as
+    /// one after the cutoff.
     #[must_use]
     pub fn weighted<'a>(
         &'a self,
@@ -628,6 +633,21 @@ mod tests {
         let first: Vec<(u32, f64)> = lists.weighted(0, Some(1), &weights).collect();
         assert_eq!(first, vec![(10, 16.0)]);
         assert_eq!(lists.weighted(1, None, &weights).count(), 0);
+        // A cutoff after the end of the list is the same as none.
+        let beyond: Vec<(u32, f64)> = lists.weighted(0, Some(9), &weights).collect();
+        assert_eq!(beyond, all);
+    }
+
+    #[test]
+    fn positions_without_a_weight_are_after_the_cutoff() {
+        let lists = tied_example();
+        // Weights for the first two positions only, which is a cutoff of 2: the tie
+        // has one position with a weight, 8, and the last item cannot reach any.
+        let short: Vec<(u32, f64)> = lists.weighted(0, None, &[16.0, 8.0]).collect();
+        let cut: Vec<(u32, f64)> = lists.weighted(0, Some(2), &[16.0, 8.0, 4.0]).collect();
+        assert_eq!(short, cut);
+        assert_eq!(short.len(), 4);
+        assert_eq!(short[3], (13, 8.0 / 3.0));
     }
 
     #[test]
@@ -637,6 +657,7 @@ mod tests {
         assert_eq!(lists.reachable(0, Some(2)), &[10, 11, 12, 13]);
         assert_eq!(lists.reachable(0, Some(4)), &[10, 11, 12, 13]);
         assert_eq!(lists.reachable(0, None), &[10, 11, 12, 13, 14]);
+        assert_eq!(lists.reachable(0, Some(9)), &[10, 11, 12, 13, 14]);
         let ranked = RankedLists::new(&[0, 0], &[4, 3], None, 1).unwrap();
         assert_eq!(ranked.reachable(0, Some(1)), &[4]);
         assert!(ranked.reachable(3, Some(1)).is_empty());

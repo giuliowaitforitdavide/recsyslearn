@@ -323,6 +323,17 @@ class TestScores:
         expected = sum(1 / math.log2(position + 1) for position in range(1, 11)) / 31
         assert ndcg(scored, truth, k=10) == pytest.approx(expected)
 
+    @pytest.mark.parametrize("length", [3, 7, 20, 150])
+    def test_a_perfect_list_with_ties_does_not_exceed_one(self, length):
+        # Every order of the tie is ideal. The achieved DCG adds the mean discount of
+        # the tie and the ideal one the discounts one by one, which round differently.
+        rows = [("u", item, 1.0) for item in range(length)]
+        scored = frame(rows, ["user", "item", "score"])
+        truth = frame([("u", item, 3.0) for item in range(length)], ["user", "item", "rating"])
+        for k in (None, length // 2 + 1):
+            assert ndcg(scored, truth, k=k) <= 1.0
+            assert ndcg(scored, truth, k=k) == pytest.approx(1.0)
+
     def test_rank_takes_precedence_over_score(self):
         both = frame([("u", "a", 2, 0.9), ("u", "c", 1, 0.1)], ["user", "item", "rank", "score"])
         assert ndcg(both, self.truth) == 1.0
@@ -344,7 +355,7 @@ class TestScores:
         assert ndcg(scored, self.truth) == 1.0
 
     @pytest.mark.parametrize("gain", ["linear", "exponential"])
-    @pytest.mark.parametrize("k", [1, 3, 6, None])
+    @pytest.mark.parametrize("k", [1, 3, 6, 9, None])
     def test_agrees_with_the_average_over_every_order_of_the_ties(self, tied_data, k, gain):
         from conftest import scored_lists
         from reference import expected_per_user

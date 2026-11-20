@@ -233,7 +233,7 @@ class TestScores:
         with pytest.raises(InvalidInputError, match="same score straddle the cutoff"):
             coverage(self.scored, ["A", "B", "C", "D"], k=2)
 
-    @pytest.mark.parametrize("k", [1, 3, 6, None])
+    @pytest.mark.parametrize("k", [1, 3, 6, 9, None])
     def test_novelty_agrees_with_the_average_over_every_order_of_the_ties(self, tied_data, k):
         from conftest import scored_lists
         from reference import expected_per_user

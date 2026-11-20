@@ -143,7 +143,15 @@ def values(frame: pd.DataFrame, column: str, name: str) -> np.ndarray | None:
     """The optional numeric ``column`` of ``frame`` as float64, if present."""
     if column not in frame.columns:
         return None
-    if pd.api.types.is_integer_dtype(frame[column].dtype):
+    dtype = frame[column].dtype
+    # Asked of the dtype, not of the conversion: NumPy would also turn strings of
+    # digits, booleans, dates and the integers of an object column into floats.
+    if not (pd.api.types.is_integer_dtype(dtype) or pd.api.types.is_float_dtype(dtype)):
+        raise InvalidInputError(
+            f"the {column!r} column of {name} must be numeric (an integer or "
+            f"floating-point dtype), got {dtype}"
+        )
+    if pd.api.types.is_integer_dtype(dtype):
         largest, smallest = frame[column].max(), frame[column].min()
         # Compared as they are: negating the minimum would overflow an unsigned or
         # the most negative value.
@@ -165,11 +173,12 @@ def ordering(recommendations: Any) -> tuple[str | None, np.ndarray | None]:
     Returns the name of the column that gives the order and its values: ``rank``
     (ascending, distinct positions) when it is there, else ``score`` (descending, ties
     allowed), else nothing, and the order of the rows is the ranking. A ``score`` next
-    to a ``rank`` is not read.
+    to a ``rank`` is not read, and so not checked either.
     """
-    check_frame(recommendations, "recommendations", [USER, ITEM], [RANK, SCORE])
+    check_frame(recommendations, "recommendations", [USER, ITEM])
     for column in (RANK, SCORE):
         if column in recommendations.columns:
+            check_frame(recommendations, "recommendations", [], [column])
             return column, values(recommendations, column, "recommendations")
     return None, None
 

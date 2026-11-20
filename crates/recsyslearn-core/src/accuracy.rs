@@ -122,11 +122,17 @@ pub fn ndcg(
                 .weighted(user, k, &discounts)
                 .map(|(item, discount)| gain.apply(truth.relevance(user, item)) * discount)
                 .sum();
+            // No list beats the ideal one, but with ties the two sums are not rounded
+            // alike: the achieved one adds the mean discount of each tie, the ideal one
+            // the discounts one by one. Hence the limit of 1.
+            //
             // The sum of no terms is -0.0 in Rust (the IEEE 754 identity of addition), so
             // a user whose list is empty would score -0.0, which prints as "-0.0" and has
             // its sign bit set. Under IEEE 754 -0.0 + 0.0 is +0.0, and every other value is
             // unchanged by the addition.
-            let score = achieved / ideal + 0.0;
+            // The limit comes first: once a minimum follows it, the compiler may drop
+            // the addition, since the sign of a zero does not change a minimum.
+            let score = (achieved / ideal).min(1.0) + 0.0;
             // Finite gains can still overflow when added: inf / inf would be NaN, which
             // means "no relevant item" to the caller.
             if ideal.is_finite() && achieved.is_finite() {
@@ -326,6 +332,26 @@ mod tests {
         assert!(close(score, expected));
         // Cutoff 1: the tie starts after it.
         assert_eq!(ndcg(&lists, &truth, Some(1), Gain::Linear).unwrap()[0], 0.0);
+    }
+
+    /// A list whose ties agree with the relevance is perfect in every order, but the
+    /// achieved DCG adds the mean discount of each tie and the ideal one adds the
+    /// discounts one by one: the two sums round differently.
+    #[test]
+    fn a_perfect_list_with_ties_does_not_exceed_one() {
+        for n in 1..200u32 {
+            let items: Vec<u32> = (0..n).collect();
+            let users = vec![0; items.len()];
+            let scores = vec![1.0; items.len()];
+            let grades = vec![3.0; items.len()];
+            let lists = RankedLists::from_scores(&users, &items, &scores, 1).unwrap();
+            let truth = GroundTruth::new(&users, &items, Some(&grades), 1).unwrap();
+            for k in [None, Some(items.len() / 2 + 1)] {
+                let score = ndcg(&lists, &truth, k, Gain::Linear).unwrap()[0];
+                assert!(score <= 1.0, "{score} with {n} tied items");
+                assert!(close(score, 1.0));
+            }
+        }
     }
 
     #[test]

@@ -59,8 +59,9 @@ can be equal, and the relative order of the tied items is then unknown. ``trec_e
 sorts by score and breaks ties by document identifier; that makes the result depend on
 how the items happen to be named, so recsyslearn does not choose an order at all.
 
-Following [McSherry2008]_, the value of a metric on a list with ties is its mean over
-all the orders of the tied items, each equally likely, obtained analytically. With the
+Following [McSherry2008]_, a quantity that adds up a term per position has, on a list
+with ties, the value of its mean over all the orders of the tied items, each equally
+likely, obtained analytically. With the
 list split into groups :math:`V_1, V_2, \dots` of tied items, :math:`V_i` spanning the
 positions :math:`t_i + 1, \dots, t_{i+1}`, Section 2.6 of the paper gives, for a gain
 :math:`G` and a discount :math:`D`,
@@ -94,8 +95,13 @@ counting as zero those after the cutoff. Without ties it is the usual sum.
 Choices: every order of a tie is equally likely, independently for each user; the
 probability of a group in the fairness metrics is the ratio of the expected benefits,
 not the expectation of the ratio (the two coincide for the exposure, whose total does
-not depend on the order); ``rank`` is used when both columns are given; a missing score
-is refused, an infinite one is ordered like any other.
+not depend on the order); entropy, divergence and mutual information are computed on
+that distribution of expected benefits, as a measure of the expected exposure in the
+sense of [Diaz2020]_, and are not the mean of the metric over the orders (two tied
+items of two groups with a cutoff of 1 give an entropy of 1 bit, every single order
+gives 0); ``rank`` is used when both columns are given, and the ``score`` is then
+neither read nor checked; a missing score is refused, an infinite one is ordered like
+any other.
 
 Beyond accuracy
 ---------------
@@ -266,15 +272,19 @@ it. They download the data on first use and are run with ``pytest -m integration
    * - :func:`~recsyslearn.beyond_accuracy.coverage`
      - Item coverage of the most-popular baseline on MovieLens 1M and Epinions, Tables 9
        and 11 of [Anelli2022]_, from the 5 published folds.
-     - The 4 printed values are reproduced. One (MovieLens 1M at 20) depends on the
-       order of equally popular items. With the popularity passed as ``score``, the two
-       values at 20 are reproduced without assuming an order, and at 10 the input is
-       refused because ties straddle the cutoff.
+     - The 4 printed values are reproduced, assuming ascending identifiers among equally
+       popular items. One (MovieLens 1M at 20) depends on that order: 92.2 with the
+       opposite one. With the popularity passed as ``score`` and no order assumed, the
+       input is refused at 10 and at 20, because ties straddle the cutoff; lists already
+       cut to 20 with the assumed order give the same values at 20 as their ranks.
    * - :func:`~recsyslearn.accuracy.ndcg` with tied scores
      - The toy example of Section 3.2 of [Guo2026]_: one relevant item among 31 tied
        candidates, expected NDCG@10 = 0.1466.
      - The printed value is reproduced, and so is the closed form of the paper's Eq. 2
-       for other sizes of the tie.
+       for other sizes of the tie. The values of the paper's Table 3 (Amazon Beauty) are
+       not: its repository holds only the aggregated results, and the release that
+       should carry the candidates and their scores has no file attached (checked on
+       2026-11-20).
    * - :func:`~recsyslearn.accuracy.ndcg`
      - nDCG@1, 5 and 10 of the most-popular baseline on MovieLens 1M and Pinterest,
        Tables 8 and 9 of [FerrariDacrema2021]_, from the data published with [He2017]_.
@@ -297,9 +307,10 @@ No published result could be reproduced for the following functions.
 * :func:`~recsyslearn.segmentation.by_interaction_count`: the papers found either print
   no group sizes, or do not publish the training set the groups are computed on, or rank
   users by the sum of their ratings rather than by their number of interactions.
-* Novelty and the fairness metrics *with tied scores*: no paper found prints the value
-  expected over the orders of the ties for them. They are checked against the mean
-  over every order, enumerated, on small random data.
+* Novelty and the fairness metrics *with tied scores*: no paper found prints a value
+  for them. Novelty is checked against its mean over every order of the ties,
+  enumerated, on small random data; the group distributions against the expected
+  benefits obtained from the same enumeration.
 * :func:`~recsyslearn.fairness.entropy`: no paper with public data prints it. It is
   covered indirectly: with a uniform target, the divergence reproduced above equals
   :math:`\log_2 n - H`.
