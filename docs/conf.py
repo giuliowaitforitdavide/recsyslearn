@@ -41,6 +41,12 @@ pygments_style = "sphinx"
 html_theme = "pydata_sphinx_theme"
 html_title = "recsyslearn"
 html_theme_options = {
+    "logo": {
+        "image_light": "_static/logo-light.svg",
+        "image_dark": "_static/logo-dark.svg",
+        "text": "recsyslearn",
+        "alt_text": "recsyslearn",
+    },
     "github_url": "https://github.com/giuliowaitforitdavide/recsyslearn",
     "icon_links": [
         {
@@ -61,6 +67,7 @@ html_context = {"default_mode": "auto"}
 # The landing page has no section navigation to show on the left.
 html_sidebars = {"index": []}
 html_static_path = ["_static"]
+html_favicon = "_static/favicon.svg"
 html_css_files = ["custom.css"]
 
 intersphinx_mapping = {

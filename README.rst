@@ -1,3 +1,11 @@
+.. image:: https://raw.githubusercontent.com/giuliowaitforitdavide/recsyslearn/main/docs/_static/logo.svg
+        :alt: recsyslearn logo
+        :width: 96
+        :align: center
+
+.. The documentation includes this file from here: its pages already carry the logo.
+.. after-logo
+
 ===========
 Recsyslearn
 ===========

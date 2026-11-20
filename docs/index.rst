@@ -8,3 +8,4 @@
    Contributing <https://github.com/giuliowaitforitdavide/recsyslearn/blob/main/CONTRIBUTING.md>
 
 .. include:: ../README.rst
+   :start-after: .. after-logo
